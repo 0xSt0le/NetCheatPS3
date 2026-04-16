@@ -132,6 +132,7 @@
     <Compile Include="ConditionalEditor.Designer.cs">
       <DependentUpon>ConditionalEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="CrashLogger.cs" />
     <Compile Include="dumpForm.cs">
       <SubType>Form</SubType>
     </Compile>

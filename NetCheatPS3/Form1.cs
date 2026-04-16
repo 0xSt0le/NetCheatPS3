@@ -600,6 +600,7 @@ namespace NetCheatPS3
         {
             isClosing = true;
             ConstantLoop = 2;
+            codes.ExitConstWriter = true;
             this.statusLabel1.Text = "Disconnected";
             System.IO.File.Delete(dFileName);
 

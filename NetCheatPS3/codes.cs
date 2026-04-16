@@ -13,6 +13,7 @@ namespace NetCheatPS3
         public static string[] splitList;
         public static int cnt = 0;
         public static List<ConstCode> ConstCodes = new List<ConstCode>();
+        public static volatile bool ExitConstWriter = false;
 
         //Struct for the API to constant write codes
         public struct ConstCode
@@ -33,50 +34,61 @@ namespace NetCheatPS3
         public static void BeginConstWriting()
         {
             bool sleepThread = false;
-            while (true)
+
+            while (!ExitConstWriter)
             {
-                if (!Form1.connected)
-                    connected = 0;
-                if (Form1.connected && connected == 0)
-                    connected = ConnectPS3();
-                if (connected == 1 && Form1.attached)
-                    connected = AttachPS3();
-
-                if (Form1.ConstantLoop == 1 && connected == 2)
+                try
                 {
-                    sleepThread = false;
-                    for (int x = 0; x <= Form1.CodesCount; x++)
+                    if (!Form1.connected)
+                        connected = 0;
+                    if (Form1.connected && connected == 0)
+                        connected = ConnectPS3();
+                    if (connected == 1 && Form1.attached)
+                        connected = AttachPS3();
+
+                    if (Form1.ConstantLoop == 1 && connected == 2)
                     {
-                        //Plugin codes
-                        for (int y = 0; y < ConstCodes.Count; y++)
-                        {
-                            try
-                            {
-                                //Make sure the code is valid
-                                if (ConstCodes[y].Codes.state)
-                                    WriteToPS32(ConstCodes[y].Codes, true);
-                                sleepThread |= ConstCodes[y].Codes.state;
-                            }
-                            catch
-                            {
+                        sleepThread = false;
 
+                        for (int x = 0; x <= Form1.CodesCount && !ExitConstWriter; x++)
+                        {
+                            for (int y = 0; y < ConstCodes.Count && !ExitConstWriter; y++)
+                            {
+                                try
+                                {
+                                    if (ConstCodes[y].Codes.state)
+                                        WriteToPS32(ConstCodes[y].Codes, true);
+
+                                    sleepThread |= ConstCodes[y].Codes.state;
+                                }
+                                catch (Exception ex)
+                                {
+                                    CrashLogger.Log("codes.BeginConstWriting.PluginCode", ex);
+                                }
+                            }
+
+                            if (x < Form1.Codes.Count)
+                            {
+                                sleepThread |= Form1.Codes[x].state;
+
+                                if (Form1.Codes[x].state == true && Form1.ConstantLoop == 1)
+                                    WriteToPS32(Form1.Codes[x], true);
+                            }
+                            else
+                            {
+                                sleepThread = true;
                             }
                         }
-
-                        //User codes
-                        if (x < Form1.Codes.Count)
-                        {
-                            sleepThread |= Form1.Codes[x].state;
-                            if (Form1.Codes[x].state == true && Form1.ConstantLoop == 1)
-                                WriteToPS32(Form1.Codes[x], true);
-                        }
-                        else
-                            sleepThread = true;
                     }
-                }
 
-                if (!sleepThread || connected == 0)
+                    if (!sleepThread || connected == 0)
+                        System.Threading.Thread.Sleep(1000);
+                }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("codes.BeginConstWriting", ex);
                     System.Threading.Thread.Sleep(1000);
+                }
             }
         }
 

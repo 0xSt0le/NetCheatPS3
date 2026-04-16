@@ -251,14 +251,30 @@ namespace NetCheatPS3
 
         public void ThreadInitSearch(object[] args)
         {
-            if (codes.ConnectAndAttach(searchMemoryStopProc))
+            bool pausedForScan = false;
+            bool stopped = false;
+
+            try
             {
-                if ((bool)args[5])
+                if (!codes.ConnectAndAttach(searchMemoryStopProc))
+                {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        searchMemory.Text = "Initial Scan";
+                        Form1.Instance.statusLabel1.Text = "Unable to connect or attach to the PS3";
+                        isInitialScan = true;
+                    });
+                    return;
+                }
+
+                pausedForScan = (bool)args[5];
+                if (pausedForScan)
                     Form1.PauseProcess();
 
                 SetProgBar(0);
                 isInitialScan = true;
-                ncSearcher searcher = (ncSearcher)args[0];
+
+                SearchControl.ncSearcher searcher = (SearchControl.ncSearcher)args[0];
                 ulong start = (ulong)args[1];
                 ulong stop = (ulong)args[2];
                 int index = (int)args[3];
@@ -269,47 +285,88 @@ namespace NetCheatPS3
                 searcher.InitialSearch(start, stop, index, passArgs);
                 stopw.Stop();
 
+                stopped = _shouldStopSearch;
 
                 SetProgBar(0);
 
-                if ((bool)args[5])
+                if (pausedForScan)
                     Form1.ContinueProcess();
 
                 Invoke((MethodInvoker)delegate
                 {
-                    searchMemory.Text = "New Scan";
-                    Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
+                    if (stopped)
+                    {
+                        searchMemory.Text = "Initial Scan";
+                        Form1.Instance.statusLabel1.Text = "Scan stopped";
+                        isInitialScan = true;
+                    }
+                    else
+                    {
+                        searchMemory.Text = "New Scan";
+                        Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
+                        isInitialScan = false;
+                    }
                 });
-                isInitialScan = false;
-                _shouldStopSearch = false;
             }
-            else
+            catch (Exception ex)
             {
+                CrashLogger.Log("SearchControl.ThreadInitSearch", ex);
+
                 Invoke((MethodInvoker)delegate
                 {
-                    searchMemory.Text = "New Scan";
-                    Form1.Instance.statusLabel1.Text = "Unable to connect or attach to the PS3";
+                    searchMemory.Text = "Initial Scan";
+                    nextSearchMem.Text = "Next Scan";
+                    Form1.Instance.statusLabel1.Text = "Initial scan crashed. See NetCheatPS3_crash.log";
                     isInitialScan = true;
-                    _shouldStopSearch = false;
                 });
+            }
+            finally
+            {
+                try
+                {
+                    if (pausedForScan && Form1.connected && Form1.attached && Form1.Instance.isProcessStopped())
+                        Form1.ContinueProcess();
+                }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("SearchControl.ThreadInitSearch.Finally", ex);
+                }
+
+                _shouldStopSearch = false;
+                searchThread = null;
             }
         }
 
         void ThreadNextSearch(object[] args)
         {
-            if (codes.ConnectAndAttach(searchMemoryStopProc))
+            bool pausedForScan = false;
+            bool stopped = false;
+
+            try
             {
+                if (!codes.ConnectAndAttach(searchMemoryStopProc))
+                {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        nextSearchMem.Text = "Next Scan";
+                        Form1.Instance.statusLabel1.Text = "Unable to connect or attach to the PS3";
+                    });
+                    return;
+                }
+
                 Invoke((MethodInvoker)delegate
                 {
                     searchListView1.isUsingListA = !searchListView1.isUsingListA;
                     searchListView1.ClearItems();
                 });
 
-                if ((bool)args[3])
+                pausedForScan = (bool)args[3];
+                if (pausedForScan)
                     Form1.PauseProcess();
 
                 SetProgBar(0);
-                ncSearcher searcher = (ncSearcher)args[0];
+
+                SearchControl.ncSearcher searcher = (SearchControl.ncSearcher)args[0];
                 SearchListView.SearchListViewItem[] items = (SearchListView.SearchListViewItem[])args[1];
 
                 System.Diagnostics.Stopwatch stopw = new System.Diagnostics.Stopwatch();
@@ -317,27 +374,47 @@ namespace NetCheatPS3
                 searcher.NextSearch(items, (string[])args[2]);
                 stopw.Stop();
 
-                items = null;
-                SetProgBar(0);
-                _shouldStopSearch = false;
+                stopped = _shouldStopSearch;
 
-                if ((bool)args[3])
+                SetProgBar(0);
+
+                if (pausedForScan)
                     Form1.ContinueProcess();
 
                 Invoke((MethodInvoker)delegate
                 {
                     nextSearchMem.Text = "Next Scan";
-                    Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
+
+                    if (stopped)
+                        Form1.Instance.statusLabel1.Text = "Scan stopped";
+                    else
+                        Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
                 });
             }
-            else
+            catch (Exception ex)
             {
+                CrashLogger.Log("SearchControl.ThreadNextSearch", ex);
+
                 Invoke((MethodInvoker)delegate
                 {
                     nextSearchMem.Text = "Next Scan";
-                    Form1.Instance.statusLabel1.Text = "Unable to connect or attach to the PS3";
-                    _shouldStopSearch = false;
+                    Form1.Instance.statusLabel1.Text = "Next scan crashed. See NetCheatPS3_crash.log";
                 });
+            }
+            finally
+            {
+                try
+                {
+                    if (pausedForScan && Form1.connected && Form1.attached && Form1.Instance.isProcessStopped())
+                        Form1.ContinueProcess();
+                }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("SearchControl.ThreadNextSearch.Finally", ex);
+                }
+
+                _shouldStopSearch = false;
+                searchThread = null;
             }
         }
 
