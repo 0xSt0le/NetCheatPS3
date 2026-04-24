@@ -304,6 +304,7 @@ namespace NetCheatPS3
                 stopw.Start();
                 searcher.InitialSearch(start, stop, index, passArgs);
                 stopw.Stop();
+                CaptureLastScanStats("Initial Scan", stopw.ElapsedMilliseconds, start, stop);
 
                 stopped = _shouldStopSearch;
 
@@ -393,6 +394,7 @@ namespace NetCheatPS3
                 stopw.Start();
                 searcher.NextSearch(items, (string[])args[2]);
                 stopw.Stop();
+                CaptureLastScanStatsFromUi("Next Scan", stopw.ElapsedMilliseconds);
 
                 stopped = _shouldStopSearch;
 

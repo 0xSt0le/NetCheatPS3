@@ -283,6 +283,9 @@ namespace NetCheatPS3
             sb.AppendLine("Uses new scanner: " + activeScanUsesNewEngine);
             sb.AppendLine("Active scan little-endian: " + activeScanLittleEndian);
             sb.AppendLine();
+            sb.AppendLine("Last scan speed:");
+            AppendLastScanSpeedDiagnostics(sb);
+            sb.AppendLine();
             sb.AppendLine("Memory reads:");
             sb.AppendLine("Last activity: " + MemoryReader.LastActivity);
             sb.AppendLine("Read attempts: " + readStats.ReadAttempts.ToString("N0"));
