@@ -2078,76 +2078,460 @@ namespace NetCheatPS3
                 MessageBox.Show("Not yet connected!");
             */
         }
+        private volatile bool findRangesCancel = false;
+        private System.Threading.Thread findRangesThread = null;
 
-        bool findRangesCancel = false;
-        private void findRanges_Click(object sender, EventArgs e)
+        private const ulong RangeFinderBlockSize = 0x10000;
+        private const ulong RangeFinderProbeStep = 0x100000;
+        private const int RangeFinderUiStepProbes = 32;
+
+        private sealed class RangeFinderBand
         {
-            if (!connected)
+            public ulong Start;
+            public ulong End;
+            public string Name;
+
+            public RangeFinderBand(ulong start, ulong end, string name)
             {
-                MessageBox.Show("Not connected to the PS3!");
+                Start = start;
+                End = end;
+                Name = name;
+            }
+        }
+
+        private sealed class RangeFinderRange
+        {
+            public ulong Start;
+            public ulong End;
+
+            public RangeFinderRange(ulong start, ulong end)
+            {
+                Start = start;
+                End = end;
+            }
+        }
+
+        private RangeFinderBand[] GetSmartRangeFinderBands(bool fullScan)
+        {
+            if (fullScan)
+            {
+                return new RangeFinderBand[]
+                {
+                    new RangeFinderBand(0x00000000, 0x100000000, "Full 32-bit process space")
+                };
+            }
+
+            return new RangeFinderBand[]
+            {
+                // Native PS3 titles normally expose the useful process memory in low 32-bit virtual space.
+                // This also includes the traditional 00010000-04000000 NetCheat style ranges.
+                new RangeFinderBand(0x00000000, 0x10000000, "Primary native PS3 process space"),
+
+                // PS2 Classics / emulator-backed targets often expose EE-style mirrors here.
+                // This includes 0x20000000, where Jak PS2 values commonly show up.
+                new RangeFinderBand(0x10000000, 0x34000000, "High process / PS2 Classics mirror space"),
+
+                // PS2 EE scratchpad virtual region. Tiny, but cheap to test.
+                new RangeFinderBand(0x70000000, 0x70010000, "PS2 scratchpad virtual space")
+            };
+        }
+
+        private ulong AlignDown(ulong value, ulong alignment)
+        {
+            if (alignment == 0)
+                return value;
+            return value - (value % alignment);
+        }
+
+        private ulong AlignUp(ulong value, ulong alignment)
+        {
+            if (alignment == 0)
+                return value;
+            ulong mod = value % alignment;
+            if (mod == 0)
+                return value;
+            return value + (alignment - mod);
+        }
+
+        private bool TryReadRangeBlock(ulong addr, byte[] block, ref long readOk, ref long readFailed)
+        {
+            bool validRegion = false;
+
+            try
+            {
+                validRegion = apiGetMem(addr, ref block);
+            }
+            catch (Exception ex)
+            {
+                try { CrashLogger.Log("Form1.TryReadRangeBlock.apiGetMem @0x" + addr.ToString("X8"), ex); } catch { }
+                validRegion = false;
+            }
+
+            if (validRegion)
+                readOk++;
+            else
+                readFailed++;
+
+            return validRegion;
+        }
+
+        private void AddOrMergeRange(List<RangeFinderRange> ranges, ulong start, ulong end)
+        {
+            if (end <= start)
+                return;
+
+            for (int i = 0; i < ranges.Count; i++)
+            {
+                RangeFinderRange r = ranges[i];
+
+                if (end < r.Start || start > r.End)
+                    continue;
+
+                if (start < r.Start)
+                    r.Start = start;
+                if (end > r.End)
+                    r.End = end;
+
+                // Merge any following ranges that now overlap/abut.
+                for (int j = ranges.Count - 1; j >= 0; j--)
+                {
+                    if (j == i)
+                        continue;
+
+                    RangeFinderRange other = ranges[j];
+                    if (other.End < r.Start || other.Start > r.End)
+                        continue;
+
+                    if (other.Start < r.Start)
+                        r.Start = other.Start;
+                    if (other.End > r.End)
+                        r.End = other.End;
+
+                    ranges.RemoveAt(j);
+                    if (j < i)
+                        i--;
+                }
+
                 return;
             }
 
-            if (findRanges.Text == "Stop")
+            ranges.Add(new RangeFinderRange(start, end));
+        }
+
+        private bool IsInsideKnownRange(List<RangeFinderRange> ranges, ulong addr)
+        {
+            for (int i = 0; i < ranges.Count; i++)
             {
-                findRangesCancel = true;
+                if (addr >= ranges[i].Start && addr < ranges[i].End)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void SetFindRangesUiState(bool scanning, int progressValue, int progressMax, string statusText)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    SetFindRangesUiState(scanning, progressValue, progressMax, statusText);
+                });
                 return;
             }
 
+            if (progressMax <= 0)
+                progressMax = 1;
+
+            findRanges.Text = scanning ? "Stop" : "Find Ranges";
+            findRangeProgBar.Maximum = progressMax;
+
+            if (progressValue < 0)
+                progressValue = 0;
+            if (progressValue > progressMax)
+                progressValue = progressMax;
+
+            findRangeProgBar.Value = progressValue;
+            statusLabel1.Text = statusText;
+        }
+
+        private void FinishFindRangesUi(ListViewItem[] ranges, bool cancelled, long readOk, long readFailed, bool fullScan)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    FinishFindRangesUi(ranges, cancelled, readOk, readFailed, fullScan);
+                });
+                return;
+            }
+
+            rangeView.BeginUpdate();
             rangeView.Items.Clear();
 
-            ulong findAddr = 0;
-            ulong blockSize = 0x10000;
-            findRanges.Text = "Stop";
-            bool inMemRange = false;
-            findRangeProgBar.Maximum = 4096;
+            if (ranges != null && ranges.Length > 0)
+                rangeView.Items.AddRange(ranges);
 
-            ulong blockStart = 0;
+            rangeView.EndUpdate();
 
-            for (findAddr = 0; findAddr < 0xFFFFFFFC; findAddr += blockSize)
-            {
-                if (findRangesCancel)
-                    break;
+            UpdateMemArray();
 
-                if ((findAddr % 0x100000) == 0)
-                {
-                    statusLabel1.Text = "Scanning memory at 0x" + findAddr.ToString("X8");
-                    findRangeProgBar.Increment(1);
-                    Application.DoEvents();
-                }
-
-                byte[] ret = new byte[blockSize];
-                bool validRegion = apiGetMem(findAddr, ref ret);
-
-                //Start new mem block
-                if (validRegion && !inMemRange)
-                {
-                    blockStart = findAddr;
-                    inMemRange = true;
-                }
-                //Add block
-                else if (!validRegion && inMemRange)
-                {
-                    string[] str = new string[2];
-                    str[0] = blockStart.ToString("X8");
-                    str[1] = findAddr.ToString("X8");
-                    ListViewItem strLV = new ListViewItem(str);
-                    rangeView.Items.Add(strLV);
-                    inMemRange = false;
-                }
-            }
-
-            findRangesCancel = false;
             findRanges.Text = "Find Ranges";
             findRangeProgBar.Value = 0;
 
-            //Update range array
-            UpdateMemArray();
-            if (misc.MemArray != null || misc.MemArray.Length > 0)
-                MessageBox.Show("Find Ranges Completed!\nUnderstand that the range finder searches in blocks of 0x10000.\nThis may cause the ranges to be off by a value from 1 to 0xFFFF.");
+            string modeText = fullScan ? "Full adaptive" : "Smart adaptive";
+            if (cancelled)
+            {
+                statusLabel1.Text = "Find Ranges stopped | " + modeText + " | OK: " + readOk.ToString("N0") + " | Failed: " + readFailed.ToString("N0");
+            }
+            else
+            {
+                statusLabel1.Text = "Find Ranges completed | " + modeText + " | Ranges: " +
+                                    (ranges == null ? 0 : ranges.Length).ToString("N0") +
+                                    " | OK: " + readOk.ToString("N0") +
+                                    " | Failed: " + readFailed.ToString("N0");
+            }
+
+            if (!cancelled)
+            {
+                MessageBox.Show(
+                    "Find Ranges completed.\r\n\r\n" +
+                    "Mode: " + modeText + "\r\n" +
+                    "Ranges found: " + (ranges == null ? 0 : ranges.Length).ToString("N0") + "\r\n" +
+                    "Readable probes/blocks: " + readOk.ToString("N0") + "\r\n" +
+                    "Failed probes/blocks: " + readFailed.ToString("N0") + "\r\n\r\n" +
+                    "Smart mode scans likely PS3/PS2 process address bands first and avoids a blind 4 GB sweep.\r\n" +
+                    "Shift-click Find Ranges to force a full adaptive 32-bit scan.",
+                    "NetCheatPS3",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void RefineReadableRangeAroundProbe(ulong probeAddr, ulong bandStart, ulong bandEnd, byte[] block, List<RangeFinderRange> foundRanges, ref long readOk, ref long readFailed)
+        {
+            ulong start = probeAddr;
+            ulong end = probeAddr + RangeFinderBlockSize;
+
+            // Walk backward block-by-block until the readable area starts.
+            while (start >= bandStart + RangeFinderBlockSize)
+            {
+                ulong prev = start - RangeFinderBlockSize;
+                if (!TryReadRangeBlock(prev, block, ref readOk, ref readFailed))
+                    break;
+                start = prev;
+            }
+
+            // Walk forward block-by-block until the readable area ends.
+            ulong cur = probeAddr + RangeFinderBlockSize;
+            while (cur < bandEnd)
+            {
+                if (IsInsideKnownRange(foundRanges, cur))
+                {
+                    cur += RangeFinderBlockSize;
+                    continue;
+                }
+
+                if (!TryReadRangeBlock(cur, block, ref readOk, ref readFailed))
+                    break;
+
+                end = cur + RangeFinderBlockSize;
+                cur += RangeFinderBlockSize;
+            }
+
+            if (end > bandEnd)
+                end = bandEnd;
+
+            AddOrMergeRange(foundRanges, start, end);
+        }
+
+        private void ScanRangeFinderBand(RangeFinderBand band, byte[] block, List<RangeFinderRange> foundRanges, ref long readOk, ref long readFailed, ref int progress, int progressMax)
+        {
+            ulong bandStart = AlignDown(band.Start, RangeFinderBlockSize);
+            ulong bandEnd = AlignUp(band.End, RangeFinderBlockSize);
+            if (bandEnd <= bandStart)
+                return;
+
+            // Two offsets catch ranges that sit between 1 MB probe boundaries without doing a true 64 KB deep sweep.
+            ulong[] offsets = new ulong[] { 0, RangeFinderProbeStep / 2 };
+
+            for (int pass = 0; pass < offsets.Length; pass++)
+            {
+                ulong addr = bandStart + offsets[pass];
+                if (addr >= bandEnd)
+                    continue;
+
+                addr = AlignDown(addr, RangeFinderBlockSize);
+
+                for (; addr < bandEnd; addr += RangeFinderProbeStep)
+                {
+                    if (findRangesCancel)
+                        return;
+
+                    if (IsInsideKnownRange(foundRanges, addr))
+                    {
+                        progress++;
+                        continue;
+                    }
+
+                    bool valid = TryReadRangeBlock(addr, block, ref readOk, ref readFailed);
+
+                    if (valid)
+                    {
+                        RefineReadableRangeAroundProbe(addr, bandStart, bandEnd, block, foundRanges, ref readOk, ref readFailed);
+                    }
+
+                    progress++;
+
+                    if ((progress % RangeFinderUiStepProbes) == 0)
+                    {
+                        SetFindRangesUiState(
+                            true,
+                            progress,
+                            progressMax,
+                            "Smart range scan: " + band.Name + " @ 0x" + addr.ToString("X8") +
+                            " | Ranges: " + foundRanges.Count.ToString("N0") +
+                            " | OK: " + readOk.ToString("N0") +
+                            " | Failed: " + readFailed.ToString("N0"));
+                    }
+                }
+            }
+        }
+
+        private int EstimateRangeFinderProgressMax(RangeFinderBand[] bands)
+        {
+            long total = 0;
+
+            for (int i = 0; i < bands.Length; i++)
+            {
+                ulong size = bands[i].End > bands[i].Start ? bands[i].End - bands[i].Start : 0;
+                total += (long)((size + RangeFinderProbeStep - 1) / RangeFinderProbeStep) * 2;
+            }
+
+            if (total <= 0)
+                total = 1;
+            if (total > Int32.MaxValue)
+                total = Int32.MaxValue;
+
+            return (int)total;
+        }
+
+        private ListViewItem[] ConvertRangesToListViewItems(List<RangeFinderRange> ranges)
+        {
+            ranges.Sort(delegate(RangeFinderRange a, RangeFinderRange b)
+            {
+                if (a.Start < b.Start)
+                    return -1;
+                if (a.Start > b.Start)
+                    return 1;
+                return 0;
+            });
+
+            List<ListViewItem> items = new List<ListViewItem>(ranges.Count);
+
+            for (int i = 0; i < ranges.Count; i++)
+            {
+                string[] rangeText = new string[2];
+                rangeText[0] = ranges[i].Start.ToString("X8");
+                rangeText[1] = ranges[i].End.ToString("X8");
+                items.Add(new ListViewItem(rangeText));
+            }
+
+            return items.ToArray();
+        }
+
+        private void FindRangesWorker(object workerArg)
+        {
+            bool fullScan = workerArg is bool && (bool)workerArg;
+            bool cancelled = false;
+            long readOk = 0;
+            long readFailed = 0;
+
+            List<RangeFinderRange> foundRanges = new List<RangeFinderRange>(32);
+
+            try
+            {
+                bool wasStopped = false;
+                try
+                {
+                    wasStopped = isProcessStopped();
+                }
+                catch
+                {
+                    wasStopped = false;
+                }
+
+                if (!codes.ConnectAndAttach(wasStopped))
+                {
+                    SetFindRangesUiState(false, 0, 1, "Find Ranges failed: unable to connect/attach");
+                    return;
+                }
+
+                RangeFinderBand[] bands = GetSmartRangeFinderBands(fullScan);
+                int progressMax = EstimateRangeFinderProgressMax(bands);
+                int progress = 0;
+
+                byte[] block = new byte[RangeFinderBlockSize];
+
+                SetFindRangesUiState(true, 0, progressMax, fullScan ? "Starting full adaptive range scan..." : "Starting smart adaptive range scan...");
+
+                for (int i = 0; i < bands.Length; i++)
+                {
+                    if (findRangesCancel)
+                    {
+                        cancelled = true;
+                        break;
+                    }
+
+                    ScanRangeFinderBand(bands[i], block, foundRanges, ref readOk, ref readFailed, ref progress, progressMax);
+                }
+
+                if (findRangesCancel)
+                    cancelled = true;
+
+                FinishFindRangesUi(ConvertRangesToListViewItems(foundRanges), cancelled, readOk, readFailed, fullScan);
+            }
+            catch (Exception ex)
+            {
+                try { CrashLogger.Log("Form1.FindRangesWorker", ex); } catch { }
+                SetFindRangesUiState(false, 0, 1, "Find Ranges crashed. See NetCheatPS3_crash.log");
+            }
+            finally
+            {
+                findRangesCancel = false;
+                findRangesThread = null;
+            }
+        }
+
+        private void findRanges_Click(object sender, EventArgs e)
+        {
+            if (curAPI == null)
+            {
+                MessageBox.Show("No API selected!");
+                return;
+            }
+
+            if (findRangesThread != null && findRangesThread.IsAlive)
+            {
+                findRangesCancel = true;
+                statusLabel1.Text = "Stopping Find Ranges...";
+                return;
+            }
+
+            bool fullScan = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+
+            findRangesCancel = false;
+            rangeView.Items.Clear();
+            UpdateMemArray();
+
+            SetFindRangesUiState(true, 0, 1, fullScan ? "Starting full adaptive range scan..." : "Starting smart adaptive range scan...");
+
+            findRangesThread = new System.Threading.Thread(new System.Threading.ParameterizedThreadStart(FindRangesWorker));
+            findRangesThread.IsBackground = true;
+            findRangesThread.Priority = System.Threading.ThreadPriority.BelowNormal;
+            findRangesThread.Start(fullScan);
+        }
+private void button1_Click(object sender, EventArgs e)
         {
 
         }
@@ -2871,3 +3255,4 @@ namespace NetCheatPS3
 
     }
 }
+
