@@ -2346,6 +2346,190 @@ namespace NetCheatPS3
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
 
+        private ulong NewScanner_ToUnsignedInteger(byte[] valueBytes, int byteSize)
+        {
+            if (valueBytes == null || valueBytes.Length < byteSize)
+                return 0;
+
+            ulong raw = 0;
+            for (int i = 0; i < byteSize; i++)
+                raw = (raw << 8) | valueBytes[i];
+
+            return raw;
+        }
+
+        private bool NewScanner_AreDoublesClose(double a, double b)
+        {
+            double diff = Math.Abs(a - b);
+            double scale = Math.Max(1.0, Math.Max(Math.Abs(a), Math.Abs(b)));
+            return diff <= (scale * 0.000001);
+        }
+
+        private bool NewScanner_IsDeltaMatch(byte[] previousValue, byte[] currentValue, byte[] deltaValue, int typeIndex, bool increased)
+        {
+            if (previousValue == null || currentValue == null || deltaValue == null)
+                return false;
+
+            ncSearchType type = SearchTypes[typeIndex];
+            string typeName = type.Name;
+
+            if (typeName == "Float")
+            {
+                float oldFloat = NewScanner_ToFloat(previousValue);
+                float newFloat = NewScanner_ToFloat(currentValue);
+                float deltaFloat = NewScanner_ToFloat(deltaValue);
+
+                if (float.IsNaN(oldFloat) || float.IsNaN(newFloat) || float.IsNaN(deltaFloat))
+                    return false;
+
+                double actual = increased ? (newFloat - oldFloat) : (oldFloat - newFloat);
+                if (actual < 0.0)
+                    return false;
+
+                return NewScanner_AreDoublesClose(actual, deltaFloat);
+            }
+
+            if (typeName == "Double")
+            {
+                double oldDouble = NewScanner_ToDouble(previousValue);
+                double newDouble = NewScanner_ToDouble(currentValue);
+                double deltaDouble = NewScanner_ToDouble(deltaValue);
+
+                if (double.IsNaN(oldDouble) || double.IsNaN(newDouble) || double.IsNaN(deltaDouble))
+                    return false;
+
+                double actual = increased ? (newDouble - oldDouble) : (oldDouble - newDouble);
+                if (actual < 0.0)
+                    return false;
+
+                return NewScanner_AreDoublesClose(actual, deltaDouble);
+            }
+
+            ulong oldInt = NewScanner_ToUnsignedInteger(previousValue, type.ByteSize);
+            ulong newInt = NewScanner_ToUnsignedInteger(currentValue, type.ByteSize);
+            ulong deltaInt = NewScanner_ToUnsignedInteger(deltaValue, type.ByteSize);
+
+            if (increased)
+            {
+                if (newInt < oldInt)
+                    return false;
+
+                return (newInt - oldInt) == deltaInt;
+            }
+            else
+            {
+                if (oldInt < newInt)
+                    return false;
+
+                return (oldInt - newInt) == deltaInt;
+            }
+        }
+
+        private void RunNewDeltaNextSearch(SearchListView.SearchListViewItem[] old, string[] args, bool increased)
+        {
+            if (old == null || old.Length == 0 || args == null || args.Length == 0)
+            {
+                SetProgBarMax(1);
+                SetProgBar(0);
+                SetStatusLabel("Results: 0");
+
+                Invoke((MethodInvoker)delegate
+                {
+                    searchListView1.AddItemsFromList();
+                });
+
+                return;
+            }
+
+            SetProgBarMax(old.Length - 1);
+            SetProgBar(0);
+
+            ClearItems();
+
+            MemoryReader reader = new MemoryReader();
+            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
+            ulong cachedBlockBase = 0;
+            bool cachedBlockValid = false;
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int resCnt = 0;
+
+            byte[] deltaValue = null;
+            int deltaAlign = -1;
+
+            for (int cnt = 0; cnt < old.Length; cnt++)
+            {
+                if (_shouldStopSearch)
+                    break;
+
+                SearchListView.SearchListViewItem oldItem = old[cnt];
+                ncSearchType type = SearchTypes[oldItem.align];
+                int byteSize = type.ByteSize;
+
+                if (byteSize <= 0)
+                    continue;
+
+                if (deltaValue == null || deltaAlign != oldItem.align)
+                {
+                    deltaValue = type.ToByteArray((string)args[0]);
+                    deltaAlign = oldItem.align;
+                }
+
+                byte[] currentRaw;
+                bool readOk = NewScanner_TryReadCurrentRawValue(
+                    reader,
+                    oldItem.addr,
+                    byteSize,
+                    ref cachedBlockBase,
+                    ref cachedBlock,
+                    ref cachedBlockValid,
+                    out currentRaw);
+
+                if (!readOk)
+                    continue;
+
+                byte[] currentValue = NewScanner_RawBytesToValue(currentRaw, byteSize);
+
+                if (NewScanner_IsDeltaMatch(oldItem.newVal, currentValue, deltaValue, oldItem.align, increased))
+                {
+                    SearchListView.SearchListViewItem newItem = oldItem;
+                    newItem.oldVal = oldItem.newVal;
+                    newItem.newVal = currentValue;
+                    batch.Add(newItem);
+                    resCnt++;
+
+                    if (batch.Count >= 512)
+                    {
+                        AddResultRange(batch);
+                        batch.Clear();
+                    }
+                }
+
+                if ((cnt & 0x3FF) == 0)
+                {
+                    SetProgBar(cnt);
+                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar(old.Length - 1);
+            SetStatusLabel(
+                "Results: " + resCnt.ToString("N0") +
+                " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
+                " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
+        }
+
         void EqualTo_InitSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
         {
             if (CanUseNewExactEqualSearch(typeIndex))
@@ -3035,6 +3219,12 @@ namespace NetCheatPS3
 
         void IncreasedBy_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
+            {
+                RunNewDeltaNextSearch(old, args, true);
+                return;
+            }
+
             standardIncDec_NextSearch(old, args, Form1.compINC);
         }
 
@@ -3051,6 +3241,12 @@ namespace NetCheatPS3
 
         void DecreasedBy_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
+            {
+                RunNewDeltaNextSearch(old, args, false);
+                return;
+            }
+
             standardIncDec_NextSearch(old, args, Form1.compDEC);
         }
 
