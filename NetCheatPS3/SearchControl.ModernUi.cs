@@ -278,6 +278,15 @@ namespace NetCheatPS3
 
             if (exactBlockSizeBox != null)
                 exactBlockSizeBox.Enabled = !locked;
+
+            if (noNegativeCB != null)
+                noNegativeCB.Enabled = !locked;
+
+            if (noZeroCB != null)
+                noZeroCB.Enabled = !locked;
+
+            if (cleanFloatCB != null)
+                cleanFloatCB.Enabled = !locked;
         }
 
         public void SetScanRange(ulong start, ulong stop)
@@ -380,6 +389,10 @@ namespace NetCheatPS3
             sb.AppendLine("Pause When Scanning: " + (searchPWS.Visible && searchPWS.Checked));
             sb.AppendLine("Little Endian selected: " + (littleEndianCB != null && littleEndianCB.Checked));
             sb.AppendLine("Little Endian locked: " + (littleEndianCB != null && !littleEndianCB.Enabled));
+            sb.AppendLine("Block size locked: " + (exactBlockSizeBox != null && !exactBlockSizeBox.Enabled));
+            sb.AppendLine("No Negative locked: " + (noNegativeCB != null && !noNegativeCB.Enabled));
+            sb.AppendLine("No Zero locked: " + (noZeroCB != null && !noZeroCB.Enabled));
+            sb.AppendLine("Clean Float locked: " + (cleanFloatCB != null && !cleanFloatCB.Enabled));
             sb.AppendLine();
             sb.AppendLine("Start: 0x" + startAddrTB.Text);
             sb.AppendLine("Stop:  0x" + stopAddrTB.Text);
