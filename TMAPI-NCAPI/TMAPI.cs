@@ -374,7 +374,7 @@ namespace TMAPI_NCAPI
         private static bool _assemblyResolverErrorShown = false;
         private static readonly object _assemblyResolverLock = new object();
         ///<summary>Load the PS3 API for use with your Application .NET.</summary>
-                                        public Assembly PS3TMAPI_NET()
+                                                        public Assembly PS3TMAPI_NET()
         {
             if (LoadApi != null)
                 return LoadApi;

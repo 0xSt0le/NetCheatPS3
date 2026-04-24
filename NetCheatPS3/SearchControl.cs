@@ -4607,7 +4607,8 @@ namespace NetCheatPS3
         {
             InitializeComponent();
 
-            Instance = this;
+            
+            this.Load += delegate { InitializeModernSearchUi(); };Instance = this;
 
             littleEndianCB = new CheckBox();
             littleEndianCB.AutoSize = true;

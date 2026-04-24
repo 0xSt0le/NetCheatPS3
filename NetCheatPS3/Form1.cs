@@ -84,7 +84,7 @@ namespace NetCheatPS3
         public const int MaxRes = 10000; /* Max number of results */
         public static ulong SchResCnt = 0; /* Number of results */
         public static int NextSAlign = 0; /* Initial Search sets this to the current alignment */
-        public static bool ValHex = true; /* Determines whether the value is in hex or not */
+        public static bool ValHex = false; /* Determines whether the value is in hex or not */
         public static bool NewSearch = true; /* When true, Initial Scan will show */
         public static int CancelSearch = 0; /* When 1 the search will cancel, 2 = stop */
         public static ulong GlobAlign = 0; /* Alignment */
@@ -513,7 +513,8 @@ namespace NetCheatPS3
         {
             InitializeComponent();
 
-            Instance = this;
+            
+            InitializeModernRangeUi();Instance = this;
             compare.LoadSearch();
 
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_Closing);
