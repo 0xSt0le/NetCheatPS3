@@ -4,7 +4,7 @@ namespace NetCheatPS3.Scanner
 {
     internal static class ExactScanner
     {
-        public const int DefaultBlockSize = 0x10000;
+        public const int DefaultBlockSize = 0x40000;
 
         public static void Scan(
             ExactScanRequest request,

@@ -282,6 +282,7 @@ namespace NetCheatPS3
             sb.AppendLine("Visible/list results: " + searchListView1.TotalCount.ToString("N0"));
             sb.AppendLine("Uses new scanner: " + activeScanUsesNewEngine);
             sb.AppendLine("Active scan little-endian: " + activeScanLittleEndian);
+            sb.AppendLine("Exact scanner block size: 0x" + ExactScanner.DefaultBlockSize.ToString("X") + " (" + (ExactScanner.DefaultBlockSize / 1024).ToString("N0") + " KB)");
             sb.AppendLine();
             sb.AppendLine("Last scan speed:");
             AppendLastScanSpeedDiagnostics(sb);
