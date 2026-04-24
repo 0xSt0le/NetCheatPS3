@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using NetCheatPS3.Scanner;
 
 namespace NetCheatPS3
 {
@@ -258,6 +259,8 @@ namespace NetCheatPS3
 
         private void ShowScanDiagnostics()
         {
+            MemoryReadStats readStats = MemoryReader.LastCompletedStats;
+
             StringBuilder sb = new StringBuilder();
 
             sb.AppendLine("Scan Diagnostics");
@@ -279,6 +282,20 @@ namespace NetCheatPS3
             sb.AppendLine("Visible/list results: " + searchListView1.TotalCount.ToString("N0"));
             sb.AppendLine("Uses new scanner: " + activeScanUsesNewEngine);
             sb.AppendLine("Active scan little-endian: " + activeScanLittleEndian);
+            sb.AppendLine();
+            sb.AppendLine("Memory reads:");
+            sb.AppendLine("Last activity: " + MemoryReader.LastActivity);
+            sb.AppendLine("Read attempts: " + readStats.ReadAttempts.ToString("N0"));
+            sb.AppendLine("Read OK: " + readStats.ReadSuccesses.ToString("N0"));
+            sb.AppendLine("Read failed: " + readStats.ReadFailures.ToString("N0"));
+            sb.AppendLine("Bytes requested: " + readStats.BytesRequested.ToString("N0"));
+            sb.AppendLine("Bytes read OK: " + readStats.BytesRead.ToString("N0"));
+            sb.AppendLine("Full block OK: " + readStats.FullBlockSuccesses.ToString("N0"));
+            sb.AppendLine("Full block failed: " + readStats.FullBlockFailures.ToString("N0"));
+            sb.AppendLine("Fallback splits: " + readStats.FallbackSplits.ToString("N0"));
+            sb.AppendLine("Fallback segment OK: " + readStats.FallbackSegmentSuccesses.ToString("N0"));
+            sb.AppendLine("Fallback segment failed: " + readStats.FallbackSegmentFailures.ToString("N0"));
+            sb.AppendLine("Partial blocks recovered: " + readStats.PartialBlocksRecovered.ToString("N0"));
             sb.AppendLine();
             sb.AppendLine("Snapshot active: " + HasActiveSnapshot());
             sb.AppendLine("Snapshot count: " + activeSnapshotResultCount.ToString("N0"));

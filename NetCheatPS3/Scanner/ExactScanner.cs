@@ -38,7 +38,10 @@ namespace NetCheatPS3.Scanner
             for (ulong addr = request.Start; addr < request.Stop; addr += (ulong)request.BlockSize, blockIndex++)
             {
                 if (shouldStop != null && shouldStop())
+                {
+                    reader.PublishStats("Exact scan stopped by user");
                     return;
+                }
 
                 int usable = (int)Math.Min((ulong)request.BlockSize, request.Stop - addr);
                 if (usable <= 0)
@@ -65,6 +68,8 @@ namespace NetCheatPS3.Scanner
                 if (onBlockScanned != null)
                     onBlockScanned(blockIndex);
             }
+
+            reader.PublishStats("Exact scan completed");
         }
 
         private static void ScanReadableSegment(

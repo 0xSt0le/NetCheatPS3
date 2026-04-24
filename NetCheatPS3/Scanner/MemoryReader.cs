@@ -8,6 +8,10 @@ namespace NetCheatPS3.Scanner
         private const int FallbackRetryCount = 1;
         private const int DefaultMinFallbackSegmentSize = 0x1000;
 
+        private static readonly object LastStatsLock = new object();
+        private static MemoryReadStats lastCompletedStats = new MemoryReadStats();
+        private static string lastActivity = "No MemoryReader activity yet";
+
         public MemoryReadStats Stats { get; private set; }
 
         public bool EnableSegmentFallback { get; set; }
@@ -18,6 +22,38 @@ namespace NetCheatPS3.Scanner
             Stats = new MemoryReadStats();
             EnableSegmentFallback = true;
             MinFallbackSegmentSize = DefaultMinFallbackSegmentSize;
+            PublishStats("MemoryReader created");
+        }
+
+        public static MemoryReadStats LastCompletedStats
+        {
+            get
+            {
+                lock (LastStatsLock)
+                {
+                    return lastCompletedStats.Clone();
+                }
+            }
+        }
+
+        public static string LastActivity
+        {
+            get
+            {
+                lock (LastStatsLock)
+                {
+                    return lastActivity;
+                }
+            }
+        }
+
+        public void PublishStats(string activity)
+        {
+            lock (LastStatsLock)
+            {
+                lastCompletedStats = Stats.Clone();
+                lastActivity = activity == null ? "" : activity;
+            }
         }
 
         public bool TryReadBlock(ulong addr, byte[] buffer)
@@ -25,15 +61,15 @@ namespace NetCheatPS3.Scanner
             if (buffer == null || buffer.Length == 0)
                 return false;
 
-            Stats.FullBlockFailures++;
-
             if (TryReadRaw(addr, buffer, 0, buffer.Length, RetryCount))
             {
-                Stats.FullBlockFailures--;
                 Stats.FullBlockSuccesses++;
+                PublishStats("Last full block read OK at 0x" + addr.ToString("X8"));
                 return true;
             }
 
+            Stats.FullBlockFailures++;
+            PublishStats("Last full block read FAILED at 0x" + addr.ToString("X8"));
             return false;
         }
 
@@ -48,11 +84,15 @@ namespace NetCheatPS3.Scanner
             if (TryReadBlock(addr, buffer))
             {
                 onSegment(0, buffer.Length);
+                PublishStats("Read full block at 0x" + addr.ToString("X8"));
                 return 1;
             }
 
             if (!EnableSegmentFallback)
+            {
+                PublishStats("Full block failed, fallback disabled at 0x" + addr.ToString("X8"));
                 return 0;
+            }
 
             int minSegment = MinFallbackSegmentSize;
             if (minSegment <= 0)
@@ -61,6 +101,10 @@ namespace NetCheatPS3.Scanner
             int recoveredSegments = ReadSegmentsBySplitting(addr, buffer, 0, buffer.Length, minSegment, onSegment);
             if (recoveredSegments > 0)
                 Stats.PartialBlocksRecovered++;
+
+            PublishStats(
+                "Read segments at 0x" + addr.ToString("X8") +
+                " recovered=" + recoveredSegments.ToString("N0"));
 
             return recoveredSegments;
         }
@@ -83,9 +127,6 @@ namespace NetCheatPS3.Scanner
                 return 0;
             }
 
-            // Try the current smaller segment once before splitting again.
-            // The original full block was already tried by TryReadBlock(), so this mainly
-            // catches cases where a 64 KB read fails but a 32 KB/16 KB read succeeds.
             if (count < buffer.Length && TryReadRaw(baseAddr + (ulong)offset, buffer, offset, count, FallbackRetryCount))
             {
                 Stats.FallbackSegmentSuccesses++;
