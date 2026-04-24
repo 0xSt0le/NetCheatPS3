@@ -512,7 +512,7 @@ namespace NetCheatPS3
 
                     _shouldStopSearch = false;
                     activeScanUsesNewEngine = false;
-                    activeScanLittleEndian = littleEndianCB != null && littleEndianCB.Checked;
+                    activeScanLittleEndian = IsLittleEndianModeChecked();
 
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
                     ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
@@ -1863,6 +1863,28 @@ namespace NetCheatPS3
             });
         }
 
+        private bool IsLittleEndianModeChecked()
+        {
+            if (littleEndianCB == null)
+                return false;
+
+            bool result = false;
+
+            if (littleEndianCB.InvokeRequired)
+            {
+                littleEndianCB.Invoke((MethodInvoker)delegate
+                {
+                    result = littleEndianCB.Checked;
+                });
+            }
+            else
+            {
+                result = littleEndianCB.Checked;
+            }
+
+            return result;
+        }
+
         private bool CanUseNewExactEqualSearch(int typeIndex)
         {
             string typeName = SearchTypes[typeIndex].Name;
@@ -1905,7 +1927,7 @@ namespace NetCheatPS3
             request.Alignment = alignment;
             request.CompareBytes = compareBytes;
             activeScanUsesNewEngine = true;
-            activeScanLittleEndian = littleEndianCB != null && littleEndianCB.Checked;
+            activeScanLittleEndian = IsLittleEndianModeChecked();
             request.EndianMode = activeScanLittleEndian ? EndianMode.Little : EndianMode.Big;
             request.KeepRawBytes = false;
 
@@ -2530,6 +2552,409 @@ namespace NetCheatPS3
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
 
+        private ulong NewScanner_ToUnsignedIntegerFromRaw(byte[] rawBytes, int offset, int byteSize)
+        {
+            if (rawBytes == null || offset < 0 || byteSize <= 0 || (offset + byteSize) > rawBytes.Length)
+                return 0;
+
+            ulong value = 0;
+
+            if (activeScanLittleEndian && byteSize > 1)
+            {
+                for (int i = byteSize - 1; i >= 0; i--)
+                    value = (value << 8) | rawBytes[offset + i];
+            }
+            else
+            {
+                for (int i = 0; i < byteSize; i++)
+                    value = (value << 8) | rawBytes[offset + i];
+            }
+
+            return value;
+        }
+
+        private double NewScanner_ToFloatingFromRaw(byte[] rawBytes, int offset, int byteSize, byte[] scratch)
+        {
+            if (rawBytes == null || scratch == null)
+                return 0.0;
+            if (offset < 0 || byteSize <= 0 || (offset + byteSize) > rawBytes.Length)
+                return 0.0;
+            if (scratch.Length < byteSize)
+                return 0.0;
+
+            bool rawIsLittleEndian = activeScanLittleEndian;
+
+            if (BitConverter.IsLittleEndian)
+            {
+                if (rawIsLittleEndian)
+                {
+                    Buffer.BlockCopy(rawBytes, offset, scratch, 0, byteSize);
+                }
+                else
+                {
+                    for (int i = 0; i < byteSize; i++)
+                        scratch[i] = rawBytes[offset + (byteSize - 1 - i)];
+                }
+            }
+            else
+            {
+                if (rawIsLittleEndian)
+                {
+                    for (int i = 0; i < byteSize; i++)
+                        scratch[i] = rawBytes[offset + (byteSize - 1 - i)];
+                }
+                else
+                {
+                    Buffer.BlockCopy(rawBytes, offset, scratch, 0, byteSize);
+                }
+            }
+
+            if (byteSize == 4)
+                return BitConverter.ToSingle(scratch, 0);
+
+            if (byteSize == 8)
+                return BitConverter.ToDouble(scratch, 0);
+
+            return 0.0;
+        }
+
+        private bool NewScanner_IsValueBetween(byte[] valueBytes, byte[] minBytes, byte[] maxBytes, int typeIndex)
+        {
+            if (valueBytes == null || minBytes == null || maxBytes == null)
+                return false;
+
+            ncSearchType type = SearchTypes[typeIndex];
+            string typeName = type.Name;
+
+            if (typeName == "Float")
+            {
+                double value = NewScanner_ToFloat(valueBytes);
+                double min = NewScanner_ToFloat(minBytes);
+                double max = NewScanner_ToFloat(maxBytes);
+
+                if (double.IsNaN(value) || double.IsNaN(min) || double.IsNaN(max))
+                    return false;
+
+                if (min > max)
+                {
+                    double tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+
+                return value >= min && value <= max;
+            }
+
+            if (typeName == "Double")
+            {
+                double value = NewScanner_ToDouble(valueBytes);
+                double min = NewScanner_ToDouble(minBytes);
+                double max = NewScanner_ToDouble(maxBytes);
+
+                if (double.IsNaN(value) || double.IsNaN(min) || double.IsNaN(max))
+                    return false;
+
+                if (min > max)
+                {
+                    double tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+
+                return value >= min && value <= max;
+            }
+
+            ulong uintValue = NewScanner_ToUnsignedInteger(valueBytes, type.ByteSize);
+            ulong uintMin = NewScanner_ToUnsignedInteger(minBytes, type.ByteSize);
+            ulong uintMax = NewScanner_ToUnsignedInteger(maxBytes, type.ByteSize);
+
+            if (uintMin > uintMax)
+            {
+                ulong tmp = uintMin;
+                uintMin = uintMax;
+                uintMax = tmp;
+            }
+
+            return uintValue >= uintMin && uintValue <= uintMax;
+        }
+
+        private bool NewScanner_IsRawValueBetween(
+            byte[] rawBytes,
+            int offset,
+            int byteSize,
+            int typeIndex,
+            byte[] minBytes,
+            byte[] maxBytes,
+            byte[] scratch)
+        {
+            if (rawBytes == null || minBytes == null || maxBytes == null)
+                return false;
+
+            ncSearchType type = SearchTypes[typeIndex];
+            string typeName = type.Name;
+
+            if (typeName == "Float")
+            {
+                double value = NewScanner_ToFloatingFromRaw(rawBytes, offset, 4, scratch);
+                double min = NewScanner_ToFloat(minBytes);
+                double max = NewScanner_ToFloat(maxBytes);
+
+                if (double.IsNaN(value) || double.IsNaN(min) || double.IsNaN(max))
+                    return false;
+
+                if (min > max)
+                {
+                    double tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+
+                return value >= min && value <= max;
+            }
+
+            if (typeName == "Double")
+            {
+                double value = NewScanner_ToFloatingFromRaw(rawBytes, offset, 8, scratch);
+                double min = NewScanner_ToDouble(minBytes);
+                double max = NewScanner_ToDouble(maxBytes);
+
+                if (double.IsNaN(value) || double.IsNaN(min) || double.IsNaN(max))
+                    return false;
+
+                if (min > max)
+                {
+                    double tmp = min;
+                    min = max;
+                    max = tmp;
+                }
+
+                return value >= min && value <= max;
+            }
+
+            ulong valueInt = NewScanner_ToUnsignedIntegerFromRaw(rawBytes, offset, byteSize);
+            ulong minInt = NewScanner_ToUnsignedInteger(minBytes, byteSize);
+            ulong maxInt = NewScanner_ToUnsignedInteger(maxBytes, byteSize);
+
+            if (minInt > maxInt)
+            {
+                ulong tmp = minInt;
+                minInt = maxInt;
+                maxInt = tmp;
+            }
+
+            return valueInt >= minInt && valueInt <= maxInt;
+        }
+
+        private void RunNewValueBetweenInitialSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
+        {
+            if (args == null || args.Length < 2)
+            {
+                SetStatusLabel("Value Between requires min and max values");
+                return;
+            }
+
+            ncSearchType type = SearchTypes[typeIndex];
+
+            type.Initialize((string)args[0], typeIndex);
+            type = SearchTypes[typeIndex];
+
+            int alignment = type.ignoreAlignment ? GetAlign(1) : type.ByteSize;
+            if (alignment <= 0)
+                alignment = type.ByteSize;
+
+            activeScanUsesNewEngine = true;
+            activeScanLittleEndian = IsLittleEndianModeChecked();
+
+            byte[] minBytes = type.ToByteArray((string)args[0]);
+            byte[] maxBytes = type.ToByteArray((string)args[1]);
+
+            int blockSize = ExactScanner.DefaultBlockSize;
+            int totalBlocks = (int)(((stopAddr - startAddr) + (ulong)blockSize - 1) / (ulong)blockSize);
+            if (totalBlocks <= 0)
+                totalBlocks = 1;
+
+            SetProgBarMax(totalBlocks - 1);
+            SetProgBar(0);
+
+            MemoryReader reader = new MemoryReader();
+            byte[] fullBlock = new byte[blockSize];
+            byte[] floatScratch = new byte[8];
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int resCnt = 0;
+            int blockIndex = 0;
+
+            for (ulong addr = startAddr; addr < stopAddr; addr += (ulong)blockSize, blockIndex++)
+            {
+                if (_shouldStopSearch)
+                    break;
+
+                int usable = (int)Math.Min((ulong)blockSize, stopAddr - addr);
+                if (usable <= 0)
+                    break;
+
+                byte[] readBlock = usable == blockSize ? fullBlock : new byte[usable];
+
+                if (reader.TryReadBlock(addr, readBlock))
+                {
+                    int maxOffset = usable - type.ByteSize;
+
+                    for (int off = 0; off <= maxOffset; off += alignment)
+                    {
+                        if (_shouldStopSearch)
+                            break;
+
+                        if (NewScanner_IsRawValueBetween(readBlock, off, type.ByteSize, typeIndex, minBytes, maxBytes, floatScratch))
+                        {
+                            byte[] hitRaw = new byte[type.ByteSize];
+                            Buffer.BlockCopy(readBlock, off, hitRaw, 0, type.ByteSize);
+
+                            byte[] displayBytes = NewScanner_RawBytesToValue(hitRaw, type.ByteSize);
+
+                            batch.Add(type.ToItem(addr + (ulong)off, displayBytes, new byte[0], typeIndex));
+                            resCnt++;
+
+                            if (batch.Count >= 512)
+                            {
+                                AddResultRange(batch);
+                                batch.Clear();
+                            }
+                        }
+                    }
+                }
+
+                if ((blockIndex & 0x0F) == 0)
+                {
+                    SetProgBar(blockIndex);
+                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar(totalBlocks - 1);
+            SetStatusLabel(
+                "Results: " + resCnt.ToString("N0") +
+                " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
+                " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
+        }
+
+        private void RunNewValueBetweenNextSearch(SearchListView.SearchListViewItem[] old, string[] args)
+        {
+            if (old == null || old.Length == 0 || args == null || args.Length < 2)
+            {
+                SetProgBarMax(1);
+                SetProgBar(0);
+                SetStatusLabel("Results: 0");
+
+                Invoke((MethodInvoker)delegate
+                {
+                    searchListView1.AddItemsFromList();
+                });
+
+                return;
+            }
+
+            SetProgBarMax(old.Length - 1);
+            SetProgBar(0);
+
+            ClearItems();
+
+            MemoryReader reader = new MemoryReader();
+            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
+            ulong cachedBlockBase = 0;
+            bool cachedBlockValid = false;
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int resCnt = 0;
+
+            byte[] minBytes = null;
+            byte[] maxBytes = null;
+            int cachedAlign = -1;
+
+            for (int cnt = 0; cnt < old.Length; cnt++)
+            {
+                if (_shouldStopSearch)
+                    break;
+
+                SearchListView.SearchListViewItem oldItem = old[cnt];
+                ncSearchType type = SearchTypes[oldItem.align];
+                int byteSize = type.ByteSize;
+
+                if (byteSize <= 0)
+                    continue;
+
+                if (minBytes == null || maxBytes == null || cachedAlign != oldItem.align)
+                {
+                    minBytes = type.ToByteArray((string)args[0]);
+                    maxBytes = type.ToByteArray((string)args[1]);
+                    cachedAlign = oldItem.align;
+                }
+
+                byte[] currentRaw;
+                bool readOk = NewScanner_TryReadCurrentRawValue(
+                    reader,
+                    oldItem.addr,
+                    byteSize,
+                    ref cachedBlockBase,
+                    ref cachedBlock,
+                    ref cachedBlockValid,
+                    out currentRaw);
+
+                if (!readOk)
+                    continue;
+
+                byte[] currentValue = NewScanner_RawBytesToValue(currentRaw, byteSize);
+
+                if (NewScanner_IsValueBetween(currentValue, minBytes, maxBytes, oldItem.align))
+                {
+                    SearchListView.SearchListViewItem newItem = oldItem;
+                    newItem.oldVal = oldItem.newVal;
+                    newItem.newVal = currentValue;
+                    batch.Add(newItem);
+                    resCnt++;
+
+                    if (batch.Count >= 512)
+                    {
+                        AddResultRange(batch);
+                        batch.Clear();
+                    }
+                }
+
+                if ((cnt & 0x3FF) == 0)
+                {
+                    SetProgBar(cnt);
+                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar(old.Length - 1);
+            SetStatusLabel(
+                "Results: " + resCnt.ToString("N0") +
+                " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
+                " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
+        }
+
         void EqualTo_InitSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
         {
             if (CanUseNewExactEqualSearch(typeIndex))
@@ -2588,6 +3013,12 @@ namespace NetCheatPS3
 
         void ValueBetween_InitSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
         {
+            if (CanUseNewExactEqualSearch(typeIndex))
+            {
+                RunNewValueBetweenInitialSearch(startAddr, stopAddr, typeIndex, args);
+                return;
+            }
+
             ncSearchType type = SearchTypes[typeIndex];
             type.Initialize((string)args[0], typeIndex);
             type = SearchTypes[typeIndex];
@@ -3073,6 +3504,12 @@ namespace NetCheatPS3
 
         void ValueBetween_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
+            {
+                RunNewValueBetweenNextSearch(old, args);
+                return;
+            }
+
             SetProgBarMax(old.Length - 1);
             int resCnt = 0;
 
