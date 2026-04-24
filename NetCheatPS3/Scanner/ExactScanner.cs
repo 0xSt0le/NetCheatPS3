@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace NetCheatPS3.Scanner
 {
@@ -7,11 +7,11 @@ namespace NetCheatPS3.Scanner
         public const int DefaultBlockSize = 0x10000;
 
         public static void Scan(
-    ExactScanRequest request,
-    MemoryReader reader,
-    Func<bool> shouldStop,
-    Action<int> onBlockScanned,
-    Action<ulong, byte[]> onMatch)
+            ExactScanRequest request,
+            MemoryReader reader,
+            Func<bool> shouldStop,
+            Action<int> onBlockScanned,
+            Action<ulong, byte[]> onMatch)
         {
             if (request == null)
                 throw new ArgumentNullException("request");
@@ -46,31 +46,63 @@ namespace NetCheatPS3.Scanner
 
                 byte[] readBlock = usable == request.BlockSize ? fullBlock : new byte[usable];
 
-                if (reader.TryReadBlock(addr, readBlock))
-                {
-                    int maxOffset = usable - request.ByteSize;
-                    if (maxOffset >= 0)
+                reader.ReadReadableSegments(
+                    addr,
+                    readBlock,
+                    delegate(int segmentOffset, int segmentLength)
                     {
-                        for (int off = 0; off <= maxOffset; off += request.Alignment)
-                        {
-                            if (shouldStop != null && shouldStop())
-                                return;
-
-                            if (IsMatch(readBlock, off, compare))
-                            {
-                                byte[] hit = new byte[request.ByteSize];
-                                Buffer.BlockCopy(readBlock, off, hit, 0, request.ByteSize);
-                                NormalizeDisplayBytes(hit, request.EndianMode, request.ByteSize, request.KeepRawBytes);
-
-                                if (onMatch != null)
-                                    onMatch(addr + (ulong)off, hit);
-                            }
-                        }
-                    }
-                }
+                        ScanReadableSegment(
+                            request,
+                            compare,
+                            readBlock,
+                            addr,
+                            segmentOffset,
+                            segmentLength,
+                            shouldStop,
+                            onMatch);
+                    });
 
                 if (onBlockScanned != null)
                     onBlockScanned(blockIndex);
+            }
+        }
+
+        private static void ScanReadableSegment(
+            ExactScanRequest request,
+            byte[] compare,
+            byte[] block,
+            ulong blockAddress,
+            int segmentOffset,
+            int segmentLength,
+            Func<bool> shouldStop,
+            Action<ulong, byte[]> onMatch)
+        {
+            if (segmentLength < request.ByteSize)
+                return;
+
+            int firstOffset = segmentOffset;
+            int alignmentRemainder = firstOffset % request.Alignment;
+            if (alignmentRemainder != 0)
+                firstOffset += request.Alignment - alignmentRemainder;
+
+            int maxOffset = segmentOffset + segmentLength - request.ByteSize;
+            if (firstOffset > maxOffset)
+                return;
+
+            for (int off = firstOffset; off <= maxOffset; off += request.Alignment)
+            {
+                if (shouldStop != null && shouldStop())
+                    return;
+
+                if (IsMatch(block, off, compare))
+                {
+                    byte[] hit = new byte[request.ByteSize];
+                    Buffer.BlockCopy(block, off, hit, 0, request.ByteSize);
+                    NormalizeDisplayBytes(hit, request.EndianMode, request.ByteSize, request.KeepRawBytes);
+
+                    if (onMatch != null)
+                        onMatch(blockAddress + (ulong)off, hit);
+                }
             }
         }
 
