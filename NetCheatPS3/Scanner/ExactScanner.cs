@@ -17,7 +17,7 @@ namespace NetCheatPS3.Scanner
                 {
                 }
 
-                return 0x40000;
+                return 0x100000;
             }
         }
 

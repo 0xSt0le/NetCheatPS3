@@ -148,7 +148,7 @@ namespace NetCheatPS3
                 "512 KB",
                 "1 MB"
             });
-            exactBlockSizeBox.SelectedItem = "256 KB";
+            exactBlockSizeBox.SelectedItem = "1 MB";
             exactBlockSizeBox.Width = 80;
 
             if (modernSearchToolTip != null)
@@ -167,7 +167,7 @@ namespace NetCheatPS3
             try
             {
                 if (exactBlockSizeBox == null || exactBlockSizeBox.SelectedItem == null)
-                    return 0x40000;
+                    return 0x100000;
 
                 string text = exactBlockSizeBox.SelectedItem.ToString();
 
@@ -176,7 +176,7 @@ namespace NetCheatPS3
                 if (String.Equals(text, "128 KB", StringComparison.OrdinalIgnoreCase))
                     return 0x20000;
                 if (String.Equals(text, "256 KB", StringComparison.OrdinalIgnoreCase))
-                    return 0x40000;
+                    return 0x100000;
                 if (String.Equals(text, "512 KB", StringComparison.OrdinalIgnoreCase))
                     return 0x80000;
                 if (String.Equals(text, "1 MB", StringComparison.OrdinalIgnoreCase))
@@ -186,7 +186,7 @@ namespace NetCheatPS3
             {
             }
 
-            return 0x40000;
+            return 0x100000;
         }
 
         private string GetSelectedExactScanBlockSizeText()
