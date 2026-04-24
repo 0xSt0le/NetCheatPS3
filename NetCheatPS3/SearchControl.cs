@@ -39,6 +39,8 @@ namespace NetCheatPS3
 
         private volatile bool _shouldStopSearch;
         private CheckBox littleEndianCB;
+        private bool activeScanUsesNewEngine = false;
+        private bool activeScanLittleEndian = false;
 
         int lastTypeIndex = -1;
         int lastSearchIndex = -1;
@@ -509,6 +511,9 @@ namespace NetCheatPS3
                         searchThread = null;
 
                     _shouldStopSearch = false;
+                    activeScanUsesNewEngine = false;
+                    activeScanLittleEndian = littleEndianCB != null && littleEndianCB.Checked;
+
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
                     ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
                     ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
@@ -1899,7 +1904,9 @@ namespace NetCheatPS3
             request.ByteSize = type.ByteSize;
             request.Alignment = alignment;
             request.CompareBytes = compareBytes;
-            request.EndianMode = littleEndianCB.Checked ? EndianMode.Little : EndianMode.Big;
+            activeScanUsesNewEngine = true;
+            activeScanLittleEndian = littleEndianCB != null && littleEndianCB.Checked;
+            request.EndianMode = activeScanLittleEndian ? EndianMode.Little : EndianMode.Big;
             request.KeepRawBytes = false;
 
             List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
@@ -1942,6 +1949,216 @@ namespace NetCheatPS3
 
             SetProgBar(totalBlocks - 1);
             SetStatusLabel("Results: " + resCnt.ToString("N0"));
+        }
+
+        private byte[] NewScanner_ValueBytesToRaw(byte[] valueBytes, int byteSize)
+        {
+            byte[] raw = new byte[byteSize];
+
+            if (valueBytes != null)
+            {
+                int count = Math.Min(valueBytes.Length, byteSize);
+                Buffer.BlockCopy(valueBytes, 0, raw, 0, count);
+            }
+
+            if (activeScanLittleEndian && byteSize > 1)
+                Array.Reverse(raw);
+
+            return raw;
+        }
+
+        private byte[] NewScanner_RawBytesToValue(byte[] rawBytes, int byteSize)
+        {
+            byte[] value = new byte[byteSize];
+
+            if (rawBytes != null)
+            {
+                int count = Math.Min(rawBytes.Length, byteSize);
+                Buffer.BlockCopy(rawBytes, 0, value, 0, count);
+            }
+
+            if (activeScanLittleEndian && byteSize > 1)
+                Array.Reverse(value);
+
+            return value;
+        }
+
+        private bool NewScanner_BytesEqual(byte[] a, byte[] b, int size)
+        {
+            if (a == null || b == null)
+                return false;
+            if (a.Length < size || b.Length < size)
+                return false;
+
+            for (int i = 0; i < size; i++)
+            {
+                if (a[i] != b[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool NewScanner_TryReadCurrentRawValue(
+            MemoryReader reader,
+            ulong addr,
+            int byteSize,
+            ref ulong cachedBlockBase,
+            ref byte[] cachedBlock,
+            ref bool cachedBlockValid,
+            out byte[] rawValue)
+        {
+            rawValue = null;
+
+            if (reader == null)
+                return false;
+
+            int blockSize = ExactScanner.DefaultBlockSize;
+            ulong blockBase = addr - (addr % (ulong)blockSize);
+            int offset = (int)(addr - blockBase);
+
+            if (!cachedBlockValid || cachedBlockBase != blockBase)
+            {
+                cachedBlockBase = blockBase;
+                cachedBlockValid = reader.TryReadBlock(cachedBlockBase, cachedBlock);
+            }
+
+            if (cachedBlockValid && offset >= 0 && (offset + byteSize) <= cachedBlock.Length)
+            {
+                rawValue = new byte[byteSize];
+                Buffer.BlockCopy(cachedBlock, offset, rawValue, 0, byteSize);
+                return true;
+            }
+
+            byte[] direct = new byte[byteSize];
+            if (reader.TryReadBlock(addr, direct))
+            {
+                rawValue = direct;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void RunNewBasicNextSearch(SearchListView.SearchListViewItem[] old, string[] args, int nextMode)
+        {
+            if (old == null || old.Length == 0)
+            {
+                SetProgBarMax(1);
+                SetProgBar(0);
+                SetStatusLabel("Results: 0");
+
+                Invoke((MethodInvoker)delegate
+                {
+                    searchListView1.AddItemsFromList();
+                });
+
+                return;
+            }
+
+            SetProgBarMax(old.Length - 1);
+            SetProgBar(0);
+
+            ClearItems();
+
+            MemoryReader reader = new MemoryReader();
+            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
+            ulong cachedBlockBase = 0;
+            bool cachedBlockValid = false;
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int resCnt = 0;
+
+            byte[] equalCompareRaw = null;
+            int equalCompareAlign = -1;
+
+            for (int cnt = 0; cnt < old.Length; cnt++)
+            {
+                if (_shouldStopSearch)
+                    break;
+
+                SearchListView.SearchListViewItem oldItem = old[cnt];
+                ncSearchType type = SearchTypes[oldItem.align];
+                int byteSize = type.ByteSize;
+
+                if (byteSize <= 0)
+                    continue;
+
+                byte[] currentRaw;
+                bool readOk = NewScanner_TryReadCurrentRawValue(
+                    reader,
+                    oldItem.addr,
+                    byteSize,
+                    ref cachedBlockBase,
+                    ref cachedBlock,
+                    ref cachedBlockValid,
+                    out currentRaw);
+
+                if (!readOk)
+                    continue;
+
+                bool isMatch = false;
+
+                if (nextMode == Form1.compEq)
+                {
+                    if (equalCompareRaw == null || equalCompareAlign != oldItem.align)
+                    {
+                        byte[] valueBytes = type.ToByteArray((string)args[0]);
+                        equalCompareRaw = NewScanner_ValueBytesToRaw(valueBytes, byteSize);
+                        equalCompareAlign = oldItem.align;
+                    }
+
+                    isMatch = NewScanner_BytesEqual(currentRaw, equalCompareRaw, byteSize);
+                }
+                else if (nextMode == Form1.compChg)
+                {
+                    byte[] oldRaw = NewScanner_ValueBytesToRaw(oldItem.newVal, byteSize);
+                    isMatch = !NewScanner_BytesEqual(currentRaw, oldRaw, byteSize);
+                }
+                else if (nextMode == Form1.compUChg)
+                {
+                    byte[] oldRaw = NewScanner_ValueBytesToRaw(oldItem.newVal, byteSize);
+                    isMatch = NewScanner_BytesEqual(currentRaw, oldRaw, byteSize);
+                }
+
+                if (isMatch)
+                {
+                    SearchListView.SearchListViewItem newItem = oldItem;
+                    newItem.oldVal = oldItem.newVal;
+                    newItem.newVal = NewScanner_RawBytesToValue(currentRaw, byteSize);
+                    batch.Add(newItem);
+                    resCnt++;
+
+                    if (batch.Count >= 512)
+                    {
+                        AddResultRange(batch);
+                        batch.Clear();
+                    }
+                }
+
+                if ((cnt & 0x3FF) == 0)
+                {
+                    SetProgBar(cnt);
+                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar(old.Length - 1);
+            SetStatusLabel(
+                "Results: " + resCnt.ToString("N0") +
+                " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
+                " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
 
         void EqualTo_InitSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
@@ -2425,6 +2642,12 @@ namespace NetCheatPS3
 
         void EqualTo_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
+            {
+                RunNewBasicNextSearch(old, args, Form1.compEq);
+                return;
+            }
+
             standardByte_NextSearch(old, args, Form1.compEq);
         }
 
@@ -2630,11 +2853,23 @@ namespace NetCheatPS3
 
         void Changed_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
+            {
+                RunNewBasicNextSearch(old, new string[0], Form1.compChg);
+                return;
+            }
+
             standardIncDec_NextSearch(old, new string[0], Form1.compNEq);
         }
 
         void Unchanged_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
+            {
+                RunNewBasicNextSearch(old, new string[0], Form1.compUChg);
+                return;
+            }
+
             standardIncDec_NextSearch(old, new string[0], Form1.compEq);
         }
 
