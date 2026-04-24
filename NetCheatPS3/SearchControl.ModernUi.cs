@@ -26,6 +26,12 @@ namespace NetCheatPS3
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
 
+            if (searchNameBox != null)
+                searchNameBox.DropDownStyle = ComboBoxStyle.DropDownList;
+
+            if (searchTypeBox != null)
+                searchTypeBox.DropDownStyle = ComboBoxStyle.DropDownList;
+
             if (littleEndianCB != null)
             {
                 littleEndianCB.Checked = false;
@@ -48,13 +54,11 @@ namespace NetCheatPS3
             searchTypeBox.SelectedIndexChanged += delegate
             {
                 UpdateCleanFloatVisibility();
-                ClearDefaultSearchArgText();
                 UpdateModernSearchLayout();
             };
 
             searchNameBox.SelectedIndexChanged += delegate
             {
-                ClearDefaultSearchArgText();
                 UpdateCleanFloatVisibility();
                 UpdateModernSearchLayout();
             };
@@ -69,7 +73,6 @@ namespace NetCheatPS3
                     }
                     else if (searchMemory.Text == "Initial Scan")
                     {
-                        // This is the state after clicking New Scan.
                         SetLittleEndianScanLocked(false);
                     }
 

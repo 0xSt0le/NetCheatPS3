@@ -195,12 +195,14 @@
     <Compile Include="Scanner\SnapshotRecord.cs" />
     <Compile Include="Scanner\SnapshotStore.cs" />
     <Compile Include="SearchControl.ModernUi.cs" />
+    <Compile Include="SearchControl.ResultHelpers.cs" />
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="SearchControl.Designer.cs">
       <DependentUpon>SearchControl.cs</DependentUpon>
     </Compile>
+    <Compile Include="SearchListView.ModernResultUi.cs" />
     <Compile Include="SearchListView.cs">
       <SubType>UserControl</SubType>
     </Compile>

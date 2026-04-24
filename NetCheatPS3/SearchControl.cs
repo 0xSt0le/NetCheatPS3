@@ -462,7 +462,13 @@ namespace NetCheatPS3
                     ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
                     ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
                     string[] args = new string[SearchArgs.Count];
-                    for (int x = 0; x < args.Length; x++)
+                    
+                    if (HasEmptyVisibleSearchArgText())
+                    {
+                        ShowEmptySearchArgWarning();
+                        return;
+                    }
+for (int x = 0; x < args.Length; x++)
                         args[x] = SearchArgs[x].GetDefValue();
                     int typeIndex = 0;
                     for (typeIndex = 0; typeIndex < SearchTypes.Count; typeIndex++)
@@ -535,7 +541,13 @@ namespace NetCheatPS3
                     ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
                     ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
                     string[] args = new string[SearchArgs.Count];
-                    for (int x = 0; x < args.Length; x++)
+                    
+                    if (HasEmptyVisibleSearchArgText())
+                    {
+                        ShowEmptySearchArgWarning();
+                        return;
+                    }
+for (int x = 0; x < args.Length; x++)
                         args[x] = SearchArgs[x].GetDefValue();
                     int typeIndex = 0;
                     for (typeIndex = 0; typeIndex < SearchTypes.Count; typeIndex++)

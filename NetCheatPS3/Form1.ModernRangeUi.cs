@@ -117,27 +117,98 @@ namespace NetCheatPS3
 
             try
             {
-                string startText = item.SubItems[0].Text.Trim();
-                string stopText = item.SubItems[1].Text.Trim();
+                ulong start;
+                ulong stop;
 
-                if (startText.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    startText = startText.Substring(2);
+                if (!TryParseRangeItem(item, out start, out stop))
+                    return;
 
-                if (stopText.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    stopText = stopText.Substring(2);
-
-                ulong start = Convert.ToUInt64(startText, 16);
-                ulong stop = Convert.ToUInt64(stopText, 16);
-
-                searchControl1.SetScanRange(start, stop);
-                TabCon.SelectedTab = SearchTab;
-
-                statusLabel1.Text = "Scan range set to 0x" + start.ToString("X8") + "-0x" + stop.ToString("X8");
+                SetSearchRangeAndShowSearchTab(start, stop);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to set scan range: " + ex.Message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private bool TryParseRangeItem(ListViewItem item, out ulong start, out ulong stop)
+        {
+            start = 0;
+            stop = 0;
+
+            if (item == null || item.SubItems.Count < 2)
+                return false;
+
+            string startText = item.SubItems[0].Text.Trim();
+            string stopText = item.SubItems[1].Text.Trim();
+
+            if (startText.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                startText = startText.Substring(2);
+
+            if (stopText.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                stopText = stopText.Substring(2);
+
+            start = Convert.ToUInt64(startText, 16);
+            stop = Convert.ToUInt64(stopText, 16);
+
+            return stop > start;
+        }
+
+        private bool IsDefaultOrBroadPlaceholderRange(ulong start, ulong stop)
+        {
+            if (stop <= start)
+                return true;
+
+            if (start == 0 && stop >= 0xFFFFFF00UL)
+                return true;
+
+            return false;
+        }
+
+        public bool TryGetContainingMemoryRange(ulong address, out ulong start, out ulong stop)
+        {
+            start = 0;
+            stop = 0;
+
+            if (rangeView == null || rangeView.Items.Count <= 0)
+                return false;
+
+            bool found = false;
+            ulong bestSize = UInt64.MaxValue;
+
+            for (int i = 0; i < rangeView.Items.Count; i++)
+            {
+                ulong curStart;
+                ulong curStop;
+
+                if (!TryParseRangeItem(rangeView.Items[i], out curStart, out curStop))
+                    continue;
+
+                if (IsDefaultOrBroadPlaceholderRange(curStart, curStop))
+                    continue;
+
+                if (address >= curStart && address < curStop)
+                {
+                    ulong size = curStop - curStart;
+
+                    if (!found || size < bestSize)
+                    {
+                        start = curStart;
+                        stop = curStop;
+                        bestSize = size;
+                        found = true;
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        public void SetSearchRangeAndShowSearchTab(ulong start, ulong stop)
+        {
+            searchControl1.SetScanRange(start, stop);
+            TabCon.SelectedTab = SearchTab;
+            statusLabel1.Text = "Scan range set to 0x" + start.ToString("X8") + "-0x" + stop.ToString("X8");
         }
     }
 }

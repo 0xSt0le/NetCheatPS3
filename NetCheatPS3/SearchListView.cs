@@ -22,8 +22,7 @@ namespace NetCheatPS3
         public SearchListView()
         {
             InitializeComponent();
-
-            this.MouseWheel += new MouseEventHandler(this_MouseWheel);
+            InitializeModernResultUi();this.MouseWheel += new MouseEventHandler(this_MouseWheel);
 
             //cms = contextMenuStrip1;
         }
@@ -262,12 +261,28 @@ namespace NetCheatPS3
         public string[] ParseItem(SearchListViewItem item, int ind)
         {
             SearchControl.ncSearchType type = SearchControl.SearchTypes[item.align];
-            SearchControl.ncSearcher searcher = SearchControl.SearchComparisons.Where(sc => sc.Name == SearchControl.Instance.searchNameBox.Items[SearchControl.Instance.searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
+                        SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
+
+            try
+            {
+                if (SearchControl.Instance != null &&
+                    SearchControl.Instance.searchNameBox != null &&
+                    SearchControl.Instance.searchNameBox.SelectedIndex >= 0 &&
+                    SearchControl.Instance.searchNameBox.SelectedIndex < SearchControl.Instance.searchNameBox.Items.Count)
+                {
+                    string selectedSearchName = SearchControl.Instance.searchNameBox.Items[SearchControl.Instance.searchNameBox.SelectedIndex].ToString();
+                    searcher = SearchControl.SearchComparisons.Where(sc => sc.Name == selectedSearchName).FirstOrDefault();
+                }
+            }
+            catch
+            {
+                searcher = new SearchControl.ncSearcher();
+            }
             if (item.refresh)
             {
                 byte[] newVal = new byte[type.ByteSize];
                 Form1.apiGetMem(item.addr, ref newVal);
-                newVal = misc.notrevif(newVal);
+                newVal = NormalizeRawMemoryForDisplay(newVal);
                 item.oldVal = item.newVal;
                 item.newVal = newVal;
                 item.refresh = false;
@@ -508,7 +523,23 @@ namespace NetCheatPS3
 
             string res = "";
             List<int> selParsed = new List<int>();
-            SearchControl.ncSearcher searcher = SearchControl.SearchComparisons.Where(sc => sc.Name == SearchControl.Instance.searchNameBox.Items[SearchControl.Instance.searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
+                        SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
+
+            try
+            {
+                if (SearchControl.Instance != null &&
+                    SearchControl.Instance.searchNameBox != null &&
+                    SearchControl.Instance.searchNameBox.SelectedIndex >= 0 &&
+                    SearchControl.Instance.searchNameBox.SelectedIndex < SearchControl.Instance.searchNameBox.Items.Count)
+                {
+                    string selectedSearchName = SearchControl.Instance.searchNameBox.Items[SearchControl.Instance.searchNameBox.SelectedIndex].ToString();
+                    searcher = SearchControl.SearchComparisons.Where(sc => sc.Name == selectedSearchName).FirstOrDefault();
+                }
+            }
+            catch
+            {
+                searcher = new SearchControl.ncSearcher();
+            }
             string[] codes = new string[SelectedIndices.Count];
             int codeIndex = 0;
             foreach (int x in SelectedIndices)
