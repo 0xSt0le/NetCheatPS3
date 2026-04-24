@@ -1864,7 +1864,9 @@ namespace NetCheatPS3
             return typeName == "1 byte" ||
                    typeName == "2 bytes" ||
                    typeName == "4 bytes" ||
-                   typeName == "8 bytes";
+                   typeName == "8 bytes" ||
+                   typeName == "Float" ||
+                   typeName == "Double";
         }
 
         private void RunNewExactEqualSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
