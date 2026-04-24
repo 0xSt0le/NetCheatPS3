@@ -11,6 +11,8 @@ namespace NetCheatPS3
         private bool modernSearchUiInitialized = false;
         private ToolTip modernSearchToolTip;
         private Button scanDiagnosticsButton;
+        private Label exactBlockSizeLabel;
+        private ComboBox exactBlockSizeBox;
 
         private void InitializeModernSearchUi()
         {
@@ -26,6 +28,7 @@ namespace NetCheatPS3
 
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
+            EnsureExactBlockSizeSelector();
 
             if (searchNameBox != null)
                 searchNameBox.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -70,11 +73,11 @@ namespace NetCheatPS3
                 {
                     if (searchMemory.Text == "Stop")
                     {
-                        SetLittleEndianScanLocked(true);
+                        SetScanChainOptionsLocked(true);
                     }
                     else if (searchMemory.Text == "Initial Scan")
                     {
-                        SetLittleEndianScanLocked(false);
+                        SetScanChainOptionsLocked(false);
                     }
 
                     UpdateModernSearchLayout();
@@ -121,6 +124,78 @@ namespace NetCheatPS3
             scanDiagnosticsButton.Click += delegate { ShowScanDiagnostics(); };
 
             Controls.Add(scanDiagnosticsButton);
+        }
+
+        private void EnsureExactBlockSizeSelector()
+        {
+            if (exactBlockSizeBox != null)
+                return;
+
+            exactBlockSizeLabel = new Label();
+            exactBlockSizeLabel.Name = "exactBlockSizeLabel";
+            exactBlockSizeLabel.Text = "Block";
+            exactBlockSizeLabel.AutoSize = true;
+            exactBlockSizeLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            exactBlockSizeBox = new ComboBox();
+            exactBlockSizeBox.Name = "exactBlockSizeBox";
+            exactBlockSizeBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            exactBlockSizeBox.Items.AddRange(new object[]
+            {
+                "64 KB",
+                "128 KB",
+                "256 KB",
+                "512 KB",
+                "1 MB"
+            });
+            exactBlockSizeBox.SelectedItem = "256 KB";
+            exactBlockSizeBox.Width = 80;
+
+            if (modernSearchToolTip != null)
+            {
+                modernSearchToolTip.SetToolTip(
+                    exactBlockSizeBox,
+                    "Exact-scan memory read size. Larger blocks reduce TMAPI calls but may fail on unstable ranges. Fallback splitting still protects failed reads.");
+            }
+
+            Controls.Add(exactBlockSizeLabel);
+            Controls.Add(exactBlockSizeBox);
+        }
+
+        public int GetSelectedExactScanBlockSize()
+        {
+            try
+            {
+                if (exactBlockSizeBox == null || exactBlockSizeBox.SelectedItem == null)
+                    return 0x40000;
+
+                string text = exactBlockSizeBox.SelectedItem.ToString();
+
+                if (String.Equals(text, "64 KB", StringComparison.OrdinalIgnoreCase))
+                    return 0x10000;
+                if (String.Equals(text, "128 KB", StringComparison.OrdinalIgnoreCase))
+                    return 0x20000;
+                if (String.Equals(text, "256 KB", StringComparison.OrdinalIgnoreCase))
+                    return 0x40000;
+                if (String.Equals(text, "512 KB", StringComparison.OrdinalIgnoreCase))
+                    return 0x80000;
+                if (String.Equals(text, "1 MB", StringComparison.OrdinalIgnoreCase))
+                    return 0x100000;
+            }
+            catch
+            {
+            }
+
+            return 0x40000;
+        }
+
+        private string GetSelectedExactScanBlockSizeText()
+        {
+            int size = GetSelectedExactScanBlockSize();
+            if (size >= 0x100000 && (size % 0x100000) == 0)
+                return "0x" + size.ToString("X") + " (" + (size / 0x100000).ToString("N0") + " MB)";
+
+            return "0x" + size.ToString("X") + " (" + (size / 1024).ToString("N0") + " KB)";
         }
 
         private void SetDefaultSearchTypeTo4Bytes()
@@ -185,8 +260,16 @@ namespace NetCheatPS3
 
         private void SetLittleEndianScanLocked(bool locked)
         {
+            SetScanChainOptionsLocked(locked);
+        }
+
+        private void SetScanChainOptionsLocked(bool locked)
+        {
             if (littleEndianCB != null)
                 littleEndianCB.Enabled = !locked;
+
+            if (exactBlockSizeBox != null)
+                exactBlockSizeBox.Enabled = !locked;
         }
 
         public void SetScanRange(ulong start, ulong stop)
@@ -202,6 +285,7 @@ namespace NetCheatPS3
 
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
+            EnsureExactBlockSizeSelector();
 
             int filterY = Math.Max(searchTypeBox.Bottom, stopAddrTB.Bottom) + 8;
 
@@ -236,6 +320,18 @@ namespace NetCheatPS3
                 cleanFloatCB.BackColor = BackColor;
                 cleanFloatCB.ForeColor = ForeColor;
                 UpdateCleanFloatVisibility();
+            }
+
+            if (exactBlockSizeLabel != null && exactBlockSizeBox != null)
+            {
+                int x = cleanFloatCB != null ? cleanFloatCB.Right + 16 : startAddrTB.Right + 16;
+                exactBlockSizeLabel.Location = new Point(x, startAddrTB.Top + 4);
+                exactBlockSizeLabel.BackColor = BackColor;
+                exactBlockSizeLabel.ForeColor = ForeColor;
+
+                exactBlockSizeBox.Location = new Point(exactBlockSizeLabel.Right + 5, startAddrTB.Top - 1);
+                exactBlockSizeBox.BackColor = BackColor;
+                exactBlockSizeBox.ForeColor = ForeColor;
             }
 
             int buttonY = filterY + searchPWS.Height + 8;
@@ -282,7 +378,7 @@ namespace NetCheatPS3
             sb.AppendLine("Visible/list results: " + searchListView1.TotalCount.ToString("N0"));
             sb.AppendLine("Uses new scanner: " + activeScanUsesNewEngine);
             sb.AppendLine("Active scan little-endian: " + activeScanLittleEndian);
-            sb.AppendLine("Exact scanner block size: 0x" + ExactScanner.DefaultBlockSize.ToString("X") + " (" + (ExactScanner.DefaultBlockSize / 1024).ToString("N0") + " KB)");
+            sb.AppendLine("Exact scanner block size: " + GetSelectedExactScanBlockSizeText());
             sb.AppendLine();
             sb.AppendLine("Last scan speed:");
             AppendLastScanSpeedDiagnostics(sb);
