@@ -196,6 +196,7 @@
     <Compile Include="Scanner\SnapshotStore.cs" />
     <Compile Include="SearchControl.ModernUi.cs" />
     <Compile Include="SearchControl.ResultHelpers.cs" />
+    <Compile Include="SearchControl.SnapshotNextScanner.cs" />
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>

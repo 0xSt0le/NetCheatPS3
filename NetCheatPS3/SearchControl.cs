@@ -392,9 +392,12 @@ namespace NetCheatPS3
 
                 System.Diagnostics.Stopwatch stopw = new System.Diagnostics.Stopwatch();
                 stopw.Start();
-                searcher.NextSearch(items, (string[])args[2]);
+                bool usedSnapshotNext = TryRunSnapshotNextSearch(searcher, (string[])args[2]);
+                if (!usedSnapshotNext)
+                    searcher.NextSearch(items, (string[])args[2]);
+
                 stopw.Stop();
-                CaptureLastScanStatsFromUi("Next Scan", stopw.ElapsedMilliseconds);
+                CaptureLastScanStatsFromUi(usedSnapshotNext ? "Snapshot Next Scan" : "Next Scan", stopw.ElapsedMilliseconds);
 
                 stopped = _shouldStopSearch;
 
