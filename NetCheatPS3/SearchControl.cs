@@ -11,6 +11,8 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
+using NetCheatPS3.Scanner;
+
 namespace NetCheatPS3
 {
     public partial class SearchControl : UserControl
@@ -36,6 +38,7 @@ namespace NetCheatPS3
         }
 
         private volatile bool _shouldStopSearch;
+        private CheckBox littleEndianCB;
 
         int lastTypeIndex = -1;
         int lastSearchIndex = -1;
@@ -1612,25 +1615,52 @@ namespace NetCheatPS3
 
         string ConvertHexDec(string val, bool isHex)
         {
+            if (val == null)
+                return "";
+
+            string clean = val.Trim();
+
+            if (clean.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                clean = clean.Substring(2);
+
+            if (clean.Length == 0)
+                return "";
+
             try
             {
                 if (!isHex)
                 {
-                    ulong cval = Convert.ToUInt64(val, 16);
-                    return cval.ToString();
+                    // User is switching from Hex -> Dec.
+                    ulong cval = Convert.ToUInt64(clean, 16);
+                    return cval.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
                 else
                 {
-                    ulong cval = Convert.ToUInt64(val);
+                    // User is switching from Dec -> Hex.
+                    // If it already looks like hex, preserve it instead of throwing.
+                    bool hasHexLetters = false;
+                    for (int i = 0; i < clean.Length; i++)
+                    {
+                        char c = clean[i];
+                        if ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+                        {
+                            hasHexLetters = true;
+                            break;
+                        }
+                    }
+
+                    if (hasHexLetters)
+                        return clean.ToUpperInvariant();
+
+                    ulong cval = Convert.ToUInt64(clean, 10);
                     return cval.ToString("X");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show(ex.Message);
+                // Do not destroy the user's input or spam exception boxes.
+                return val;
             }
-
-            return "";
         }
 
         byte[] StringToByteArray(string val, int size)
@@ -1828,8 +1858,98 @@ namespace NetCheatPS3
             });
         }
 
+        private bool CanUseNewExactEqualSearch(int typeIndex)
+        {
+            string typeName = SearchTypes[typeIndex].Name;
+            return typeName == "1 byte" ||
+                   typeName == "2 bytes" ||
+                   typeName == "4 bytes" ||
+                   typeName == "8 bytes";
+        }
+
+        private void RunNewExactEqualSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
+        {
+            ncSearchType type = SearchTypes[typeIndex];
+            if (args.Length > 0)
+            {
+                type.Initialize((string)args[0], typeIndex);
+                type = SearchTypes[typeIndex];
+            }
+
+            int alignment = type.ignoreAlignment ? GetAlign(1) : type.ByteSize;
+            if (alignment <= 0)
+                alignment = type.ByteSize;
+
+            byte[] compareBytes = type.ToByteArray((string)args[0]);
+
+            int totalBlocks = (int)(((stopAddr - startAddr) + (ulong)ExactScanner.DefaultBlockSize - 1) / (ulong)ExactScanner.DefaultBlockSize);
+            if (totalBlocks <= 0)
+                totalBlocks = 1;
+
+            SetProgBarMax(totalBlocks - 1);
+            SetProgBar(0);
+
+            MemoryReader reader = new MemoryReader();
+            ExactScanRequest request = new ExactScanRequest();
+            request.Start = startAddr;
+            request.Stop = stopAddr;
+            request.BlockSize = ExactScanner.DefaultBlockSize;
+            request.ByteSize = type.ByteSize;
+            request.Alignment = alignment;
+            request.CompareBytes = compareBytes;
+            request.EndianMode = littleEndianCB.Checked ? EndianMode.Little : EndianMode.Big;
+            request.KeepRawBytes = false;
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int resCnt = 0;
+
+            ExactScanner.Scan(
+                request,
+                reader,
+                delegate () { return _shouldStopSearch; },
+                delegate (int blockIndex)
+                {
+                    if ((blockIndex & 0x0F) == 0)
+                    {
+                        SetProgBar(blockIndex);
+                        SetStatusLabel("Results: " + resCnt.ToString("N0"));
+                    }
+                },
+                delegate (ulong addr, byte[] displayBytes)
+                {
+                    batch.Add(type.ToItem(addr, displayBytes, new byte[0], typeIndex));
+                    resCnt++;
+
+                    if (batch.Count >= 512)
+                    {
+                        AddResultRange(batch);
+                        batch.Clear();
+                    }
+                });
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar(totalBlocks - 1);
+            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+        }
+
         void EqualTo_InitSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
         {
+            if (CanUseNewExactEqualSearch(typeIndex))
+            {
+                RunNewExactEqualSearch(startAddr, stopAddr, typeIndex, args);
+                return;
+            }
+
             standardByte_InitSearch(startAddr, stopAddr, typeIndex, args, Form1.compEq);
         }
 
@@ -2809,6 +2929,14 @@ namespace NetCheatPS3
 
             Instance = this;
 
+            littleEndianCB = new CheckBox();
+            littleEndianCB.AutoSize = true;
+            littleEndianCB.Text = "Little Endian";
+            littleEndianCB.Checked = false;
+            littleEndianCB.BackColor = BackColor;
+            littleEndianCB.ForeColor = ForeColor;
+            Controls.Add(littleEndianCB);
+
             searchListView1.Location = new Point(3, 211);
             searchListView1.Size = new Size(484, 180);
             searchListView1.SetCMenuStrip(searchListView1.contextMenuStrip1);
@@ -2961,6 +3089,14 @@ namespace NetCheatPS3
             saveScan.Location = new Point(dumpMem.Location.X + dumpMem.Width + 5, yOff);
             loadScan.Location = new Point(saveScan.Location.X + saveScan.Width + 5, yOff);
             searchPWS.Location = new Point(loadScan.Location.X + loadScan.Width + 5, yOff + 3);
+
+            if (littleEndianCB != null)
+            {
+                littleEndianCB.Location = new Point(searchPWS.Location.X + searchPWS.Width + 12, yOff + 3);
+                littleEndianCB.BackColor = BackColor;
+                littleEndianCB.ForeColor = ForeColor;
+            }
+
             yOff += searchPWS.Height + 8;
 
             searchMemory.Location = new Point(5, yOff);

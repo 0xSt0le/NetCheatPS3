@@ -123,6 +123,11 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Scanner\EndianMode.cs" />
+    <Compile Include="Scanner\MemoryReadStats.cs" />
+    <Compile Include="Scanner\ExactScanRequest.cs" />
+    <Compile Include="Scanner\MemoryReader.cs" />
+    <Compile Include="Scanner\ExactScanner.cs" />
     <Compile Include="APIServices.cs" />
     <Compile Include="codes.cs" />
     <Compile Include="Comparator.cs" />
