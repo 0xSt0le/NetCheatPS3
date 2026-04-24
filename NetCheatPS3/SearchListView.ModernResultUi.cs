@@ -26,8 +26,12 @@ namespace NetCheatPS3
 
             EnsureModernResultContextMenu();
 
-            printBox.MouseDown += printBox_ModernMouseDown;
+            // The original built-in double-click handler creates a readonly textbox too.
+            // Remove it so only the modern editor owns textbox placement/write behavior.
+            printBox.DoubleClick -= new EventHandler(printBox_DoubleClick);
             printBox.DoubleClick += printBox_ModernDoubleClick;
+
+            printBox.MouseDown += printBox_ModernMouseDown;
         }
 
         private void EnsureModernResultContextMenu()
@@ -42,6 +46,10 @@ namespace NetCheatPS3
             {
                 ToolStripItem[] oldRangeItems = contextMenuStrip1.Items.Find("setRangeAroundAddressToolStripMenuItem", false);
                 foreach (ToolStripItem item in oldRangeItems)
+                    item.Text = "Set Scan Range To This Region";
+
+                ToolStripItem[] newRangeItems = contextMenuStrip1.Items.Find("setScanToThisRegionToolStripMenuItem", false);
+                foreach (ToolStripItem item in newRangeItems)
                     item.Text = "Set Scan Range To This Region";
 
                 return;
@@ -70,9 +78,14 @@ namespace NetCheatPS3
             contextMenuStrip1.Items.Insert(4, new ToolStripSeparator());
         }
 
+        private int GetVisibleStartIndex()
+        {
+            return vertSBar.Visible ? vertSBar.Value : 0;
+        }
+
         private int GetIndexAtPoint(Point point)
         {
-            int index = (int)(point.Y / ItemHeight) + (vertSBar.Visible ? vertSBar.Value : 0);
+            int index = (int)(point.Y / ItemHeight) + GetVisibleStartIndex();
             if (index < 0 || index >= TotalCount)
                 return -1;
 
@@ -147,6 +160,12 @@ namespace NetCheatPS3
             if (itemIndex < 0 || itemIndex >= TotalCount)
                 return;
 
+            int visibleStart = GetVisibleStartIndex();
+            int visibleRow = itemIndex - visibleStart;
+
+            if (visibleRow < 0 || visibleRow > MaxItemsPerPage)
+                return;
+
             if (tempTB != null)
             {
                 printBox.Controls.Remove(tempTB);
@@ -164,11 +183,12 @@ namespace NetCheatPS3
             tempTB.BorderStyle = BorderStyle.FixedSingle;
             tempTB.Text = parsed[column];
             tempTB.Tag = new object[] { itemIndex, column };
-            tempTB.Location = new Point((column * addrLabel.Width) + addrLabel.Width / 2 - tempTB.Width / 2, (itemIndex - vertSBar.Value) * (int)ItemHeight - 2);
+            tempTB.Location = new Point((column * addrLabel.Width) + addrLabel.Width / 2 - tempTB.Width / 2, visibleRow * (int)ItemHeight - 2);
 
             tempTB.KeyDown += editValueTextBox_KeyDown;
 
             printBox.Controls.Add(tempTB);
+            tempTB.BringToFront();
             tempTB.Select();
             tempTB.SelectionStart = 0;
             tempTB.SelectionLength = tempTB.Text.Length;
