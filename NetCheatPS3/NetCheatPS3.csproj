@@ -190,6 +190,9 @@
       <DependentUpon>ProgressBar.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scanner\SnapshotHeader.cs" />
+    <Compile Include="Scanner\SnapshotRecord.cs" />
+    <Compile Include="Scanner\SnapshotStore.cs" />
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>

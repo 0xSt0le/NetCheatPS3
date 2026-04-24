@@ -39,8 +39,23 @@ namespace NetCheatPS3
 
         private volatile bool _shouldStopSearch;
         private CheckBox littleEndianCB;
+        private CheckBox noNegativeCB;
+        private CheckBox cleanFloatCB;
+        private CheckBox noZeroCB;
         private bool activeScanUsesNewEngine = false;
         private bool activeScanLittleEndian = false;
+        private string activeSnapshotPath = null;
+        private int activeSnapshotTypeIndex = -1;
+        private int activeSnapshotByteSize = 0;
+        private long activeSnapshotResultCount = 0;
+
+        private const int MaxVisibleSnapshotResults = 10000;
+        private bool activeFilterNoNegative = true;
+        private bool activeFilterCleanFloat = true;
+        private bool activeFilterNoZero = true;
+
+        private const double CleanFloatMinAbs = 0.0001;
+        private const double CleanFloatMaxAbs = 10000000.0;
 
         int lastTypeIndex = -1;
         int lastSearchIndex = -1;
@@ -511,6 +526,8 @@ namespace NetCheatPS3
                         searchThread = null;
 
                     _shouldStopSearch = false;
+                    ClearActiveSnapshot();
+
                     activeScanUsesNewEngine = false;
                     activeScanLittleEndian = IsLittleEndianModeChecked();
 
@@ -1863,6 +1880,38 @@ namespace NetCheatPS3
             });
         }
 
+        private void ClearActiveSnapshot()
+        {
+            try
+            {
+                if (!String.IsNullOrEmpty(activeSnapshotPath) && File.Exists(activeSnapshotPath))
+                    File.Delete(activeSnapshotPath);
+            }
+            catch
+            {
+            }
+
+            activeSnapshotPath = null;
+            activeSnapshotTypeIndex = -1;
+            activeSnapshotByteSize = 0;
+            activeSnapshotResultCount = 0;
+        }
+
+        private string CreateSnapshotPath()
+        {
+            string dir = Path.Combine(Application.StartupPath, "Scans");
+
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            return Path.Combine(dir, "scan_" + DateTime.Now.Ticks.ToString() + ".ncsnap");
+        }
+
+        private bool HasActiveSnapshot()
+        {
+            return !String.IsNullOrEmpty(activeSnapshotPath) && File.Exists(activeSnapshotPath);
+        }
+
         private bool IsLittleEndianModeChecked()
         {
             if (littleEndianCB == null)
@@ -1883,6 +1932,79 @@ namespace NetCheatPS3
             }
 
             return result;
+        }
+
+        private bool IsNoNegativeChecked()
+        {
+            if (noNegativeCB == null)
+                return false;
+
+            bool result = false;
+
+            if (noNegativeCB.InvokeRequired)
+            {
+                noNegativeCB.Invoke((MethodInvoker)delegate
+                {
+                    result = noNegativeCB.Checked;
+                });
+            }
+            else
+            {
+                result = noNegativeCB.Checked;
+            }
+
+            return result;
+        }
+
+        private bool IsCleanFloatChecked()
+        {
+            if (cleanFloatCB == null)
+                return false;
+
+            bool result = false;
+
+            if (cleanFloatCB.InvokeRequired)
+            {
+                cleanFloatCB.Invoke((MethodInvoker)delegate
+                {
+                    result = cleanFloatCB.Checked;
+                });
+            }
+            else
+            {
+                result = cleanFloatCB.Checked;
+            }
+
+            return result;
+        }
+
+        private bool IsNoZeroChecked()
+        {
+            if (noZeroCB == null)
+                return false;
+
+            bool result = false;
+
+            if (noZeroCB.InvokeRequired)
+            {
+                noZeroCB.Invoke((MethodInvoker)delegate
+                {
+                    result = noZeroCB.Checked;
+                });
+            }
+            else
+            {
+                result = noZeroCB.Checked;
+            }
+
+            return result;
+        }
+
+        private void RefreshNewScannerFilterOptions()
+        {
+            activeFilterNoNegative = IsNoNegativeChecked();
+            activeFilterCleanFloat = IsCleanFloatChecked();
+            activeFilterNoZero = IsNoZeroChecked();
         }
 
         private bool CanUseNewExactEqualSearch(int typeIndex)
@@ -1928,6 +2050,7 @@ namespace NetCheatPS3
             request.CompareBytes = compareBytes;
             activeScanUsesNewEngine = true;
             activeScanLittleEndian = IsLittleEndianModeChecked();
+            RefreshNewScannerFilterOptions();
             request.EndianMode = activeScanLittleEndian ? EndianMode.Little : EndianMode.Big;
             request.KeepRawBytes = false;
 
@@ -1948,6 +2071,9 @@ namespace NetCheatPS3
                 },
                 delegate (ulong addr, byte[] displayBytes)
                 {
+                    if (!NewScanner_ShouldKeepDisplayedValue(displayBytes, typeIndex, false))
+                        return;
+
                     batch.Add(type.ToItem(addr, displayBytes, new byte[0], typeIndex));
                     resCnt++;
 
@@ -2064,6 +2190,8 @@ namespace NetCheatPS3
 
         private void RunNewBasicNextSearch(SearchListView.SearchListViewItem[] old, string[] args, int nextMode)
         {
+            RefreshNewScannerFilterOptions();
+
             if (old == null || old.Length == 0)
             {
                 SetProgBarMax(1);
@@ -2146,9 +2274,14 @@ namespace NetCheatPS3
 
                 if (isMatch)
                 {
+                    byte[] newValue = NewScanner_RawBytesToValue(currentRaw, byteSize);
+
+                    if (!NewScanner_ShouldKeepDisplayedValue(newValue, oldItem.align, false))
+                        continue;
+
                     SearchListView.SearchListViewItem newItem = oldItem;
                     newItem.oldVal = oldItem.newVal;
-                    newItem.newVal = NewScanner_RawBytesToValue(currentRaw, byteSize);
+                    newItem.newVal = newValue;
                     batch.Add(newItem);
                     resCnt++;
 
@@ -2274,6 +2407,8 @@ namespace NetCheatPS3
 
         private void RunNewDirectionNextSearch(SearchListView.SearchListViewItem[] old, bool increased)
         {
+            RefreshNewScannerFilterOptions();
+
             if (old == null || old.Length == 0)
             {
                 SetProgBarMax(1);
@@ -2330,6 +2465,9 @@ namespace NetCheatPS3
 
                 if (NewScanner_IsDirectionMatch(oldItem.newVal, currentValue, oldItem.align, increased))
                 {
+                    if (!NewScanner_ShouldKeepDisplayedValue(currentValue, oldItem.align, false))
+                        continue;
+
                     SearchListView.SearchListViewItem newItem = oldItem;
                     newItem.oldVal = oldItem.newVal;
                     newItem.newVal = currentValue;
@@ -2449,6 +2587,8 @@ namespace NetCheatPS3
 
         private void RunNewDeltaNextSearch(SearchListView.SearchListViewItem[] old, string[] args, bool increased)
         {
+            RefreshNewScannerFilterOptions();
+
             if (old == null || old.Length == 0 || args == null || args.Length == 0)
             {
                 SetProgBarMax(1);
@@ -2514,6 +2654,9 @@ namespace NetCheatPS3
 
                 if (NewScanner_IsDeltaMatch(oldItem.newVal, currentValue, deltaValue, oldItem.align, increased))
                 {
+                    if (!NewScanner_ShouldKeepDisplayedValue(currentValue, oldItem.align, false))
+                        continue;
+
                     SearchListView.SearchListViewItem newItem = oldItem;
                     newItem.oldVal = oldItem.newVal;
                     newItem.newVal = currentValue;
@@ -2616,6 +2759,93 @@ namespace NetCheatPS3
                 return BitConverter.ToDouble(scratch, 0);
 
             return 0.0;
+        }
+
+        private bool NewScanner_ShouldKeepDisplayedValue(byte[] valueBytes, int typeIndex, bool applyNoZeroFilter)
+        {
+            if (valueBytes == null)
+                return false;
+
+            ncSearchType type = SearchTypes[typeIndex];
+            string typeName = type.Name;
+
+            bool noNegative = activeFilterNoNegative;
+            bool cleanFloat = activeFilterCleanFloat;
+            bool noZero = applyNoZeroFilter && activeFilterNoZero;
+
+            if (typeName == "Float")
+            {
+                float value = NewScanner_ToFloat(valueBytes);
+
+                if (float.IsNaN(value) || float.IsInfinity(value))
+                    return false;
+
+                if (noZero && value == 0.0f)
+                    return false;
+
+                if (noNegative && value < 0.0f)
+                    return false;
+
+                if (cleanFloat)
+                {
+                    double abs = Math.Abs(value);
+
+                    // Keep useful normal values, remove tiny float noise like 1.04425E-05.
+                    if (value != 0.0f && abs < CleanFloatMinAbs)
+                        return false;
+
+                    // Remove huge scientific-notation garbage like 3.355456E+07.
+                    if (abs > CleanFloatMaxAbs)
+                        return false;
+                }
+
+                return true;
+            }
+
+            if (typeName == "Double")
+            {
+                double value = NewScanner_ToDouble(valueBytes);
+
+                if (double.IsNaN(value) || double.IsInfinity(value))
+                    return false;
+
+                if (noZero && value == 0.0)
+                    return false;
+
+                if (noNegative && value < 0.0)
+                    return false;
+
+                if (cleanFloat)
+                {
+                    double abs = Math.Abs(value);
+
+                    // Keep useful normal values, remove tiny double noise.
+                    if (value != 0.0 && abs < CleanFloatMinAbs)
+                        return false;
+
+                    // Remove huge scientific-notation garbage.
+                    if (abs > CleanFloatMaxAbs)
+                        return false;
+                }
+
+                return true;
+            }
+
+            if (noZero)
+            {
+                ulong unsignedValue = NewScanner_ToUnsignedInteger(valueBytes, type.ByteSize);
+                if (unsignedValue == 0)
+                    return false;
+            }
+
+            if (noNegative && type.ByteSize > 1)
+            {
+                long signedValue = NewScanner_ToSignedInteger(valueBytes, type.ByteSize);
+                if (signedValue < 0)
+                    return false;
+            }
+
+            return true;
         }
 
         private bool NewScanner_IsValueBetween(byte[] valueBytes, byte[] minBytes, byte[] maxBytes, int typeIndex)
@@ -2764,6 +2994,7 @@ namespace NetCheatPS3
 
             activeScanUsesNewEngine = true;
             activeScanLittleEndian = IsLittleEndianModeChecked();
+            RefreshNewScannerFilterOptions();
 
             byte[] minBytes = type.ToByteArray((string)args[0]);
             byte[] maxBytes = type.ToByteArray((string)args[1]);
@@ -2811,6 +3042,9 @@ namespace NetCheatPS3
 
                             byte[] displayBytes = NewScanner_RawBytesToValue(hitRaw, type.ByteSize);
 
+                            if (!NewScanner_ShouldKeepDisplayedValue(displayBytes, typeIndex, false))
+                                continue;
+
                             batch.Add(type.ToItem(addr + (ulong)off, displayBytes, new byte[0], typeIndex));
                             resCnt++;
 
@@ -2850,6 +3084,8 @@ namespace NetCheatPS3
 
         private void RunNewValueBetweenNextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            RefreshNewScannerFilterOptions();
+
             if (old == null || old.Length == 0 || args == null || args.Length < 2)
             {
                 SetProgBarMax(1);
@@ -2917,6 +3153,9 @@ namespace NetCheatPS3
 
                 if (NewScanner_IsValueBetween(currentValue, minBytes, maxBytes, oldItem.align))
                 {
+                    if (!NewScanner_ShouldKeepDisplayedValue(currentValue, oldItem.align, false))
+                        continue;
+
                     SearchListView.SearchListViewItem newItem = oldItem;
                     newItem.oldVal = oldItem.newVal;
                     newItem.newVal = currentValue;
@@ -2951,6 +3190,314 @@ namespace NetCheatPS3
             SetProgBar(old.Length - 1);
             SetStatusLabel(
                 "Results: " + resCnt.ToString("N0") +
+                " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
+                " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
+        }
+
+        private void RunNewUnknownInitialSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
+        {
+            ncSearchType type = SearchTypes[typeIndex];
+
+            int alignment = type.ignoreAlignment ? GetAlign(1) : type.ByteSize;
+            if (alignment <= 0)
+                alignment = type.ByteSize;
+
+            activeScanUsesNewEngine = true;
+            activeScanLittleEndian = IsLittleEndianModeChecked();
+            RefreshNewScannerFilterOptions();
+
+            activeSnapshotTypeIndex = typeIndex;
+            activeSnapshotByteSize = type.ByteSize;
+            activeSnapshotResultCount = 0;
+
+            int blockSize = ExactScanner.DefaultBlockSize;
+            int totalBlocks = (int)(((stopAddr - startAddr) + (ulong)blockSize - 1) / (ulong)blockSize);
+            if (totalBlocks <= 0)
+                totalBlocks = 1;
+
+            long estimatedResults = 0;
+            if (type.ByteSize > 0)
+                estimatedResults = (long)((stopAddr - startAddr) / (ulong)alignment);
+
+            string msg =
+                "This Unknown Value scan will write a disk-backed snapshot.\r\n\r\n" +
+                "Estimated records: " + estimatedResults.ToString("N0") + "\r\n" +
+                "Only the first " + MaxVisibleSnapshotResults.ToString("N0") + " results will be shown in the UI.\r\n" +
+                "All records will still be kept on disk for Next Scan.\r\n\r\n" +
+                "Continue?";
+
+            if (MessageBox.Show(msg, "Unknown Value Snapshot", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.No)
+                return;
+
+            SetProgBarMax(totalBlocks - 1);
+            SetProgBar(0);
+
+            string snapshotPath = CreateSnapshotPath();
+            MemoryReader reader = new MemoryReader();
+            byte[] fullBlock = new byte[blockSize];
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int visibleCount = 0;
+            long totalCount = 0;
+            int blockIndex = 0;
+
+            using (SnapshotStore store = SnapshotStore.Create(snapshotPath, typeIndex, type.ByteSize, activeScanLittleEndian))
+            {
+                for (ulong addr = startAddr; addr < stopAddr; addr += (ulong)blockSize, blockIndex++)
+                {
+                    if (_shouldStopSearch)
+                        break;
+
+                    int usable = (int)Math.Min((ulong)blockSize, stopAddr - addr);
+                    if (usable <= 0)
+                        break;
+
+                    byte[] readBlock = usable == blockSize ? fullBlock : new byte[usable];
+
+                    if (reader.TryReadBlock(addr, readBlock))
+                    {
+                        int maxOffset = usable - type.ByteSize;
+
+                        for (int off = 0; off <= maxOffset; off += alignment)
+                        {
+                            if (_shouldStopSearch)
+                                break;
+
+                            byte[] raw = new byte[type.ByteSize];
+                            Buffer.BlockCopy(readBlock, off, raw, 0, type.ByteSize);
+
+                            byte[] valueBytes = NewScanner_RawBytesToValue(raw, type.ByteSize);
+
+                            if (!NewScanner_ShouldKeepDisplayedValue(valueBytes, typeIndex, true))
+                                continue;
+
+                            store.WriteRecord(addr + (ulong)off, valueBytes);
+                            totalCount++;
+
+                            if (visibleCount < MaxVisibleSnapshotResults)
+                            {
+                                batch.Add(type.ToItem(addr + (ulong)off, valueBytes, new byte[0], typeIndex));
+                                visibleCount++;
+
+                                if (batch.Count >= 512)
+                                {
+                                    AddResultRange(batch);
+                                    batch.Clear();
+                                }
+                            }
+                        }
+                    }
+
+                    if ((blockIndex & 0x0F) == 0)
+                    {
+                        SetProgBar(blockIndex);
+                        SetStatusLabel("Snapshot records: " + totalCount.ToString("N0") + " | Visible: " + visibleCount.ToString("N0"));
+                    }
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            activeSnapshotPath = snapshotPath;
+            activeSnapshotResultCount = totalCount;
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar(totalBlocks - 1);
+            SetStatusLabel(
+                "Snapshot records: " + totalCount.ToString("N0") +
+                " | Visible: " + visibleCount.ToString("N0") +
+                " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
+                " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
+        }
+
+        private void RunNewSnapshotNextSearch(string[] args, int mode)
+        {
+            if (!HasActiveSnapshot())
+            {
+                SetStatusLabel("No active snapshot");
+                return;
+            }
+
+            SnapshotHeader header = SnapshotStore.ReadHeader(activeSnapshotPath);
+
+            activeScanUsesNewEngine = true;
+            activeScanLittleEndian = header.LittleEndian;
+            RefreshNewScannerFilterOptions();
+
+            activeSnapshotTypeIndex = header.TypeIndex;
+            activeSnapshotByteSize = header.ByteSize;
+
+            ncSearchType type = SearchTypes[header.TypeIndex];
+
+            SetProgBarMax(header.Count > 0 ? (int)Math.Min(header.Count - 1, Int32.MaxValue) : 1);
+            SetProgBar(0);
+
+            ClearItems();
+
+            string newSnapshotPath = CreateSnapshotPath();
+
+            MemoryReader reader = new MemoryReader();
+            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
+            ulong cachedBlockBase = 0;
+            bool cachedBlockValid = false;
+
+            List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
+            int visibleCount = 0;
+            long resultCount = 0;
+            long processed = 0;
+
+            byte[] compareValue = null;
+            byte[] minValue = null;
+            byte[] maxValue = null;
+
+            if ((mode == Form1.compEq || mode == Form1.compNEq) && args != null && args.Length > 0)
+                compareValue = type.ToByteArray((string)args[0]);
+
+            if (mode == Form1.compVBet && args != null && args.Length >= 2)
+            {
+                minValue = type.ToByteArray((string)args[0]);
+                maxValue = type.ToByteArray((string)args[1]);
+            }
+
+            byte[] deltaValue = null;
+            if ((mode == Form1.compINC || mode == Form1.compDEC) && args != null && args.Length > 0)
+                deltaValue = type.ToByteArray((string)args[0]);
+
+            using (SnapshotStore newStore = SnapshotStore.Create(newSnapshotPath, header.TypeIndex, header.ByteSize, header.LittleEndian))
+            {
+                foreach (SnapshotRecord record in SnapshotStore.ReadRecords(activeSnapshotPath))
+                {
+                    if (_shouldStopSearch)
+                        break;
+
+                    byte[] currentRaw;
+                    bool readOk = NewScanner_TryReadCurrentRawValue(
+                        reader,
+                        record.Address,
+                        header.ByteSize,
+                        ref cachedBlockBase,
+                        ref cachedBlock,
+                        ref cachedBlockValid,
+                        out currentRaw);
+
+                    if (!readOk)
+                    {
+                        processed++;
+                        continue;
+                    }
+
+                    byte[] currentValue = NewScanner_RawBytesToValue(currentRaw, header.ByteSize);
+
+                    if (!NewScanner_ShouldKeepDisplayedValue(currentValue, header.TypeIndex, true))
+                    {
+                        processed++;
+                        continue;
+                    }
+
+                    bool isMatch = false;
+
+                    if (mode == Form1.compEq)
+                    {
+                        isMatch = NewScanner_BytesEqual(currentValue, compareValue, header.ByteSize);
+                    }
+                    else if (mode == Form1.compNEq)
+                    {
+                        isMatch = !NewScanner_BytesEqual(currentValue, compareValue, header.ByteSize);
+                    }
+                    else if (mode == Form1.compChg)
+                    {
+                        isMatch = !NewScanner_BytesEqual(currentValue, record.Value, header.ByteSize);
+                    }
+                    else if (mode == Form1.compUChg)
+                    {
+                        isMatch = NewScanner_BytesEqual(currentValue, record.Value, header.ByteSize);
+                    }
+                    else if (mode == Form1.compGT)
+                    {
+                        isMatch = NewScanner_IsDirectionMatch(record.Value, currentValue, header.TypeIndex, true);
+                    }
+                    else if (mode == Form1.compLT)
+                    {
+                        isMatch = NewScanner_IsDirectionMatch(record.Value, currentValue, header.TypeIndex, false);
+                    }
+                    else if (mode == Form1.compINC)
+                    {
+                        isMatch = NewScanner_IsDeltaMatch(record.Value, currentValue, deltaValue, header.TypeIndex, true);
+                    }
+                    else if (mode == Form1.compDEC)
+                    {
+                        isMatch = NewScanner_IsDeltaMatch(record.Value, currentValue, deltaValue, header.TypeIndex, false);
+                    }
+                    else if (mode == Form1.compVBet)
+                    {
+                        isMatch = NewScanner_IsValueBetween(currentValue, minValue, maxValue, header.TypeIndex);
+                    }
+
+                    if (isMatch)
+                    {
+                        newStore.WriteRecord(record.Address, currentValue);
+                        resultCount++;
+
+                        if (visibleCount < MaxVisibleSnapshotResults)
+                        {
+                            SearchListView.SearchListViewItem item = type.ToItem(record.Address, currentValue, record.Value, header.TypeIndex);
+                            batch.Add(item);
+                            visibleCount++;
+
+                            if (batch.Count >= 512)
+                            {
+                                AddResultRange(batch);
+                                batch.Clear();
+                            }
+                        }
+                    }
+
+                    processed++;
+
+                    if ((processed & 0x3FFF) == 0)
+                    {
+                        SetProgBar((int)Math.Min(processed, Int32.MaxValue));
+                        SetStatusLabel("Snapshot results: " + resultCount.ToString("N0") + " | Processed: " + processed.ToString("N0"));
+                    }
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                AddResultRange(batch);
+                batch.Clear();
+            }
+
+            string oldSnapshotPath = activeSnapshotPath;
+            activeSnapshotPath = newSnapshotPath;
+            activeSnapshotResultCount = resultCount;
+
+            try
+            {
+                if (!String.IsNullOrEmpty(oldSnapshotPath) && File.Exists(oldSnapshotPath))
+                    File.Delete(oldSnapshotPath);
+            }
+            catch
+            {
+            }
+
+            Invoke((MethodInvoker)delegate
+            {
+                searchListView1.AddItemsFromList();
+            });
+
+            SetProgBar((int)Math.Min(processed, Int32.MaxValue));
+            SetStatusLabel(
+                "Snapshot results: " + resultCount.ToString("N0") +
+                " | Visible: " + visibleCount.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -3196,6 +3743,12 @@ namespace NetCheatPS3
 
         void UnknownValue_InitSearch(ulong startAddr, ulong stopAddr, int typeIndex, string[] args)
         {
+            if (CanUseNewExactEqualSearch(typeIndex))
+            {
+                RunNewUnknownInitialSearch(startAddr, stopAddr, typeIndex, args);
+                return;
+            }
+
             ncSearchType type = SearchTypes[typeIndex];
 
             int size = 0x10000;
@@ -3442,6 +3995,12 @@ namespace NetCheatPS3
 
         void EqualTo_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compEq);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewBasicNextSearch(old, args, Form1.compEq);
@@ -3453,6 +4012,12 @@ namespace NetCheatPS3
 
         void NotEqualTo_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compNEq);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewBasicNextSearch(old, args, Form1.compNEq);
@@ -3504,6 +4069,12 @@ namespace NetCheatPS3
 
         void ValueBetween_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compVBet);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewValueBetweenNextSearch(old, args);
@@ -3645,6 +4216,12 @@ namespace NetCheatPS3
 
         void Increased_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compGT);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewDirectionNextSearch(old, true);
@@ -3656,6 +4233,12 @@ namespace NetCheatPS3
 
         void IncreasedBy_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compINC);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewDeltaNextSearch(old, args, true);
@@ -3667,6 +4250,12 @@ namespace NetCheatPS3
 
         void Decreased_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compLT);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewDirectionNextSearch(old, false);
@@ -3678,6 +4267,12 @@ namespace NetCheatPS3
 
         void DecreasedBy_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compDEC);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewDeltaNextSearch(old, args, false);
@@ -3689,6 +4284,12 @@ namespace NetCheatPS3
 
         void Changed_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compChg);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewBasicNextSearch(old, new string[0], Form1.compChg);
@@ -3700,6 +4301,12 @@ namespace NetCheatPS3
 
         void Unchanged_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
+            if (HasActiveSnapshot())
+            {
+                RunNewSnapshotNextSearch(args, Form1.compUChg);
+                return;
+            }
+
             if (activeScanUsesNewEngine && old != null && old.Length > 0 && CanUseNewExactEqualSearch(old[0].align))
             {
                 RunNewBasicNextSearch(old, new string[0], Form1.compUChg);
@@ -4010,6 +4617,30 @@ namespace NetCheatPS3
             littleEndianCB.ForeColor = ForeColor;
             Controls.Add(littleEndianCB);
 
+            noNegativeCB = new CheckBox();
+            noNegativeCB.AutoSize = true;
+            noNegativeCB.Text = "No Negative";
+            noNegativeCB.Checked = true;
+            noNegativeCB.BackColor = BackColor;
+            noNegativeCB.ForeColor = ForeColor;
+            Controls.Add(noNegativeCB);
+
+            cleanFloatCB = new CheckBox();
+            cleanFloatCB.AutoSize = true;
+            cleanFloatCB.Text = "Clean Float";
+            cleanFloatCB.Checked = true;
+            cleanFloatCB.BackColor = BackColor;
+            cleanFloatCB.ForeColor = ForeColor;
+            Controls.Add(cleanFloatCB);
+
+            noZeroCB = new CheckBox();
+            noZeroCB.AutoSize = true;
+            noZeroCB.Text = "No Zero";
+            noZeroCB.Checked = true;
+            noZeroCB.BackColor = BackColor;
+            noZeroCB.ForeColor = ForeColor;
+            Controls.Add(noZeroCB);
+
             searchListView1.Location = new Point(3, 211);
             searchListView1.Size = new Size(484, 180);
             searchListView1.SetCMenuStrip(searchListView1.contextMenuStrip1);
@@ -4168,6 +4799,27 @@ namespace NetCheatPS3
                 littleEndianCB.Location = new Point(searchPWS.Location.X + searchPWS.Width + 12, yOff + 3);
                 littleEndianCB.BackColor = BackColor;
                 littleEndianCB.ForeColor = ForeColor;
+            }
+
+            if (noNegativeCB != null)
+            {
+                noNegativeCB.Location = new Point(littleEndianCB.Location.X + littleEndianCB.Width + 12, yOff + 3);
+                noNegativeCB.BackColor = BackColor;
+                noNegativeCB.ForeColor = ForeColor;
+            }
+
+            if (cleanFloatCB != null)
+            {
+                cleanFloatCB.Location = new Point(noNegativeCB.Location.X + noNegativeCB.Width + 12, yOff + 3);
+                cleanFloatCB.BackColor = BackColor;
+                cleanFloatCB.ForeColor = ForeColor;
+            }
+
+            if (noZeroCB != null)
+            {
+                noZeroCB.Location = new Point(cleanFloatCB.Location.X + cleanFloatCB.Width + 12, yOff + 3);
+                noZeroCB.BackColor = BackColor;
+                noZeroCB.ForeColor = ForeColor;
             }
 
             yOff += searchPWS.Height + 8;
