@@ -368,35 +368,191 @@ namespace TMAPI_NCAPI
         }
 
         internal static Assembly LoadApi;
+        private static bool _ps3TmApiResolverRegistered = false;
+        private static bool _ps3TmApiResolverErrorShown = false;
+        private static bool _assemblyResolverRegistered = false;
+        private static bool _assemblyResolverErrorShown = false;
+        private static readonly object _assemblyResolverLock = new object();
         ///<summary>Load the PS3 API for use with your Application .NET.</summary>
-        public Assembly PS3TMAPI_NET()
+                                        public Assembly PS3TMAPI_NET()
         {
-            AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
-            {
-                var filename = new AssemblyName(e.Name).Name;
-                var x = string.Format(@"C:\Program Files\SN Systems\PS3\bin\ps3tmapi_net.dll", filename);
-                var x64 = string.Format(@"C:\Program Files (x64)\SN Systems\PS3\bin\ps3tmapi_net.dll", filename);
-                var x86 = string.Format(@"C:\Program Files (x86)\SN Systems\PS3\bin\ps3tmapi_net.dll", filename);
-                if (System.IO.File.Exists(x))
-                    LoadApi = Assembly.LoadFile(x);
-                else
-                {
-                    if (System.IO.File.Exists(x64))
-                        LoadApi = Assembly.LoadFile(x64);
+            if (LoadApi != null)
+                return LoadApi;
 
-                    else
+            if (!_ps3TmApiResolverRegistered)
+            {
+                AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
+                {
+                    try
                     {
-                        if (System.IO.File.Exists(x86))
-                            LoadApi = Assembly.LoadFile(x86);
-                        else
+                        string requestedName = new AssemblyName(e.Name).Name;
+                        if (!String.Equals(requestedName, "ps3tmapi_net", StringComparison.OrdinalIgnoreCase))
+                            return null;
+
+                        if (LoadApi != null)
+                            return LoadApi;
+
+                        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                        string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                        string pfx86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                        string pfw6432 = Environment.GetEnvironmentVariable("ProgramW6432");
+
+                        List<string> candidates = new List<string>();
+
+                        if (!String.IsNullOrEmpty(baseDir))
                         {
-                            MessageBox.Show("Target Manager API cannot be founded to:\r\n\r\n" + x86, "Error with PS3 API!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            candidates.Add(Path.Combine(baseDir, "ps3tmapi_net.dll"));
+                            candidates.Add(Path.Combine(baseDir, "APIs", "ps3tmapi_net.dll"));
+                            candidates.Add(Path.Combine(baseDir, "APIs", "TMAPI-NCAPI", "ps3tmapi_net.dll"));
                         }
+
+                        if (!String.IsNullOrEmpty(pf))
+                            candidates.Add(Path.Combine(pf, "SN Systems", "PS3", "bin", "ps3tmapi_net.dll"));
+
+                        if (!String.IsNullOrEmpty(pfx86))
+                            candidates.Add(Path.Combine(pfx86, "SN Systems", "PS3", "bin", "ps3tmapi_net.dll"));
+
+                        if (!String.IsNullOrEmpty(pfw6432))
+                            candidates.Add(Path.Combine(pfw6432, "SN Systems", "PS3", "bin", "ps3tmapi_net.dll"));
+
+                        List<string> loadErrors = new List<string>();
+
+                        foreach (string candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+                        {
+                            if (!File.Exists(candidate))
+                                continue;
+
+                            try
+                            {
+                                LoadApi = Assembly.LoadFile(candidate);
+                                return LoadApi;
+                            }
+                            catch (Exception ex)
+                            {
+                                loadErrors.Add(candidate + " -> " + ex.GetType().Name + ": " + ex.Message);
+                            }
+                        }
+
+                        if (!_ps3TmApiResolverErrorShown)
+                        {
+                            _ps3TmApiResolverErrorShown = true;
+
+                            string checkedPaths = String.Join("\r\n", candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+                            string errors = loadErrors.Count > 0 ? ("\r\n\r\nLoad errors:\r\n" + String.Join("\r\n", loadErrors.ToArray())) : "";
+
+                            MessageBox.Show(
+                                "Target Manager API could not load ps3tmapi_net.dll.\r\n\r\n" +
+                                "Checked paths:\r\n" + checkedPaths + errors,
+                                "Error with PS3 API!",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
+                        }
+
+                        return null;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                };
+
+                _ps3TmApiResolverRegistered = true;
+            }
+
+            return LoadApi;
+        }
+
+        private static Assembly ResolvePS3TMAPIAssembly(object sender, ResolveEventArgs e)
+        {
+            string filename = new AssemblyName(e.Name).Name;
+
+            if (!String.Equals(filename, "ps3tmapi_net", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return ResolvePS3TMAPIAssemblyByName(filename);
+        }
+
+        private static Assembly ResolvePS3TMAPIAssemblyByName(string filename)
+        {
+            if (LoadApi != null)
+                return LoadApi;
+
+            if (String.IsNullOrEmpty(filename))
+                filename = "ps3tmapi_net";
+
+            string dllName = filename.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                ? filename
+                : filename + ".dll";
+
+            List<string> candidatePaths = new List<string>();
+
+            Action<string> addCandidate = delegate(string path)
+            {
+                if (!String.IsNullOrEmpty(path) && !candidatePaths.Contains(path, StringComparer.OrdinalIgnoreCase))
+                    candidatePaths.Add(path);
+            };
+
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string currentDir = Directory.GetCurrentDirectory();
+
+            addCandidate(Path.Combine(baseDir, dllName));
+            addCandidate(Path.Combine(baseDir, "APIs", dllName));
+            addCandidate(Path.Combine(baseDir, "APIs", "TMAPI-NCAPI", dllName));
+
+            addCandidate(Path.Combine(currentDir, dllName));
+            addCandidate(Path.Combine(currentDir, "APIs", dllName));
+            addCandidate(Path.Combine(currentDir, "APIs", "TMAPI-NCAPI", dllName));
+
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string programW6432 = Environment.GetEnvironmentVariable("ProgramW6432");
+
+            addCandidate(Path.Combine(programFiles, "SN Systems", "PS3", "bin", dllName));
+            addCandidate(Path.Combine(programFilesX86, "SN Systems", "PS3", "bin", dllName));
+
+            if (!String.IsNullOrEmpty(programW6432))
+                addCandidate(Path.Combine(programW6432, "SN Systems", "PS3", "bin", dllName));
+
+            // Some older ProDG installs use these exact paths. Keep them explicit.
+            addCandidate(@"C:\Program Files\SN Systems\PS3\bin\" + dllName);
+            addCandidate(@"C:\Program Files (x86)\SN Systems\PS3\bin\" + dllName);
+
+            Exception lastError = null;
+
+            foreach (string candidate in candidatePaths)
+            {
+                try
+                {
+                    if (File.Exists(candidate))
+                    {
+                        LoadApi = Assembly.LoadFrom(candidate);
+                        return LoadApi;
                     }
                 }
-                return LoadApi;
-            };
-            return LoadApi;
+                catch (Exception ex)
+                {
+                    lastError = ex;
+                }
+            }
+
+            if (!_assemblyResolverErrorShown)
+            {
+                _assemblyResolverErrorShown = true;
+
+                string msg =
+                    "Target Manager API DLL could not be found or loaded.\r\n\r\n" +
+                    "Missing DLL: " + dllName + "\r\n\r\n" +
+                    "Checked paths:\r\n" +
+                    String.Join("\r\n", candidatePaths.ToArray());
+
+                if (lastError != null)
+                    msg += "\r\n\r\nLast load error:\r\n" + lastError.Message;
+
+                MessageBox.Show(msg, "Error with PS3 API!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            return null;
         }
     }
 }
+

@@ -847,6 +847,7 @@ namespace NetCheatPS3
 
             HandlePluginControls(searchControl1.Controls);
             HandlePluginControls(FRManager.Controls);
+            CreateProbeAddressButton();
         }
 
         /* Connects to PS3 */
@@ -2078,6 +2079,9 @@ namespace NetCheatPS3
                 MessageBox.Show("Not yet connected!");
             */
         }
+        private Button probeAddressButton = null;
+        private ulong lastProbeAddress = 0;
+        private int lastProbeSize = 0x10;
         private volatile bool findRangesCancel = false;
         private System.Threading.Thread findRangesThread = null;
 
@@ -2503,6 +2507,261 @@ namespace NetCheatPS3
             }
         }
 
+        private void CreateProbeAddressButton()
+        {
+            if (probeAddressButton != null)
+                return;
+
+            probeAddressButton = new Button();
+            probeAddressButton.Text = "Probe Address";
+            probeAddressButton.UseVisualStyleBackColor = true;
+            probeAddressButton.BackColor = ncBackColor;
+            probeAddressButton.ForeColor = ncForeColor;
+            probeAddressButton.Click += new EventHandler(ProbeAddress_Click);
+
+            RangeTab.Controls.Add(probeAddressButton);
+            probeAddressButton.BringToFront();
+
+            try
+            {
+                Form1_Resize(this, EventArgs.Empty);
+            }
+            catch
+            {
+            }
+        }
+
+        private bool TryParseProbeHex(string text, out ulong value)
+        {
+            value = 0;
+
+            if (text == null)
+                return false;
+
+            text = text.Trim();
+
+            if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                text = text.Substring(2);
+
+            if (text.Length == 0)
+                return false;
+
+            return ulong.TryParse(
+                text,
+                System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out value);
+        }
+
+        private string FormatProbeHexLines(byte[] bytes, int maxBytes)
+        {
+            if (bytes == null)
+                return "";
+
+            int count = Math.Min(bytes.Length, maxBytes);
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
+            for (int i = 0; i < count; i++)
+            {
+                if ((i % 16) == 0)
+                {
+                    if (i != 0)
+                        sb.AppendLine();
+
+                    sb.Append(i.ToString("X4"));
+                    sb.Append(": ");
+                }
+
+                sb.Append(bytes[i].ToString("X2"));
+                sb.Append(' ');
+            }
+
+            if (bytes.Length > maxBytes)
+            {
+                sb.AppendLine();
+                sb.Append("... truncated in popup, full details copied to clipboard ...");
+            }
+
+            return sb.ToString();
+        }
+
+        private string FormatProbeHexCompact(byte[] bytes)
+        {
+            if (bytes == null)
+                return "";
+
+            System.Text.StringBuilder sb = new System.Text.StringBuilder(bytes.Length * 2);
+
+            for (int i = 0; i < bytes.Length; i++)
+                sb.Append(bytes[i].ToString("X2"));
+
+            return sb.ToString();
+        }
+
+        private uint ReadProbeUInt32BE(byte[] bytes)
+        {
+            return ((uint)bytes[0] << 24) |
+                   ((uint)bytes[1] << 16) |
+                   ((uint)bytes[2] << 8) |
+                   bytes[3];
+        }
+
+        private uint ReadProbeUInt32LE(byte[] bytes)
+        {
+            return ((uint)bytes[3] << 24) |
+                   ((uint)bytes[2] << 16) |
+                   ((uint)bytes[1] << 8) |
+                   bytes[0];
+        }
+
+        private float UInt32BitsToFloat(uint value)
+        {
+            byte[] tmp = BitConverter.GetBytes(value);
+
+            if (!BitConverter.IsLittleEndian)
+                Array.Reverse(tmp);
+
+            return BitConverter.ToSingle(tmp, 0);
+        }
+
+        private void ProbeAddress_Click(object sender, EventArgs e)
+        {
+            if (curAPI == null)
+            {
+                MessageBox.Show("No API selected!");
+                return;
+            }
+
+            if (!connected)
+            {
+                MessageBox.Show("Not connected to the PS3!");
+                return;
+            }
+
+            IBArg[] args = new IBArg[2];
+
+            args[0].label = "Address";
+            args[0].defStr = lastProbeAddress.ToString("X8");
+
+            args[1].label = "Size";
+            args[1].defStr = lastProbeSize.ToString("X");
+
+            args = CallIBox(args);
+
+            if (args == null)
+                return;
+
+            ulong addr;
+            ulong size64;
+
+            if (!TryParseProbeHex(args[0].retStr, out addr))
+            {
+                MessageBox.Show("Invalid address. Enter hex, for example 20F9FE50.");
+                return;
+            }
+
+            if (!TryParseProbeHex(args[1].retStr, out size64))
+            {
+                MessageBox.Show("Invalid size. Enter hex, for example 10 for 16 bytes.");
+                return;
+            }
+
+            if (size64 == 0)
+            {
+                MessageBox.Show("Size must be greater than zero.");
+                return;
+            }
+
+            if (size64 > 0x1000)
+            {
+                MessageBox.Show("Probe size is limited to 0x1000 bytes.");
+                return;
+            }
+
+            lastProbeAddress = addr;
+            lastProbeSize = (int)size64;
+
+            byte[] data = new byte[(int)size64];
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            bool ok = false;
+            Exception caught = null;
+
+            try
+            {
+                ok = apiGetMem(addr, ref data);
+            }
+            catch (Exception ex)
+            {
+                caught = ex;
+                ok = false;
+            }
+
+            sw.Stop();
+
+            if (!ok)
+            {
+                string failMsg =
+                    "READ FAILED\r\n\r\n" +
+                    "Address: 0x" + addr.ToString("X8") + "\r\n" +
+                    "Size: 0x" + size64.ToString("X") + "\r\n" +
+                    "Time: " + sw.ElapsedMilliseconds.ToString() + " ms";
+
+                if (caught != null)
+                    failMsg += "\r\n\r\nException:\r\n" + caught.Message;
+
+                statusLabel1.Text = "Probe failed at 0x" + addr.ToString("X8");
+                MessageBox.Show(failMsg, "Probe Address", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string rawCompact = FormatProbeHexCompact(data);
+
+            System.Text.StringBuilder full = new System.Text.StringBuilder();
+            full.AppendLine("READ OK");
+            full.AppendLine();
+            full.AppendLine("Address: 0x" + addr.ToString("X8"));
+            full.AppendLine("Size: 0x" + size64.ToString("X") + " (" + size64.ToString() + " bytes)");
+            full.AppendLine("Time: " + sw.ElapsedMilliseconds.ToString() + " ms");
+            full.AppendLine();
+            full.AppendLine("Raw bytes:");
+            full.AppendLine(FormatProbeHexLines(data, 256));
+            full.AppendLine();
+            full.AppendLine("Raw compact:");
+            full.AppendLine(rawCompact);
+
+            if (data.Length >= 4)
+            {
+                uint u32be = ReadProbeUInt32BE(data);
+                uint u32le = ReadProbeUInt32LE(data);
+
+                full.AppendLine();
+                full.AppendLine("First 4 bytes interpreted:");
+                full.AppendLine("U32 BE : 0x" + u32be.ToString("X8") + " (" + u32be.ToString() + ")");
+                full.AppendLine("U32 LE : 0x" + u32le.ToString("X8") + " (" + u32le.ToString() + ")");
+                full.AppendLine("F32 BE : " + UInt32BitsToFloat(u32be).ToString("G9", System.Globalization.CultureInfo.InvariantCulture));
+                full.AppendLine("F32 LE : " + UInt32BitsToFloat(u32le).ToString("G9", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            try
+            {
+                Clipboard.SetText(full.ToString());
+            }
+            catch
+            {
+            }
+
+            statusLabel1.Text = "Probe OK at 0x" + addr.ToString("X8") + " | " + size64.ToString() + " bytes | " + sw.ElapsedMilliseconds.ToString() + " ms";
+
+            MessageBox.Show(
+                full.ToString() + "\r\n\r\nFull probe details copied to clipboard.",
+                "Probe Address",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
         private void findRanges_Click(object sender, EventArgs e)
         {
             if (curAPI == null)
@@ -2869,6 +3128,7 @@ private void button1_Click(object sender, EventArgs e)
                 FRManager.ForeColor = ncForeColor;
                 FRManager.BackColor = ncBackColor;
                 HandlePluginControls(FRManager.Controls);
+            CreateProbeAddressButton();
             }
 
             FRManager.Show();
@@ -2933,8 +3193,25 @@ private void button1_Click(object sender, EventArgs e)
                     ratio = tWidth - 235 - 8;
                     label3.Width = ratio;
                     recRangeBox.Width = ratio;
-                    findRangeProgBar.Width = ratio - 91 - 6;
-                    findRanges.Left = findRangeProgBar.Left + findRangeProgBar.Width + 6;
+                    if (probeAddressButton != null)
+                    {
+                        int probeWidth = 110;
+                        findRangeProgBar.Width = ratio - findRanges.Width - probeWidth - 12;
+                        if (findRangeProgBar.Width < 50)
+                            findRangeProgBar.Width = 50;
+
+                        findRanges.Left = findRangeProgBar.Left + findRangeProgBar.Width + 6;
+
+                        probeAddressButton.Width = probeWidth;
+                        probeAddressButton.Height = findRanges.Height;
+                        probeAddressButton.Top = findRanges.Top;
+                        probeAddressButton.Left = findRanges.Left + findRanges.Width + 6;
+                    }
+                    else
+                    {
+                        findRangeProgBar.Width = ratio - 91 - 6;
+                        findRanges.Left = findRangeProgBar.Left + findRangeProgBar.Width + 6;
+                    }
 
                     ratio -= 30;
                     ratio /= 2;
@@ -3255,4 +3532,5 @@ private void button1_Click(object sender, EventArgs e)
 
     }
 }
+
 
