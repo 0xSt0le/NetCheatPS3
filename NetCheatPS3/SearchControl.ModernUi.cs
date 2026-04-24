@@ -146,7 +146,9 @@ namespace NetCheatPS3
                 "128 KB",
                 "256 KB",
                 "512 KB",
-                "1 MB"
+                "1 MB",
+                "2 MB",
+                "4 MB"
             });
             exactBlockSizeBox.SelectedItem = "1 MB";
             exactBlockSizeBox.Width = 80;
@@ -176,11 +178,15 @@ namespace NetCheatPS3
                 if (String.Equals(text, "128 KB", StringComparison.OrdinalIgnoreCase))
                     return 0x20000;
                 if (String.Equals(text, "256 KB", StringComparison.OrdinalIgnoreCase))
-                    return 0x100000;
+                    return 0x40000;
                 if (String.Equals(text, "512 KB", StringComparison.OrdinalIgnoreCase))
                     return 0x80000;
                 if (String.Equals(text, "1 MB", StringComparison.OrdinalIgnoreCase))
                     return 0x100000;
+                if (String.Equals(text, "2 MB", StringComparison.OrdinalIgnoreCase))
+                    return 0x200000;
+                if (String.Equals(text, "4 MB", StringComparison.OrdinalIgnoreCase))
+                    return 0x400000;
             }
             catch
             {
@@ -192,6 +198,7 @@ namespace NetCheatPS3
         private string GetSelectedExactScanBlockSizeText()
         {
             int size = GetSelectedExactScanBlockSize();
+
             if (size >= 0x100000 && (size % 0x100000) == 0)
                 return "0x" + size.ToString("X") + " (" + (size / 0x100000).ToString("N0") + " MB)";
 
