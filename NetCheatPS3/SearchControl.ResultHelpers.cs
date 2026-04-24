@@ -109,6 +109,16 @@ namespace NetCheatPS3
             CaptureLastScanStats(kind, elapsedMs, start, stop);
         }
 
+        private void ClearLastScanStats()
+        {
+            lastScanKind = "";
+            lastScanElapsedMs = 0;
+            lastScanStart = 0;
+            lastScanStop = 0;
+            lastScanResultCount = 0;
+            lastScanFinishedAt = DateTime.MinValue;
+            lastScanReadStats = new MemoryReadStats();
+        }
         private void AppendLastScanSpeedDiagnostics(StringBuilder sb)
         {
             if (sb == null)

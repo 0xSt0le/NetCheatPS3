@@ -525,7 +525,8 @@ for (int x = 0; x < args.Length; x++)
                 searchListView1.ClearItems();
                 
                 ClearSnapshotStateAndDeleteTempFiles();
-searchMemory.Text = "Initial Scan";
+
+                ClearLastScanStats();searchMemory.Text = "Initial Scan";
                 progBar.printText = "";
                 forceTBUpdate = true;
                 isInitialScan = true;
@@ -541,7 +542,8 @@ searchMemory.Text = "Initial Scan";
                     _shouldStopSearch = false;
                     ClearSnapshotStateAndDeleteTempFiles();
 
-                    activeScanUsesNewEngine = false;
+                    
+                ClearLastScanStats();activeScanUsesNewEngine = false;
                     activeScanLittleEndian = IsLittleEndianModeChecked();
 
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
