@@ -29,6 +29,7 @@ namespace NetCheatPS3
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
+            EnsureSnapshotCleanupOnFormClose();
 
             if (searchNameBox != null)
                 searchNameBox.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -293,6 +294,7 @@ namespace NetCheatPS3
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
+            EnsureSnapshotCleanupOnFormClose();
 
             int filterY = Math.Max(searchTypeBox.Bottom, stopAddrTB.Bottom) + 8;
 

@@ -523,7 +523,9 @@ for (int x = 0; x < args.Length; x++)
             else if (searchMemory.Text == "New Scan")
             {
                 searchListView1.ClearItems();
-                searchMemory.Text = "Initial Scan";
+                
+                ClearSnapshotStateAndDeleteTempFiles();
+searchMemory.Text = "Initial Scan";
                 progBar.printText = "";
                 forceTBUpdate = true;
                 isInitialScan = true;
@@ -537,7 +539,7 @@ for (int x = 0; x < args.Length; x++)
                         searchThread = null;
 
                     _shouldStopSearch = false;
-                    ClearActiveSnapshot();
+                    ClearSnapshotStateAndDeleteTempFiles();
 
                     activeScanUsesNewEngine = false;
                     activeScanLittleEndian = IsLittleEndianModeChecked();
