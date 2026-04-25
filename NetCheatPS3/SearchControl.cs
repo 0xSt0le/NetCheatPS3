@@ -167,7 +167,10 @@ namespace NetCheatPS3
 
         private void ResetSearchTypes()
         {
+            SimplifySearchTypes();
+
             searchTypeBox.Items.Clear();
+
             foreach (ncSearchType nc in SearchTypes)
                 searchTypeBox.Items.Add(nc.Name);
         }
@@ -869,7 +872,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { "Min", "Max" };
             ncS.InitialSearch = new InitialSearch(ValueBetween_InitSearch);
             ncS.NextSearch = new NextSearch(ValueBetween_NextSearch);
-            ncS.Exceptions = new string[] { "Text" };
+            ncS.Exceptions = new string[] { "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -881,7 +884,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { "Value" };
             ncS.InitialSearch = new InitialSearch(Pointer_InitSearch);
             ncS.NextSearch = new NextSearch(Pointer_NextSearch);
-            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "X bytes", "Text", "Float", "Double" };
+            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "X bytes", "String", "Float", "Double" };
             ncS.TypeColumnOverride = new string[] { "Address", "Value", "Offset", "Type" };
             ncS.ItemToLString = new ParseItemToListString(Pointer_ItemToLString);
             ncS.ItemToString = new ToSListViewItem(Pointer_ItemToString);
@@ -893,7 +896,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { };
             ncS.InitialSearch = new InitialSearch(UnknownValue_InitSearch);
             ncS.NextSearch = null;
-            ncS.Exceptions = new string[] { "X bytes", "Text" };
+            ncS.Exceptions = new string[] { "X bytes", "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -905,7 +908,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { };
             ncS.InitialSearch = null;
             ncS.NextSearch = new NextSearch(Increased_NextSearch);
-            ncS.Exceptions = new string[] { "Text" };
+            ncS.Exceptions = new string[] { "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -917,7 +920,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { "Value" };
             ncS.InitialSearch = null;
             ncS.NextSearch = new NextSearch(IncreasedBy_NextSearch);
-            ncS.Exceptions = new string[] { "Text" };
+            ncS.Exceptions = new string[] { "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -929,7 +932,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { };
             ncS.InitialSearch = null;
             ncS.NextSearch = new NextSearch(Decreased_NextSearch);
-            ncS.Exceptions = new string[] { "Text" };
+            ncS.Exceptions = new string[] { "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -941,7 +944,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { "Value" };
             ncS.InitialSearch = null;
             ncS.NextSearch = new NextSearch(DecreasedBy_NextSearch);
-            ncS.Exceptions = new string[] { "Text" };
+            ncS.Exceptions = new string[] { "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -977,7 +980,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { };
             ncS.InitialSearch = new InitialSearch(Joker_InitSearch);
             ncS.NextSearch = new NextSearch(Joker_NextSearch);
-            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "X bytes", "Text", "Float", "Double" };
+            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "X bytes", "String", "Float", "Double" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -989,7 +992,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { "Bits Changed" };
             ncS.InitialSearch = null;
             ncS.NextSearch = new NextSearch(BitDif_NextSearch);
-            ncS.Exceptions = new string[] { "Text", "Float", "Double" };
+            ncS.Exceptions = new string[] { "String", "Float", "Double" };
             ncS.TypeColumnOverride = new string[] { "Address", "Value", "Difference", "Type" };
             ncS.ItemToLString = new ParseItemToListString(BitDif_ItemToLString);
             ncS.ItemToString = null;
@@ -1085,8 +1088,8 @@ for (int x = 0; x < args.Length; x++)
 
             //Text
             ncST.ByteSize = 0;
-            ncST.Name = "Text";
-            ncST.ListColumnNames = new string[] { "Address", "Text", "Invalid", "Type" };
+            ncST.Name = "String";
+            ncST.ListColumnNames = new string[] { "Address", "String", "Invalid", "Type" };
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sTypeText_ToString);
             ncST.CheckboxName = "Match Case";
@@ -1781,7 +1784,7 @@ for (int x = 0; x < args.Length; x++)
             List<SearchListView.SearchListViewItem> itemsToAdd = new List<SearchListView.SearchListViewItem>();
 
             bool isMatchCase = false;
-            if (type.Name == "Text")
+            if (type.Name == "String")
             {
                 Invoke((MethodInvoker)delegate
                 {
@@ -1820,7 +1823,7 @@ for (int x = 0; x < args.Length; x++)
                         Array.Copy(cmp, x, tempArr, 0, type.ByteSize);
                         tempArr = misc.notrevif(tempArr);
                         bool isTrue = false;
-                        if (type.Name == "Text")
+                        if (type.Name == "String")
                         {
                             isTrue = misc.ArrayCompareText(cmpArray, tempArr, isMatchCase, cmpIntType);
                         }
