@@ -14,6 +14,7 @@ namespace NetCheatPS3
         private Label exactBlockSizeLabel;
         private ComboBox exactBlockSizeBox;
         private CheckBox compareFirstScanCB;
+        private CheckBox fuzzyValueCB;
 
         private void InitializeModernSearchUi()
         {
@@ -34,6 +35,7 @@ namespace NetCheatPS3
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
             EnsureCompareFirstScanCheckbox();
+            EnsureFuzzyValueCheckbox();
             EnsureSnapshotCleanupOnFormClose();
 
             if (searchNameBox != null)
@@ -91,6 +93,8 @@ namespace NetCheatPS3
                 });
             };
 
+            SimplifySearchTypes();
+            ResetSearchTypes();
             SetDefaultSearchTypeTo4Bytes();
             SimplifySearchComparisonModes();
             ResetSearchCompBox();
@@ -195,6 +199,27 @@ namespace NetCheatPS3
             Controls.Add(compareFirstScanCB);
         }
 
+        private void EnsureFuzzyValueCheckbox()
+        {
+            if (fuzzyValueCB != null)
+                return;
+
+            fuzzyValueCB = new CheckBox();
+            fuzzyValueCB.Name = "fuzzyValueCB";
+            fuzzyValueCB.Text = "Fuzzy Value";
+            fuzzyValueCB.AutoSize = true;
+            fuzzyValueCB.Checked = false;
+            fuzzyValueCB.Visible = false;
+
+            if (modernSearchToolTip != null)
+            {
+                modernSearchToolTip.SetToolTip(
+                    fuzzyValueCB,
+                    "Float/double Exact Value helper. 70 = about 69.9-70.1, 70.0 = exact, 70.00 = about 69.99-70.01.");
+            }
+
+            Controls.Add(fuzzyValueCB);
+        }
         private bool IsCompareToFirstScanChecked()
         {
             return compareFirstScanCB != null && compareFirstScanCB.Visible && compareFirstScanCB.Checked;
@@ -297,10 +322,13 @@ namespace NetCheatPS3
 
         private void UpdateCleanFloatVisibility()
         {
-            if (cleanFloatCB == null)
-                return;
+            bool show = CurrentSearchTypeIsFloatOrDouble();
 
-            cleanFloatCB.Visible = CurrentSearchTypeIsFloatOrDouble();
+            if (cleanFloatCB != null)
+                cleanFloatCB.Visible = show;
+
+            if (fuzzyValueCB != null)
+                fuzzyValueCB.Visible = show;
         }
 
         private void SetLittleEndianScanLocked(bool locked)
@@ -325,6 +353,9 @@ namespace NetCheatPS3
             if (cleanFloatCB != null)
                 cleanFloatCB.Enabled = !locked;
 
+            if (fuzzyValueCB != null)
+                fuzzyValueCB.Enabled = !locked;
+
             if (compareFirstScanCB != null)
                 compareFirstScanCB.Enabled = !locked;
         }
@@ -344,6 +375,7 @@ namespace NetCheatPS3
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
             EnsureCompareFirstScanCheckbox();
+            EnsureFuzzyValueCheckbox();
             EnsureSnapshotCleanupOnFormClose();
 
             int filterY = Math.Max(searchTypeBox.Bottom, stopAddrTB.Bottom) + 8;
@@ -379,6 +411,14 @@ namespace NetCheatPS3
                 cleanFloatCB.BackColor = BackColor;
                 cleanFloatCB.ForeColor = ForeColor;
                 UpdateCleanFloatVisibility();
+            }
+
+            if (fuzzyValueCB != null)
+            {
+                fuzzyValueCB.Location = new Point(stopAddrTB.Right + 12, stopAddrTB.Top + 2);
+                fuzzyValueCB.BackColor = BackColor;
+                fuzzyValueCB.ForeColor = ForeColor;
+                fuzzyValueCB.Visible = CurrentSearchTypeIsFloatOrDouble();
             }
 
             if (exactBlockSizeLabel != null && exactBlockSizeBox != null)
@@ -504,6 +544,7 @@ namespace NetCheatPS3
             sb.AppendLine("No Negative: " + (noNegativeCB != null && noNegativeCB.Checked));
             sb.AppendLine("No Zero: " + (noZeroCB != null && noZeroCB.Checked));
             sb.AppendLine("Simple Values Only: " + (cleanFloatCB != null && cleanFloatCB.Checked));
+            sb.AppendLine("Fuzzy Value: " + (fuzzyValueCB != null && fuzzyValueCB.Visible && fuzzyValueCB.Checked));
 
             MessageBox.Show(sb.ToString(), "NetCheatPS3 Scan Diagnostics", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }

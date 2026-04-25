@@ -308,7 +308,9 @@ namespace NetCheatPS3
 
                 System.Diagnostics.Stopwatch stopw = new System.Diagnostics.Stopwatch();
                 stopw.Start();
-                searcher.InitialSearch(start, stop, index, passArgs);
+                bool usedFuzzyValueScan = TryRunFuzzyValueInitialSearch(searcher, start, stop, index, passArgs);
+                if (!usedFuzzyValueScan)
+                    searcher.InitialSearch(start, stop, index, passArgs);
                 CaptureFirstSnapshotAfterInitialScan(searcher);
                 stopw.Stop();
                 CaptureLastScanStats("Initial Scan", stopw.ElapsedMilliseconds, start, stop);
@@ -884,7 +886,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { "Value" };
             ncS.InitialSearch = new InitialSearch(Pointer_InitSearch);
             ncS.NextSearch = new NextSearch(Pointer_NextSearch);
-            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "X bytes", "String", "Float", "Double" };
+            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "Array of Bytes", "String", "Float", "Double" };
             ncS.TypeColumnOverride = new string[] { "Address", "Value", "Offset", "Type" };
             ncS.ItemToLString = new ParseItemToListString(Pointer_ItemToLString);
             ncS.ItemToString = new ToSListViewItem(Pointer_ItemToString);
@@ -896,7 +898,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { };
             ncS.InitialSearch = new InitialSearch(UnknownValue_InitSearch);
             ncS.NextSearch = null;
-            ncS.Exceptions = new string[] { "X bytes", "String" };
+            ncS.Exceptions = new string[] { "Array of Bytes", "String" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -980,7 +982,7 @@ for (int x = 0; x < args.Length; x++)
             ncS.Args = new string[] { };
             ncS.InitialSearch = new InitialSearch(Joker_InitSearch);
             ncS.NextSearch = new NextSearch(Joker_NextSearch);
-            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "X bytes", "String", "Float", "Double" };
+            ncS.Exceptions = new string[] { "1 byte", "2 bytes", "8 bytes", "Array of Bytes", "String", "Float", "Double" };
             ncS.TypeColumnOverride = new string[0];
             ncS.ItemToLString = null;
             ncS.ItemToString = null;
@@ -1071,7 +1073,7 @@ for (int x = 0; x < args.Length; x++)
 
             //X bytes
             ncST.ByteSize = 0;
-            ncST.Name = "X bytes";
+            ncST.Name = "Array of Bytes";
             ncST.ListColumnNames = new string[] { "Address", "Value", "Dec", "Type" };
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sTypeXB_ToString);

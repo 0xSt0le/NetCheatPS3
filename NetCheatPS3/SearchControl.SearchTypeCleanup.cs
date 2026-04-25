@@ -10,8 +10,8 @@ namespace NetCheatPS3
             if (SearchTypes == null || SearchTypes.Count == 0)
                 return;
 
-            NormalizeTextTypeName();
-            NormalizeTextTypeExceptions();
+            NormalizeSearchTypeNames();
+            NormalizeSearchTypeExceptions();
 
             string[] desiredOrder = new string[]
             {
@@ -19,9 +19,9 @@ namespace NetCheatPS3
                 "2 bytes",
                 "4 bytes",
                 "8 bytes",
-                "X bytes",
                 "Float",
                 "Double",
+                "Array of Bytes",
                 "String"
             };
 
@@ -58,21 +58,22 @@ namespace NetCheatPS3
             SearchTypes.AddRange(ordered);
         }
 
-        private void NormalizeTextTypeName()
+        private void NormalizeSearchTypeNames()
         {
             for (int i = 0; i < SearchTypes.Count; i++)
             {
                 ncSearchType type = SearchTypes[i];
 
                 if (String.Equals(type.Name, "Text", StringComparison.OrdinalIgnoreCase))
-                {
                     type.Name = "String";
-                    SearchTypes[i] = type;
-                }
+                else if (String.Equals(type.Name, "X bytes", StringComparison.OrdinalIgnoreCase))
+                    type.Name = "Array of Bytes";
+
+                SearchTypes[i] = type;
             }
         }
 
-        private void NormalizeTextTypeExceptions()
+        private void NormalizeSearchTypeExceptions()
         {
             if (SearchComparisons == null)
                 return;
@@ -88,27 +89,22 @@ namespace NetCheatPS3
                     continue;
                 }
 
-                bool changed = false;
                 string[] exceptions = new string[searcher.Exceptions.Length];
 
-                for (int j = 0; j < searcher.Exceptions.Length; j++)
+                for (int j = 0; j < exceptions.Length; j++)
                 {
                     string value = searcher.Exceptions[j];
 
                     if (String.Equals(value, "Text", StringComparison.OrdinalIgnoreCase))
-                    {
                         value = "String";
-                        changed = true;
-                    }
+                    else if (String.Equals(value, "X bytes", StringComparison.OrdinalIgnoreCase))
+                        value = "Array of Bytes";
 
                     exceptions[j] = value;
                 }
 
-                if (changed)
-                {
-                    searcher.Exceptions = exceptions;
-                    SearchComparisons[i] = searcher;
-                }
+                searcher.Exceptions = exceptions;
+                SearchComparisons[i] = searcher;
             }
         }
     }

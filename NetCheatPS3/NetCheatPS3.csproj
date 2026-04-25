@@ -201,6 +201,7 @@
     <Compile Include="SearchControl.SearchModeCleanup.cs" />
     <Compile Include="SearchControl.CompareFirstScan.cs" />
     <Compile Include="SearchControl.SearchTypeCleanup.cs" />
+    <Compile Include="SearchControl.FuzzyValue.cs" />
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
