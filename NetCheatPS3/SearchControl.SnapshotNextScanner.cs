@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using NetCheatPS3.Scanner;
 
@@ -291,8 +292,50 @@ namespace NetCheatPS3
             return true;
         }
 
-        private bool SnapshotNextMatches(string mode, string[] args, int typeIndex, byte[] oldValue, byte[] currentValue)
+                private string NormalizeSnapshotModeName(string mode)
         {
+            if (mode == null)
+                return "";
+
+            string normalized = mode.Trim().ToLowerInvariant();
+            while (normalized.IndexOf("  ", StringComparison.Ordinal) >= 0)
+                normalized = normalized.Replace("  ", " ");
+
+            return normalized;
+        }
+
+        private bool SnapshotModeStartsWith(string normalizedMode, string prefix)
+        {
+            if (String.IsNullOrEmpty(normalizedMode) || String.IsNullOrEmpty(prefix))
+                return false;
+
+            if (!normalizedMode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (normalizedMode.Length == prefix.Length)
+                return true;
+
+            char next = normalizedMode[prefix.Length];
+            return next == ' ' || next == '(' || next == '-' || next == ':';
+        }
+
+        private bool SnapshotModeContains(string normalizedMode, string token)
+        {
+            if (String.IsNullOrEmpty(normalizedMode) || String.IsNullOrEmpty(token))
+                return false;
+
+            return normalizedMode.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+private bool SnapshotNextMatches(string mode, string[] args, int typeIndex, byte[] oldValue, byte[] currentValue)
+        {
+            string normalized = NormalizeSnapshotModeName(mode);
+
+            if (SnapshotModeStartsWith(normalized, "changed"))
+                return !BytesEqual(oldValue, currentValue);
+
+            if (SnapshotModeStartsWith(normalized, "unchanged"))
+                return BytesEqual(oldValue, currentValue);
+
             string typeName = SearchTypes[typeIndex].Name;
 
             if (String.Equals(typeName, "Float", StringComparison.OrdinalIgnoreCase))
@@ -301,71 +344,62 @@ namespace NetCheatPS3
             if (String.Equals(typeName, "Double", StringComparison.OrdinalIgnoreCase))
                 return SnapshotNextMatchesDouble(mode, args, ReadDoubleDisplay(oldValue), ReadDoubleDisplay(currentValue));
 
+            bool signed = SnapshotModeContains(normalized, "(s)");
+
             ulong oldUnsigned = ReadUnsignedDisplay(oldValue);
             ulong currentUnsigned = ReadUnsignedDisplay(currentValue);
             long oldSigned = ReadSignedDisplay(oldValue);
             long currentSigned = ReadSignedDisplay(currentValue);
 
-            bool signed = mode.IndexOf("(S)", StringComparison.OrdinalIgnoreCase) >= 0;
-
-            if (mode.IndexOf("Changed", StringComparison.OrdinalIgnoreCase) >= 0 && mode.IndexOf("Unchanged", StringComparison.OrdinalIgnoreCase) < 0)
-                return !BytesEqual(oldValue, currentValue);
-
-            if (mode.IndexOf("Unchanged", StringComparison.OrdinalIgnoreCase) >= 0)
-                return BytesEqual(oldValue, currentValue);
-
-            if (mode.IndexOf("Increased", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "increased by") || SnapshotModeContains(normalized, "increased by"))
             {
-                if (mode.IndexOf("By", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    ulong deltaUnsigned = ParseArgUnsigned(args, typeIndex, 0);
-                    long deltaSigned = ParseArgSigned(args, typeIndex, 0);
+                if (signed)
+                    return currentSigned == oldSigned + ParseArgSigned(args, typeIndex, 0);
 
-                    if (signed)
-                        return currentSigned == oldSigned + deltaSigned;
+                return currentUnsigned == oldUnsigned + ParseArgUnsigned(args, typeIndex, 0);
+            }
 
-                    return currentUnsigned == oldUnsigned + deltaUnsigned;
-                }
+            if (SnapshotModeStartsWith(normalized, "decreased by") || SnapshotModeContains(normalized, "decreased by"))
+            {
+                if (signed)
+                    return currentSigned == oldSigned - ParseArgSigned(args, typeIndex, 0);
 
+                return currentUnsigned == oldUnsigned - ParseArgUnsigned(args, typeIndex, 0);
+            }
+
+            if (SnapshotModeStartsWith(normalized, "increased"))
                 return signed ? currentSigned > oldSigned : currentUnsigned > oldUnsigned;
-            }
 
-            if (mode.IndexOf("Decreased", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                if (mode.IndexOf("By", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    ulong deltaUnsigned = ParseArgUnsigned(args, typeIndex, 0);
-                    long deltaSigned = ParseArgSigned(args, typeIndex, 0);
-
-                    if (signed)
-                        return currentSigned == oldSigned - deltaSigned;
-
-                    return currentUnsigned == oldUnsigned - deltaUnsigned;
-                }
-
+            if (SnapshotModeStartsWith(normalized, "decreased"))
                 return signed ? currentSigned < oldSigned : currentUnsigned < oldUnsigned;
-            }
 
-            if (mode.IndexOf("Equal To", StringComparison.OrdinalIgnoreCase) >= 0 && mode.IndexOf("Not Equal", StringComparison.OrdinalIgnoreCase) < 0)
-                return currentUnsigned == ParseArgUnsigned(args, typeIndex, 0);
+            if (SnapshotModeStartsWith(normalized, "not equal"))
+                return signed ? currentSigned != ParseArgSigned(args, typeIndex, 0) : currentUnsigned != ParseArgUnsigned(args, typeIndex, 0);
 
-            if (mode.IndexOf("Not Equal", StringComparison.OrdinalIgnoreCase) >= 0)
-                return currentUnsigned != ParseArgUnsigned(args, typeIndex, 0);
+            if (SnapshotModeStartsWith(normalized, "equal"))
+                return signed ? currentSigned == ParseArgSigned(args, typeIndex, 0) : currentUnsigned == ParseArgUnsigned(args, typeIndex, 0);
 
-            if (mode.IndexOf("Less Than or Equal", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "less than or equal"))
                 return signed ? currentSigned <= ParseArgSigned(args, typeIndex, 0) : currentUnsigned <= ParseArgUnsigned(args, typeIndex, 0);
 
-            if (mode.IndexOf("Less Than", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "less than"))
                 return signed ? currentSigned < ParseArgSigned(args, typeIndex, 0) : currentUnsigned < ParseArgUnsigned(args, typeIndex, 0);
 
-            if (mode.IndexOf("Greater Than or Equal", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "greater than or equal"))
                 return signed ? currentSigned >= ParseArgSigned(args, typeIndex, 0) : currentUnsigned >= ParseArgUnsigned(args, typeIndex, 0);
 
-            if (mode.IndexOf("Greater Than", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "greater than"))
                 return signed ? currentSigned > ParseArgSigned(args, typeIndex, 0) : currentUnsigned > ParseArgUnsigned(args, typeIndex, 0);
 
-            if (mode.IndexOf("Value Between", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "value between"))
             {
+                if (signed)
+                {
+                    long minSigned = ParseArgSigned(args, typeIndex, 0);
+                    long maxSigned = ParseArgSigned(args, typeIndex, 1);
+                    return currentSigned >= minSigned && currentSigned <= maxSigned;
+                }
+
                 ulong min = ParseArgUnsigned(args, typeIndex, 0);
                 ulong max = ParseArgUnsigned(args, typeIndex, 1);
                 return currentUnsigned >= min && currentUnsigned <= max;
@@ -376,47 +410,39 @@ namespace NetCheatPS3
 
         private bool SnapshotNextMatchesDouble(string mode, string[] args, double oldValue, double currentValue)
         {
-            if (mode.IndexOf("Changed", StringComparison.OrdinalIgnoreCase) >= 0 && mode.IndexOf("Unchanged", StringComparison.OrdinalIgnoreCase) < 0)
-                return currentValue != oldValue;
+            string normalized = NormalizeSnapshotModeName(mode);
 
-            if (mode.IndexOf("Unchanged", StringComparison.OrdinalIgnoreCase) >= 0)
-                return currentValue == oldValue;
+            if (SnapshotModeStartsWith(normalized, "increased by") || SnapshotModeContains(normalized, "increased by"))
+                return currentValue == oldValue + ParseArgDouble(args, 0);
 
-            if (mode.IndexOf("Increased", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                if (mode.IndexOf("By", StringComparison.OrdinalIgnoreCase) >= 0)
-                    return currentValue == oldValue + ParseArgDouble(args, 0);
+            if (SnapshotModeStartsWith(normalized, "decreased by") || SnapshotModeContains(normalized, "decreased by"))
+                return currentValue == oldValue - ParseArgDouble(args, 0);
 
+            if (SnapshotModeStartsWith(normalized, "increased"))
                 return currentValue > oldValue;
-            }
 
-            if (mode.IndexOf("Decreased", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                if (mode.IndexOf("By", StringComparison.OrdinalIgnoreCase) >= 0)
-                    return currentValue == oldValue - ParseArgDouble(args, 0);
-
+            if (SnapshotModeStartsWith(normalized, "decreased"))
                 return currentValue < oldValue;
-            }
 
-            if (mode.IndexOf("Equal To", StringComparison.OrdinalIgnoreCase) >= 0 && mode.IndexOf("Not Equal", StringComparison.OrdinalIgnoreCase) < 0)
-                return currentValue == ParseArgDouble(args, 0);
-
-            if (mode.IndexOf("Not Equal", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "not equal"))
                 return currentValue != ParseArgDouble(args, 0);
 
-            if (mode.IndexOf("Less Than or Equal", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "equal"))
+                return currentValue == ParseArgDouble(args, 0);
+
+            if (SnapshotModeStartsWith(normalized, "less than or equal"))
                 return currentValue <= ParseArgDouble(args, 0);
 
-            if (mode.IndexOf("Less Than", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "less than"))
                 return currentValue < ParseArgDouble(args, 0);
 
-            if (mode.IndexOf("Greater Than or Equal", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "greater than or equal"))
                 return currentValue >= ParseArgDouble(args, 0);
 
-            if (mode.IndexOf("Greater Than", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "greater than"))
                 return currentValue > ParseArgDouble(args, 0);
 
-            if (mode.IndexOf("Value Between", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (SnapshotModeStartsWith(normalized, "value between"))
                 return currentValue >= ParseArgDouble(args, 0) && currentValue <= ParseArgDouble(args, 1);
 
             return false;
@@ -436,11 +462,16 @@ namespace NetCheatPS3
 
         private double ParseArgDouble(string[] args, int index)
         {
-            if (args == null || index < 0 || index >= args.Length)
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
                 return 0.0;
 
             double value;
-            if (Double.TryParse(args[index], out value))
+            string text = args[index].Trim();
+
+            if (Double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+                return value;
+
+            if (Double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
                 return value;
 
             return 0.0;
@@ -472,7 +503,13 @@ namespace NetCheatPS3
             if (value == null)
                 return 0;
 
-            return misc.ByteArrayToLong(value, 0, value.Length);
+            int len = Math.Min(value.Length, 8);
+            ulong result = 0;
+
+            for (int i = 0; i < len; i++)
+                result = (result << 8) | value[i];
+
+            return result;
         }
 
         private long ReadSignedDisplay(byte[] value)
@@ -480,21 +517,20 @@ namespace NetCheatPS3
             if (value == null || value.Length == 0)
                 return 0;
 
+            int len = Math.Min(value.Length, 8);
             ulong unsigned = ReadUnsignedDisplay(value);
 
-            switch (value.Length)
-            {
-                case 1:
-                    return (sbyte)(byte)unsigned;
-                case 2:
-                    return (short)(ushort)unsigned;
-                case 4:
-                    return (int)(uint)unsigned;
-                case 8:
-                    return (long)unsigned;
-                default:
-                    return (long)unsigned;
-            }
+            if (len >= 8)
+                return (long)unsigned;
+
+            int bits = len * 8;
+            ulong signBit = 1UL << (bits - 1);
+
+            if ((unsigned & signBit) == 0)
+                return (long)unsigned;
+
+            ulong mask = UInt64.MaxValue << bits;
+            return (long)(unsigned | mask);
         }
 
         private float ReadFloatDisplay(byte[] value)
