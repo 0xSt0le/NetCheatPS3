@@ -66,6 +66,7 @@ namespace NetCheatPS3
 
         private void ClearSnapshotStateAndDeleteTempFiles()
         {
+            DeleteFirstSnapshotFile();
             DeleteAllSnapshotTempFiles();
             ResetActiveSnapshotStateOnly();
         }
@@ -77,6 +78,7 @@ namespace NetCheatPS3
             activeSnapshotByteSize = 0;
             activeSnapshotResultCount = 0;
             activeScanUsesNewEngine = false;
+            firstSnapshotPath = null;
         }
 
         private void DeleteAllSnapshotTempFiles()

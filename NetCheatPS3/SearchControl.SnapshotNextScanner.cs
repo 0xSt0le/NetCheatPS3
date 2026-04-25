@@ -8,6 +8,31 @@ namespace NetCheatPS3
 {
     public partial class SearchControl
     {
+        private enum SnapshotNextModeKind
+        {
+            Unsupported = 0,
+            Changed,
+            Unchanged,
+            Increased,
+            Decreased,
+            IncreasedBy,
+            DecreasedBy,
+            Equal,
+            NotEqual,
+            LessThan,
+            GreaterThan,
+            Between
+        }
+
+        private struct SnapshotNextModeSpec
+        {
+            public SnapshotNextModeKind Kind;
+            public bool Signed;
+            public bool NeedsOneArg;
+            public bool NeedsTwoArgs;
+            public string DisplayName;
+        }
+
         private bool TryRunSnapshotNextSearch(ncSearcher searcher, string[] args)
         {
             if (!HasActiveSnapshot())
@@ -22,14 +47,24 @@ namespace NetCheatPS3
             if (activeSnapshotByteSize <= 0)
                 return false;
 
-            string mode = searcher.Name.Trim();
+            SnapshotNextModeSpec spec;
+            if (!TryGetSnapshotNextModeSpec(searcher.Name, out spec))
+                return false;
 
-            if (!IsSnapshotNextModeSupported(mode))
+            if (spec.NeedsOneArg && (args == null || args.Length < 1))
+                return false;
+
+            if (spec.NeedsTwoArgs && (args == null || args.Length < 2))
                 return false;
 
             string oldSnapshotPath = activeSnapshotPath;
             if (String.IsNullOrEmpty(oldSnapshotPath) || !File.Exists(oldSnapshotPath))
                 return false;
+
+            bool compareToFirst = IsCompareToFirstScanChecked() && HasFirstSnapshot();
+            string firstPath = compareToFirst ? GetFirstSnapshotPath() : null;
+            if (compareToFirst && (String.IsNullOrEmpty(firstPath) || !File.Exists(firstPath)))
+                compareToFirst = false;
 
             ulong start;
             ulong stop;
@@ -61,8 +96,17 @@ namespace NetCheatPS3
 
             MemoryReader reader = new MemoryReader();
 
+            IEnumerator<SnapshotRecord> firstRecords = null;
+            bool hasFirstRecord = false;
+
             try
             {
+                if (compareToFirst)
+                {
+                    firstRecords = SnapshotStore.ReadRecords(firstPath).GetEnumerator();
+                    hasFirstRecord = firstRecords.MoveNext();
+                }
+
                 SetProgBar(0);
 
                 ulong span = stop - start;
@@ -105,6 +149,10 @@ namespace NetCheatPS3
                             hasRecord = records.MoveNext();
                         }
 
+                        Dictionary<ulong, byte[]> firstValues = null;
+                        if (compareToFirst && blockRecords.Count > 0)
+                            firstValues = CollectFirstSnapshotValuesForBlock(blockRecords, firstRecords, ref hasFirstRecord, byteSize);
+
                         if (blockRecords.Count > 0)
                         {
                             reader.ReadReadableSegments(
@@ -113,7 +161,7 @@ namespace NetCheatPS3
                                 delegate(int segmentOffset, int segmentLength)
                                 {
                                     ProcessSnapshotNextSegment(
-                                        mode,
+                                        spec,
                                         args,
                                         typeIndex,
                                         byteSize,
@@ -122,6 +170,8 @@ namespace NetCheatPS3
                                         segmentOffset,
                                         segmentLength,
                                         blockRecords,
+                                        firstValues,
+                                        compareToFirst,
                                         output,
                                         visible,
                                         ref matchCount);
@@ -134,7 +184,9 @@ namespace NetCheatPS3
                     output.Complete();
                 }
 
-                reader.PublishStats("Snapshot next scan completed");
+                reader.PublishStats(compareToFirst
+                    ? "Snapshot next scan completed vs first scan: " + spec.DisplayName
+                    : "Snapshot next scan completed: " + spec.DisplayName);
 
                 activeSnapshotPath = newSnapshotPath;
                 activeSnapshotTypeIndex = typeIndex;
@@ -144,7 +196,9 @@ namespace NetCheatPS3
 
                 try
                 {
-                    if (!String.Equals(oldSnapshotPath, newSnapshotPath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldSnapshotPath))
+                    if (!String.Equals(oldSnapshotPath, newSnapshotPath, StringComparison.OrdinalIgnoreCase) &&
+                        !String.Equals(oldSnapshotPath, firstSnapshotPath, StringComparison.OrdinalIgnoreCase) &&
+                        File.Exists(oldSnapshotPath))
                         File.Delete(oldSnapshotPath);
                 }
                 catch
@@ -179,23 +233,182 @@ namespace NetCheatPS3
 
                 throw;
             }
+            finally
+            {
+                if (firstRecords != null)
+                    firstRecords.Dispose();
+            }
+        }
+
+        private Dictionary<ulong, byte[]> CollectFirstSnapshotValuesForBlock(
+            List<SnapshotRecord> blockRecords,
+            IEnumerator<SnapshotRecord> firstRecords,
+            ref bool hasFirstRecord,
+            int byteSize)
+        {
+            Dictionary<ulong, byte[]> values = new Dictionary<ulong, byte[]>();
+
+            if (blockRecords == null || firstRecords == null || !hasFirstRecord)
+                return values;
+
+            for (int i = 0; i < blockRecords.Count; i++)
+            {
+                ulong address = blockRecords[i].Address;
+
+                while (hasFirstRecord && firstRecords.Current.Address < address)
+                    hasFirstRecord = firstRecords.MoveNext();
+
+                if (!hasFirstRecord)
+                    break;
+
+                if (firstRecords.Current.Address == address &&
+                    firstRecords.Current.Value != null &&
+                    firstRecords.Current.Value.Length == byteSize)
+                {
+                    values[address] = firstRecords.Current.Value;
+                }
+            }
+
+            return values;
         }
 
         private bool IsSnapshotNextModeSupported(string mode)
         {
+            SnapshotNextModeSpec spec;
+            return TryGetSnapshotNextModeSpec(mode, out spec);
+        }
+
+        private bool TryGetSnapshotNextModeSpec(string mode, out SnapshotNextModeSpec spec)
+        {
+            spec = new SnapshotNextModeSpec();
+            spec.Kind = SnapshotNextModeKind.Unsupported;
+            spec.Signed = true;
+            spec.NeedsOneArg = false;
+            spec.NeedsTwoArgs = false;
+            spec.DisplayName = "";
+
             if (String.IsNullOrEmpty(mode))
                 return false;
 
-            if (String.Equals(mode, "Pointer", StringComparison.OrdinalIgnoreCase))
+            string normalized = NormalizeSnapshotModeName(mode);
+            if (normalized.Length == 0)
                 return false;
 
-            if (mode.IndexOf("Text", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (String.Equals(normalized, "unknown value", StringComparison.OrdinalIgnoreCase))
                 return false;
 
-            if (String.Equals(mode, "Unknown Value", StringComparison.OrdinalIgnoreCase))
+            if (normalized.IndexOf("pointer", StringComparison.OrdinalIgnoreCase) >= 0)
                 return false;
 
-            return true;
+            if (normalized.IndexOf("joker", StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+
+            if (normalized.IndexOf("text", StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+
+            spec.DisplayName = mode.Trim();
+
+            if (StartsWithMode(normalized, "changed"))
+            {
+                spec.Kind = SnapshotNextModeKind.Changed;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "unchanged"))
+            {
+                spec.Kind = SnapshotNextModeKind.Unchanged;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "increased by") || normalized.IndexOf("increased by", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                spec.Kind = SnapshotNextModeKind.IncreasedBy;
+                spec.NeedsOneArg = true;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "decreased by") || normalized.IndexOf("decreased by", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                spec.Kind = SnapshotNextModeKind.DecreasedBy;
+                spec.NeedsOneArg = true;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "increased"))
+            {
+                spec.Kind = SnapshotNextModeKind.Increased;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "decreased"))
+            {
+                spec.Kind = SnapshotNextModeKind.Decreased;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "not equal"))
+            {
+                spec.Kind = SnapshotNextModeKind.NotEqual;
+                spec.NeedsOneArg = true;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "exact value") || StartsWithMode(normalized, "equal"))
+            {
+                spec.Kind = SnapshotNextModeKind.Equal;
+                spec.NeedsOneArg = true;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "smaller than") || StartsWithMode(normalized, "less than"))
+            {
+                spec.Kind = SnapshotNextModeKind.LessThan;
+                spec.NeedsOneArg = true;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "bigger than") || StartsWithMode(normalized, "greater than"))
+            {
+                spec.Kind = SnapshotNextModeKind.GreaterThan;
+                spec.NeedsOneArg = true;
+                return true;
+            }
+
+            if (StartsWithMode(normalized, "value between"))
+            {
+                spec.Kind = SnapshotNextModeKind.Between;
+                spec.NeedsTwoArgs = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private string NormalizeSnapshotModeName(string mode)
+        {
+            if (mode == null)
+                return "";
+
+            string trimmed = mode.Trim().ToLowerInvariant();
+            while (trimmed.IndexOf("  ", StringComparison.Ordinal) >= 0)
+                trimmed = trimmed.Replace("  ", " ");
+
+            return trimmed;
+        }
+
+        private bool StartsWithMode(string normalizedMode, string prefix)
+        {
+            if (normalizedMode == null || prefix == null)
+                return false;
+
+            if (!normalizedMode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (normalizedMode.Length == prefix.Length)
+                return true;
+
+            char next = normalizedMode[prefix.Length];
+            return next == ' ' || next == '(' || next == '-' || next == ':';
         }
 
         private string CreateSnapshotTempPath()
@@ -206,7 +419,7 @@ namespace NetCheatPS3
         }
 
         private void ProcessSnapshotNextSegment(
-            string mode,
+            SnapshotNextModeSpec spec,
             string[] args,
             int typeIndex,
             int byteSize,
@@ -215,6 +428,8 @@ namespace NetCheatPS3
             int segmentOffset,
             int segmentLength,
             List<SnapshotRecord> blockRecords,
+            Dictionary<ulong, byte[]> firstValues,
+            bool compareToFirst,
             SnapshotStore output,
             List<SearchListView.SearchListViewItem> visible,
             ref long matchCount)
@@ -237,12 +452,18 @@ namespace NetCheatPS3
                 Buffer.BlockCopy(readBlock, offset, currentValue, 0, byteSize);
                 currentValue = NormalizeRawMemoryForActiveScan(currentValue, typeIndex);
 
-                byte[] oldValue = record.Value;
+                byte[] baselineValue = record.Value;
 
-                if (oldValue == null || oldValue.Length != byteSize)
+                if (compareToFirst)
+                {
+                    if (firstValues == null || !firstValues.TryGetValue(record.Address, out baselineValue))
+                        continue;
+                }
+
+                if (baselineValue == null || baselineValue.Length != byteSize)
                     continue;
 
-                if (!SnapshotNextMatches(mode, args, typeIndex, oldValue, currentValue))
+                if (!SnapshotNextMatches(spec, args, typeIndex, baselineValue, currentValue))
                     continue;
 
                 if (!ShouldKeepSnapshotResult(typeIndex, currentValue))
@@ -252,7 +473,7 @@ namespace NetCheatPS3
                 matchCount++;
 
                 if (visible.Count < MaxVisibleSnapshotResults)
-                    visible.Add(SearchTypes[typeIndex].ToItem(record.Address, currentValue, oldValue, typeIndex));
+                    visible.Add(SearchTypes[typeIndex].ToItem(record.Address, currentValue, baselineValue, typeIndex));
             }
         }
 
@@ -292,166 +513,96 @@ namespace NetCheatPS3
             return true;
         }
 
-                private string NormalizeSnapshotModeName(string mode)
+        private bool SnapshotNextMatches(SnapshotNextModeSpec spec, string[] args, int typeIndex, byte[] oldValue, byte[] currentValue)
         {
-            if (mode == null)
-                return "";
+            switch (spec.Kind)
+            {
+                case SnapshotNextModeKind.Changed:
+                    return !BytesEqual(oldValue, currentValue);
 
-            string normalized = mode.Trim().ToLowerInvariant();
-            while (normalized.IndexOf("  ", StringComparison.Ordinal) >= 0)
-                normalized = normalized.Replace("  ", " ");
-
-            return normalized;
-        }
-
-        private bool SnapshotModeStartsWith(string normalizedMode, string prefix)
-        {
-            if (String.IsNullOrEmpty(normalizedMode) || String.IsNullOrEmpty(prefix))
-                return false;
-
-            if (!normalizedMode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            if (normalizedMode.Length == prefix.Length)
-                return true;
-
-            char next = normalizedMode[prefix.Length];
-            return next == ' ' || next == '(' || next == '-' || next == ':';
-        }
-
-        private bool SnapshotModeContains(string normalizedMode, string token)
-        {
-            if (String.IsNullOrEmpty(normalizedMode) || String.IsNullOrEmpty(token))
-                return false;
-
-            return normalizedMode.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-private bool SnapshotNextMatches(string mode, string[] args, int typeIndex, byte[] oldValue, byte[] currentValue)
-        {
-            string normalized = NormalizeSnapshotModeName(mode);
-
-            if (SnapshotModeStartsWith(normalized, "changed"))
-                return !BytesEqual(oldValue, currentValue);
-
-            if (SnapshotModeStartsWith(normalized, "unchanged"))
-                return BytesEqual(oldValue, currentValue);
+                case SnapshotNextModeKind.Unchanged:
+                    return BytesEqual(oldValue, currentValue);
+            }
 
             string typeName = SearchTypes[typeIndex].Name;
 
             if (String.Equals(typeName, "Float", StringComparison.OrdinalIgnoreCase))
-                return SnapshotNextMatchesDouble(mode, args, ReadFloatDisplay(oldValue), ReadFloatDisplay(currentValue));
+                return SnapshotNextMatchesDouble(spec, args, ReadFloatDisplay(oldValue), ReadFloatDisplay(currentValue));
 
             if (String.Equals(typeName, "Double", StringComparison.OrdinalIgnoreCase))
-                return SnapshotNextMatchesDouble(mode, args, ReadDoubleDisplay(oldValue), ReadDoubleDisplay(currentValue));
+                return SnapshotNextMatchesDouble(spec, args, ReadDoubleDisplay(oldValue), ReadDoubleDisplay(currentValue));
 
-            bool signed = SnapshotModeContains(normalized, "(s)");
-
-            ulong oldUnsigned = ReadUnsignedDisplay(oldValue);
-            ulong currentUnsigned = ReadUnsignedDisplay(currentValue);
             long oldSigned = ReadSignedDisplay(oldValue);
             long currentSigned = ReadSignedDisplay(currentValue);
 
-            if (SnapshotModeStartsWith(normalized, "increased by") || SnapshotModeContains(normalized, "increased by"))
+            switch (spec.Kind)
             {
-                if (signed)
+                case SnapshotNextModeKind.Increased:
+                    return currentSigned > oldSigned;
+
+                case SnapshotNextModeKind.Decreased:
+                    return currentSigned < oldSigned;
+
+                case SnapshotNextModeKind.IncreasedBy:
                     return currentSigned == oldSigned + ParseArgSigned(args, typeIndex, 0);
 
-                return currentUnsigned == oldUnsigned + ParseArgUnsigned(args, typeIndex, 0);
-            }
-
-            if (SnapshotModeStartsWith(normalized, "decreased by") || SnapshotModeContains(normalized, "decreased by"))
-            {
-                if (signed)
+                case SnapshotNextModeKind.DecreasedBy:
                     return currentSigned == oldSigned - ParseArgSigned(args, typeIndex, 0);
 
-                return currentUnsigned == oldUnsigned - ParseArgUnsigned(args, typeIndex, 0);
-            }
+                case SnapshotNextModeKind.Equal:
+                    return currentSigned == ParseArgSigned(args, typeIndex, 0);
 
-            if (SnapshotModeStartsWith(normalized, "increased"))
-                return signed ? currentSigned > oldSigned : currentUnsigned > oldUnsigned;
+                case SnapshotNextModeKind.NotEqual:
+                    return currentSigned != ParseArgSigned(args, typeIndex, 0);
 
-            if (SnapshotModeStartsWith(normalized, "decreased"))
-                return signed ? currentSigned < oldSigned : currentUnsigned < oldUnsigned;
+                case SnapshotNextModeKind.LessThan:
+                    return currentSigned < ParseArgSigned(args, typeIndex, 0);
 
-            if (SnapshotModeStartsWith(normalized, "not equal"))
-                return signed ? currentSigned != ParseArgSigned(args, typeIndex, 0) : currentUnsigned != ParseArgUnsigned(args, typeIndex, 0);
+                case SnapshotNextModeKind.GreaterThan:
+                    return currentSigned > ParseArgSigned(args, typeIndex, 0);
 
-            if (SnapshotModeStartsWith(normalized, "equal"))
-                return signed ? currentSigned == ParseArgSigned(args, typeIndex, 0) : currentUnsigned == ParseArgUnsigned(args, typeIndex, 0);
-
-            if (SnapshotModeStartsWith(normalized, "less than or equal"))
-                return signed ? currentSigned <= ParseArgSigned(args, typeIndex, 0) : currentUnsigned <= ParseArgUnsigned(args, typeIndex, 0);
-
-            if (SnapshotModeStartsWith(normalized, "less than"))
-                return signed ? currentSigned < ParseArgSigned(args, typeIndex, 0) : currentUnsigned < ParseArgUnsigned(args, typeIndex, 0);
-
-            if (SnapshotModeStartsWith(normalized, "greater than or equal"))
-                return signed ? currentSigned >= ParseArgSigned(args, typeIndex, 0) : currentUnsigned >= ParseArgUnsigned(args, typeIndex, 0);
-
-            if (SnapshotModeStartsWith(normalized, "greater than"))
-                return signed ? currentSigned > ParseArgSigned(args, typeIndex, 0) : currentUnsigned > ParseArgUnsigned(args, typeIndex, 0);
-
-            if (SnapshotModeStartsWith(normalized, "value between"))
-            {
-                if (signed)
-                {
+                case SnapshotNextModeKind.Between:
                     long minSigned = ParseArgSigned(args, typeIndex, 0);
                     long maxSigned = ParseArgSigned(args, typeIndex, 1);
                     return currentSigned >= minSigned && currentSigned <= maxSigned;
-                }
-
-                ulong min = ParseArgUnsigned(args, typeIndex, 0);
-                ulong max = ParseArgUnsigned(args, typeIndex, 1);
-                return currentUnsigned >= min && currentUnsigned <= max;
             }
 
             return false;
         }
 
-        private bool SnapshotNextMatchesDouble(string mode, string[] args, double oldValue, double currentValue)
+        private bool SnapshotNextMatchesDouble(SnapshotNextModeSpec spec, string[] args, double oldValue, double currentValue)
         {
-            string normalized = NormalizeSnapshotModeName(mode);
+            switch (spec.Kind)
+            {
+                case SnapshotNextModeKind.Increased:
+                    return currentValue > oldValue;
 
-            if (SnapshotModeStartsWith(normalized, "increased by") || SnapshotModeContains(normalized, "increased by"))
-                return currentValue == oldValue + ParseArgDouble(args, 0);
+                case SnapshotNextModeKind.Decreased:
+                    return currentValue < oldValue;
 
-            if (SnapshotModeStartsWith(normalized, "decreased by") || SnapshotModeContains(normalized, "decreased by"))
-                return currentValue == oldValue - ParseArgDouble(args, 0);
+                case SnapshotNextModeKind.IncreasedBy:
+                    return currentValue == oldValue + ParseArgDouble(args, 0);
 
-            if (SnapshotModeStartsWith(normalized, "increased"))
-                return currentValue > oldValue;
+                case SnapshotNextModeKind.DecreasedBy:
+                    return currentValue == oldValue - ParseArgDouble(args, 0);
 
-            if (SnapshotModeStartsWith(normalized, "decreased"))
-                return currentValue < oldValue;
+                case SnapshotNextModeKind.Equal:
+                    return currentValue == ParseArgDouble(args, 0);
 
-            if (SnapshotModeStartsWith(normalized, "not equal"))
-                return currentValue != ParseArgDouble(args, 0);
+                case SnapshotNextModeKind.NotEqual:
+                    return currentValue != ParseArgDouble(args, 0);
 
-            if (SnapshotModeStartsWith(normalized, "equal"))
-                return currentValue == ParseArgDouble(args, 0);
+                case SnapshotNextModeKind.LessThan:
+                    return currentValue < ParseArgDouble(args, 0);
 
-            if (SnapshotModeStartsWith(normalized, "less than or equal"))
-                return currentValue <= ParseArgDouble(args, 0);
+                case SnapshotNextModeKind.GreaterThan:
+                    return currentValue > ParseArgDouble(args, 0);
 
-            if (SnapshotModeStartsWith(normalized, "less than"))
-                return currentValue < ParseArgDouble(args, 0);
-
-            if (SnapshotModeStartsWith(normalized, "greater than or equal"))
-                return currentValue >= ParseArgDouble(args, 0);
-
-            if (SnapshotModeStartsWith(normalized, "greater than"))
-                return currentValue > ParseArgDouble(args, 0);
-
-            if (SnapshotModeStartsWith(normalized, "value between"))
-                return currentValue >= ParseArgDouble(args, 0) && currentValue <= ParseArgDouble(args, 1);
+                case SnapshotNextModeKind.Between:
+                    return currentValue >= ParseArgDouble(args, 0) && currentValue <= ParseArgDouble(args, 1);
+            }
 
             return false;
-        }
-
-        private ulong ParseArgUnsigned(string[] args, int typeIndex, int index)
-        {
-            byte[] bytes = ParseArgBytes(args, typeIndex, index);
-            return ReadUnsignedDisplay(bytes);
         }
 
         private long ParseArgSigned(string[] args, int typeIndex, int index)
@@ -479,37 +630,41 @@ private bool SnapshotNextMatches(string mode, string[] args, int typeIndex, byte
 
         private byte[] ParseArgBytes(string[] args, int typeIndex, int index)
         {
-            if (args == null || index < 0 || index >= args.Length)
-                return new byte[activeSnapshotByteSize];
+            int byteSize = activeSnapshotByteSize > 0 ? activeSnapshotByteSize : SearchTypes[typeIndex].ByteSize;
+            byte[] fallback = new byte[byteSize];
+
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+                return fallback;
 
             bool oldHex = Form1.ValHex;
             try
             {
                 Form1.ValHex = false;
-                return SearchTypes[typeIndex].ToByteArray(args[index]);
+                byte[] parsed = SearchTypes[typeIndex].ToByteArray(args[index]);
+
+                if (parsed == null || parsed.Length == 0)
+                    return fallback;
+
+                if (parsed.Length == byteSize)
+                    return parsed;
+
+                byte[] normalized = new byte[byteSize];
+
+                if (parsed.Length > byteSize)
+                    Buffer.BlockCopy(parsed, parsed.Length - byteSize, normalized, 0, byteSize);
+                else
+                    Buffer.BlockCopy(parsed, 0, normalized, byteSize - parsed.Length, parsed.Length);
+
+                return normalized;
             }
             catch
             {
-                return new byte[activeSnapshotByteSize];
+                return fallback;
             }
             finally
             {
                 Form1.ValHex = oldHex;
             }
-        }
-
-        private ulong ReadUnsignedDisplay(byte[] value)
-        {
-            if (value == null)
-                return 0;
-
-            int len = Math.Min(value.Length, 8);
-            ulong result = 0;
-
-            for (int i = 0; i < len; i++)
-                result = (result << 8) | value[i];
-
-            return result;
         }
 
         private long ReadSignedDisplay(byte[] value)
@@ -518,7 +673,10 @@ private bool SnapshotNextMatches(string mode, string[] args, int typeIndex, byte
                 return 0;
 
             int len = Math.Min(value.Length, 8);
-            ulong unsigned = ReadUnsignedDisplay(value);
+            ulong unsigned = 0;
+
+            for (int i = 0; i < len; i++)
+                unsigned = (unsigned << 8) | value[i];
 
             if (len >= 8)
                 return (long)unsigned;

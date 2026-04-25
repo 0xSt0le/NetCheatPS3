@@ -174,6 +174,9 @@ namespace NetCheatPS3
 
         private void RemoveSearchTypes(string[] types)
         {
+            if (types == null)
+                return;
+
             foreach (string str in types)
                 RemoveSearchType(str);
         }
@@ -303,6 +306,7 @@ namespace NetCheatPS3
                 System.Diagnostics.Stopwatch stopw = new System.Diagnostics.Stopwatch();
                 stopw.Start();
                 searcher.InitialSearch(start, stop, index, passArgs);
+                CaptureFirstSnapshotAfterInitialScan(searcher);
                 stopw.Stop();
                 CaptureLastScanStats("Initial Scan", stopw.ElapsedMilliseconds, start, stop);
 
@@ -731,52 +735,7 @@ for (int x = 0; x < args.Length; x++)
 
         void ResetSearchCompBox()
         {
-            lastSearchIndex = searchNameBox.SelectedIndex;
-            string nameBoxSelItem = "";
-            if (searchNameBox.SelectedItem != null)
-                nameBoxSelItem = searchNameBox.SelectedItem.ToString();
-
-
-            searchNameBox.Items.Clear();
-            string curType = "";
-            if (searchTypeBox.SelectedItem != null)
-                curType = searchTypeBox.SelectedItem.ToString();
-            foreach (ncSearcher nS in SearchComparisons)
-            {
-                if (nS.Type == SearchType.Both && !_isInitialScan && !nS.Exceptions.Contains(curType))
-                {
-                    searchNameBox.Items.Add(nS.Name);
-                }
-                else if (nS.Type == SearchType.Both && _isInitialScan)
-                {
-                    searchNameBox.Items.Add(nS.Name);
-                }
-                else if (isInitialScan && nS.Type == SearchType.InitialSearchOnly && !nS.Exceptions.Contains(curType))
-                {
-                    searchNameBox.Items.Add(nS.Name);
-                }
-                else if (!isInitialScan && nS.Type == SearchType.NextSearchOnly && !nS.Exceptions.Contains(curType))
-                {
-                    searchNameBox.Items.Add(nS.Name);
-                }
-            }
-
-            if (lastSearchIndex >= searchNameBox.Items.Count || lastSearchIndex < 0)
-                lastSearchIndex = 0;
-
-            searchNameBox.SelectedIndex = -1;
-            if (searchNameBox.Items.Count > 0)
-            {
-                searchNameBox.SelectedIndex = lastSearchIndex;
-                for (int i = 0; i < searchNameBox.Items.Count; i++)
-                {
-                    if (searchNameBox.Items[i].ToString() == nameBoxSelItem)
-                    {
-                        searchNameBox.SelectedIndex = i;
-                        break;
-                    }
-                }
-            }
+            PopulateCleanSearchModeDropdown();
         }
 
         private void LoadSearch()
@@ -4680,11 +4639,24 @@ for (int x = 0; x < args.Length; x++)
             }
 
             LoadSearch();
+            SimplifySearchComparisonModes();
         }
 
         private void searchNameBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (lastSearchIndex == searchNameBox.SelectedIndex && !forceTBUpdate)
+            
+            
+            if (suppressSearchModeEvents ||
+                searchNameBox == null ||
+                searchNameBox.SelectedIndex < 0 ||
+                searchNameBox.SelectedIndex >= searchNameBox.Items.Count ||
+                searchNameBox.SelectedItem == null ||
+                searchTypeBox == null ||
+                searchTypeBox.SelectedItem == null)
+                return;
+if (suppressSearchModeEvents || searchNameBox == null || searchNameBox.SelectedIndex < 0 || searchNameBox.SelectedIndex >= searchNameBox.Items.Count)
+                return;
+if (lastSearchIndex == searchNameBox.SelectedIndex && !forceTBUpdate)
                 return;
 
             string[] searchArgsOldValue = new string[SearchArgs.Count];

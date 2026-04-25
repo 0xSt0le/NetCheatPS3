@@ -13,6 +13,7 @@ namespace NetCheatPS3
         private Button scanDiagnosticsButton;
         private Label exactBlockSizeLabel;
         private ComboBox exactBlockSizeBox;
+        private CheckBox compareFirstScanCB;
 
         private void InitializeModernSearchUi()
         {
@@ -23,12 +24,16 @@ namespace NetCheatPS3
 
             Form1.ValHex = false;
 
+            if (startAddrTB != null) startAddrTB.MaxLength = 8;
+            if (stopAddrTB != null) stopAddrTB.MaxLength = 8;
+
             if (modernSearchToolTip == null)
                 modernSearchToolTip = new ToolTip();
 
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
+            EnsureCompareFirstScanCheckbox();
             EnsureSnapshotCleanupOnFormClose();
 
             if (searchNameBox != null)
@@ -45,9 +50,10 @@ namespace NetCheatPS3
 
             if (cleanFloatCB != null)
             {
+                cleanFloatCB.Text = "Simple Values Only";
                 modernSearchToolTip.SetToolTip(
                     cleanFloatCB,
-                    "Filters noisy float/double scan values: NaN/Infinity, tiny scientific-notation noise, and huge scientific-notation junk. Only affects new scanner results.");
+                    "Shows only practical float/double values and hides noisy tiny/huge/invalid values. Only affects new scanner results.");
             }
 
             this.Resize += delegate
@@ -86,6 +92,8 @@ namespace NetCheatPS3
             };
 
             SetDefaultSearchTypeTo4Bytes();
+            SimplifySearchComparisonModes();
+            ResetSearchCompBox();
             ClearDefaultSearchArgText();
             UpdateCleanFloatVisibility();
             UpdateModernSearchLayout();
@@ -165,6 +173,32 @@ namespace NetCheatPS3
             Controls.Add(exactBlockSizeBox);
         }
 
+        private void EnsureCompareFirstScanCheckbox()
+        {
+            if (compareFirstScanCB != null)
+                return;
+
+            compareFirstScanCB = new CheckBox();
+            compareFirstScanCB.Name = "compareFirstScanCB";
+            compareFirstScanCB.Text = "Compare to First Scan";
+            compareFirstScanCB.AutoSize = true;
+            compareFirstScanCB.Checked = false;
+            compareFirstScanCB.Visible = false;
+
+            if (modernSearchToolTip != null)
+            {
+                modernSearchToolTip.SetToolTip(
+                    compareFirstScanCB,
+                    "When checked, Next Scan compares current memory against the original first snapshot instead of the previous narrowed snapshot.");
+            }
+
+            Controls.Add(compareFirstScanCB);
+        }
+
+        private bool IsCompareToFirstScanChecked()
+        {
+            return compareFirstScanCB != null && compareFirstScanCB.Visible && compareFirstScanCB.Checked;
+        }
         public int GetSelectedExactScanBlockSize()
         {
             try
@@ -224,6 +258,9 @@ namespace NetCheatPS3
         private void ClearDefaultSearchArgText()
         {
             Form1.ValHex = false;
+
+            if (startAddrTB != null) startAddrTB.MaxLength = 8;
+            if (stopAddrTB != null) stopAddrTB.MaxLength = 8;
 
             if (SearchArgs == null)
                 return;
@@ -287,6 +324,9 @@ namespace NetCheatPS3
 
             if (cleanFloatCB != null)
                 cleanFloatCB.Enabled = !locked;
+
+            if (compareFirstScanCB != null)
+                compareFirstScanCB.Enabled = !locked;
         }
 
         public void SetScanRange(ulong start, ulong stop)
@@ -303,6 +343,7 @@ namespace NetCheatPS3
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
+            EnsureCompareFirstScanCheckbox();
             EnsureSnapshotCleanupOnFormClose();
 
             int filterY = Math.Max(searchTypeBox.Bottom, stopAddrTB.Bottom) + 8;
@@ -352,6 +393,38 @@ namespace NetCheatPS3
                 exactBlockSizeBox.ForeColor = ForeColor;
             }
 
+            if (compareFirstScanCB != null)
+            {
+                int x = exactBlockSizeLabel != null ? exactBlockSizeLabel.Left : startAddrTB.Right + 16;
+                int y = exactBlockSizeBox != null ? exactBlockSizeBox.Bottom + 3 : startAddrTB.Bottom + 3;
+
+                compareFirstScanCB.Location = new Point(x, y);
+                compareFirstScanCB.BackColor = BackColor;
+                compareFirstScanCB.ForeColor = ForeColor;
+                compareFirstScanCB.Visible = !isInitialScan;
+
+                if (isInitialScan)
+                    compareFirstScanCB.Checked = false;
+
+                compareFirstScanCB.Enabled = !isInitialScan;
+            }
+
+            if (compareFirstScanCB != null)
+            {
+                int x = exactBlockSizeLabel != null ? exactBlockSizeLabel.Left : startAddrTB.Right + 16;
+                int y = exactBlockSizeBox != null ? exactBlockSizeBox.Bottom + 3 : startAddrTB.Bottom + 3;
+
+                compareFirstScanCB.Location = new Point(x, y);
+                compareFirstScanCB.BackColor = BackColor;
+                compareFirstScanCB.ForeColor = ForeColor;
+                compareFirstScanCB.Visible = !isInitialScan;
+
+                if (isInitialScan)
+                    compareFirstScanCB.Checked = false;
+
+                compareFirstScanCB.Enabled = !isInitialScan;
+            }
+
             int buttonY = filterY + searchPWS.Height + 8;
 
             searchMemory.Location = new Point(5, buttonY);
@@ -392,7 +465,7 @@ namespace NetCheatPS3
             sb.AppendLine("Block size locked: " + (exactBlockSizeBox != null && !exactBlockSizeBox.Enabled));
             sb.AppendLine("No Negative locked: " + (noNegativeCB != null && !noNegativeCB.Enabled));
             sb.AppendLine("No Zero locked: " + (noZeroCB != null && !noZeroCB.Enabled));
-            sb.AppendLine("Clean Float locked: " + (cleanFloatCB != null && !cleanFloatCB.Enabled));
+            sb.AppendLine("Simple Values Only locked: " + (cleanFloatCB != null && !cleanFloatCB.Enabled));
             sb.AppendLine();
             sb.AppendLine("Start: 0x" + startAddrTB.Text);
             sb.AppendLine("Stop:  0x" + stopAddrTB.Text);
@@ -401,6 +474,8 @@ namespace NetCheatPS3
             sb.AppendLine("Uses new scanner: " + activeScanUsesNewEngine);
             sb.AppendLine("Active scan little-endian: " + activeScanLittleEndian);
             sb.AppendLine("Exact scanner block size: " + GetSelectedExactScanBlockSizeText());
+            sb.AppendLine("Compare to first scan: " + IsCompareToFirstScanChecked());
+            sb.AppendLine("First snapshot active: " + HasFirstSnapshot());
             sb.AppendLine();
             sb.AppendLine("Last scan speed:");
             AppendLastScanSpeedDiagnostics(sb);
@@ -428,7 +503,7 @@ namespace NetCheatPS3
             sb.AppendLine("Filters:");
             sb.AppendLine("No Negative: " + (noNegativeCB != null && noNegativeCB.Checked));
             sb.AppendLine("No Zero: " + (noZeroCB != null && noZeroCB.Checked));
-            sb.AppendLine("Clean Float: " + (cleanFloatCB != null && cleanFloatCB.Checked));
+            sb.AppendLine("Simple Values Only: " + (cleanFloatCB != null && cleanFloatCB.Checked));
 
             MessageBox.Show(sb.ToString(), "NetCheatPS3 Scan Diagnostics", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
