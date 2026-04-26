@@ -59,9 +59,8 @@ namespace NetCheatPS3
                 searchTypeBox == null ||
                 searchTypeBox.SelectedItem == null)
                 return;
-if (suppressSearchModeEvents || searchNameBox == null || searchNameBox.SelectedIndex < 0 || searchNameBox.SelectedIndex >= searchNameBox.Items.Count)
-                return;
-if (lastSearchIndex == searchNameBox.SelectedIndex && !forceTBUpdate)
+
+            if (lastSearchIndex == searchNameBox.SelectedIndex && !forceTBUpdate)
                 return;
 
             string[] searchArgsOldValue = new string[SearchArgs.Count];
