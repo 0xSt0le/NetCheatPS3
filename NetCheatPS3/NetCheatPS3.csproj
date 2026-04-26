@@ -211,6 +211,9 @@
     <Compile Include="SearchControl.FuzzyValue.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="SearchControl.ScanButtons.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
