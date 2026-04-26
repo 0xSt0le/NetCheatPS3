@@ -19,7 +19,7 @@ namespace NetCheatPS3
         public static string desc = "Takes a snapshot of the current frame using the 0xC0000000 area. " +
             "Each game has a different offset so you have to find it yourself. " +
             "The options HD TV and SD TV is to mark your PS3's output.\n" +
-            "Lastly CCAPI is INCREDIBLY slow. I'd suggest only using this with the TMAPI.";
+            "TMAPI is recommended for snapshots.";
 
         string globalSave = "";
 

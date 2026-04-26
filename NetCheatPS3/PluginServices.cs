@@ -131,67 +131,31 @@ namespace NetCheatPS3
 
         public bool NotifyPS3(NotifyIcon icon, string message)
         {
-            //if (!isUsingTMAPI())
-            //{
-            //    int val = (int)Enum.Parse(typeof(PluginInterface.NotifyIcon), icon.ToString());
-            //    Form1.PS3.CCAPI.Notify(val, message);
-            //}
-            //else
-                return false;
-
-            //return true;
+            return false;
         }
 
         public bool RingBuzzerPS3(BuzzerMode flag)
         {
-            //if (!isUsingTMAPI())
-            //{
-            //    int val = (int)Enum.Parse(typeof(PluginInterface.BuzzerMode), flag.ToString());
-            //    Form1.PS3.CCAPI.RingBuzzer((PS3Lib.CCAPI.BuzzerMode)val);
-            //}
-            //else
-                return false;
-
-            //return true;
+            return false;
         }
 
         public string GetTemperatureCELL()
         {
-            //if (!isUsingTMAPI())
-            //{
-            //    return Form1.PS3.CCAPI.GetTemperatureCELL();
-            //}
-
             return "";
         }
 
         public string GetTemperatureRSX()
         {
-            //if (!isUsingTMAPI())
-            //{
-            //    return Form1.PS3.CCAPI.GetTemperatureRSX();
-            //}
-
             return "";
         }
 
         public string GetFirmwareVersion()
         {
-            //if (!isUsingTMAPI())
-            //{
-            //    return Form1.PS3.CCAPI.GetFirmwareVersion();
-            //}
-
             return "";
         }
         
         public string GetFirmwareType()
         {
-            //if (!isUsingTMAPI())
-            //{
-            //    return Form1.PS3.CCAPI.GetFirmwareType();
-            //}
-            
             return "";
         }
 

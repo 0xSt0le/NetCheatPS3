@@ -4,14 +4,8 @@
 //              PS3Lib v4 By FM|T iMCSx              //
 //                                                   //
 // Features v4.4 :                                   //
-// - Support CCAPI v2.6 C# by iMCSx                  //
 // - Set Boot Console ID                             //
 // - Popup better form with icon                     //
-// - CCAPI Consoles List Popup French/English        //
-// - CCAPI Get Console Info                          //
-// - CCAPI Get Console List                          //
-// - CCAPI Get Number Of Consoles                    //
-// - Get Console Name TMAPI/CCAPI                    //
 //                                                   //
 // Credits : FM|T Enstone , Buc-ShoTz                //
 //                                                   //

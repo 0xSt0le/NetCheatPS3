@@ -458,11 +458,6 @@ namespace NetCheatPS3
 
         private void Main_Load(object sender, EventArgs e)
         {
-            if (IntPtr.Size == 8)
-            {
-                //MessageBox.Show("This is the 64 bit version of NetCheatPS3.\nThis version DOES NOT work with CCAPI 2.5! It is not my fault, if you want CCAPI to support 64 bit applications then please bug Enstone about it.\nThanks.");
-            }
-
             codes.ncCodeTypes = new ncCodeType[10];
             //Byte Write
             codes.ncCodeTypes[0].ParseCode = new ParseCode(codes.parseCode);
@@ -560,8 +555,8 @@ namespace NetCheatPS3
                     if (settLines[x] == "0")
                     {
                         int apiDLL = Global.APIs.AvailableAPIs.GetIndex("Target Manager API", "420.1.14.7");
-                        curAPI = Global.APIs.AvailableAPIs.GetIndex(apiDLL);
-                        curAPI.Instance.Initialize();
+                        curAPI = Global.APIs.AvailableAPIs.GetIndex(apiDLL >= 0 ? apiDLL : 0);
+                        curAPI?.Instance?.Initialize();
                     }
                     else
                     {
@@ -581,18 +576,9 @@ namespace NetCheatPS3
 
                         if (apiC == Global.APIs.AvailableAPIs.Count)
                         {
-                            apiC = 0;
-                            apiName = "Control Console API (2.60)";
-                            foreach (Types.AvailableAPI api in Global.APIs.AvailableAPIs)
-                            {
-                                if ((api.Instance.Name + " (" + api.Instance.Version + ")") == apiName)
-                                {
-                                    //apiDLL = apiC;
-                                    curAPI = api;
-                                    break;
-                                }
-                                apiC++;
-                            }
+                            int apiDLL = Global.APIs.AvailableAPIs.GetIndex("Target Manager API", "420.1.14.7");
+                            curAPI = Global.APIs.AvailableAPIs.GetIndex(apiDLL >= 0 ? apiDLL : 0);
+                            curAPI?.Instance?.Initialize();
                         }
                     }
                 }

@@ -250,7 +250,7 @@ namespace PluginInterface
         bool isUsingTMAPI();
 
         /// <summary>
-        /// If CCAPI is the current API, it displays a notify icon on the connected PS3.
+        /// Displays a notify icon on the connected PS3 if the current API supports it.
         /// Returns true if successful.
         /// </summary>
         /// <param name="icon">Specified icon to display</param>
@@ -258,33 +258,33 @@ namespace PluginInterface
         bool NotifyPS3(NotifyIcon icon, string message);
 
         /// <summary>
-        /// If CCAPI is the current API, it rings the buzzer on the connected PS3.
+        /// Rings the buzzer on the connected PS3 if the current API supports it.
         /// Returns true if successful.
         /// </summary>
         /// <param name="flag">Type of buzzer</param>
         bool RingBuzzerPS3(BuzzerMode flag);
 
         /// <summary>
-        /// If CCAPI is the current API, it returns the temperature of the CPU (CELL).
-        /// Returns "" if the current API is not CCAPI.
+        /// Returns the temperature of the CPU (CELL) if the current API supports it.
+        /// Returns "" if unsupported.
         /// </summary>
         string GetTemperatureCELL();
 
         /// <summary>
-        /// If CCAPI is the current API, it returns the temperature of the GPU (RSX).
-        /// Returns "" if the current API is not CCAPI.
+        /// Returns the temperature of the GPU (RSX) if the current API supports it.
+        /// Returns "" if unsupported.
         /// </summary>
         string GetTemperatureRSX();
 
         /// <summary>
-        /// If CCAPI is the current API, it returns the firmware version of the connected PS3.
-        /// Returns "" if the current API is not CCAPI.
+        /// Returns the firmware version of the connected PS3 if the current API supports it.
+        /// Returns "" if unsupported.
         /// </summary>
         string GetFirmwareVersion();
 
         /// <summary>
-        /// If CCAPI is the current API, it returns the firmware type of the connected PS3.
-        /// Returns "" if the current API is not CCAPI.
+        /// Returns the firmware type of the connected PS3 if the current API supports it.
+        /// Returns "" if unsupported.
         /// </summary>
         string GetFirmwareType();
 
