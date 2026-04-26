@@ -220,6 +220,7 @@
     <Compile Include="SearchControl.SearchTypeCleanup.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="SearchControl.ScanInputValidation.cs" />
     <Compile Include="SearchControl.ScanAlignment.cs">
       <SubType>UserControl</SubType>
     </Compile>

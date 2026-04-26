@@ -487,36 +487,14 @@ namespace NetCheatPS3
                     _shouldStopSearch = false;
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
 
-                    ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
-                    ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
-                    string[] args = new string[SearchArgs.Count];
+                    ulong start;
+                    ulong stop;
+                    int typeIndex;
+                    string[] args;
+                    ncSearcher searcher;
 
-                    if (HasEmptyVisibleSearchArgText())
-                    {
-                        ShowEmptySearchArgWarning();
+                    if (!TryBuildScanRequest("Next Scan", out start, out stop, out typeIndex, out searcher, out args))
                         return;
-                    }
-
-                    for (int x = 0; x < args.Length; x++)
-                        args[x] = SearchArgs[x].GetDefValue();
-
-                    int typeIndex = 0;
-                    for (typeIndex = 0; typeIndex < SearchTypes.Count; typeIndex++)
-                    {
-                        if (SearchTypes[typeIndex].Name == searchTypeBox.SelectedItem.ToString())
-                            break;
-                    }
-
-                    string err;
-                    if (!SearchTypes[typeIndex].areArgsValid(args, out err))
-                    {
-                        MessageBox.Show(err);
-                        return;
-                    }
-
-                    ncSearcher searcher = SearchComparisons
-                        .Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString())
-                        .FirstOrDefault();
 
                     searchThread = new Thread(() => ThreadNextSearch(new object[]
                     {
@@ -582,39 +560,14 @@ namespace NetCheatPS3
 
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
 
-                    ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
-                    ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
-                    string[] args = new string[SearchArgs.Count];
+                    ulong start;
+                    ulong stop;
+                    int typeIndex;
+                    string[] args;
+                    ncSearcher searcher;
 
-                    if (HasEmptyVisibleSearchArgText())
-                    {
-                        ShowEmptySearchArgWarning();
+                    if (!TryBuildScanRequest("Initial Scan", out start, out stop, out typeIndex, out searcher, out args))
                         return;
-                    }
-
-                    for (int x = 0; x < args.Length; x++)
-                        args[x] = SearchArgs[x].GetDefValue();
-
-                    int typeIndex = 0;
-                    for (typeIndex = 0; typeIndex < SearchTypes.Count; typeIndex++)
-                    {
-                        if (SearchTypes[typeIndex].Name == searchTypeBox.SelectedItem.ToString())
-                            break;
-                    }
-
-                    string err;
-                    if (!SearchTypes[typeIndex].areArgsValid(args, out err))
-                    {
-                        MessageBox.Show(err);
-                        return;
-                    }
-
-                    if (searchNameBox.SelectedIndex < 0)
-                        searchNameBox.SelectedIndex = lastSearchIndex;
-
-                    ncSearcher searcher = SearchComparisons
-                        .Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString())
-                        .FirstOrDefault();
 
                     searchThread = new Thread(() => ThreadInitSearch(new object[]
                     {
