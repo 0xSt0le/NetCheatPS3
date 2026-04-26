@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Data;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using System.Collections;
 
@@ -472,8 +470,6 @@ namespace NetCheatPS3
             if (!cont)
                 return;
 
-            string res = "";
-            List<int> selParsed = new List<int>();
                         SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
 
             try
