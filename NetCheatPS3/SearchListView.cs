@@ -20,7 +20,8 @@ namespace NetCheatPS3
         public SearchListView()
         {
             InitializeComponent();
-            InitializeModernResultUi();this.MouseWheel += new MouseEventHandler(this_MouseWheel);
+            InitializeModernResultUi();
+            this.MouseWheel += new MouseEventHandler(this_MouseWheel);
 
             //cms = contextMenuStrip1;
         }

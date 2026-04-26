@@ -19,7 +19,6 @@ namespace NetCheatPS3
             }
         }
 
-        /* Everything else because I have no organization skills... */
         private void Form1_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             isClosing = true;
@@ -143,25 +142,6 @@ namespace NetCheatPS3
             optButton_Click(null, null);
         }
 
-        string ParseValFromStr(string val)
-        {
-            val = val.ToLower();
-            val = val.Replace(" ", "");
-            val = val.Replace("zero", "0");
-            val = val.Replace("one", "1");
-            val = val.Replace("two", "2");
-            val = val.Replace("three", "3");
-            val = val.Replace("four", "4");
-            val = val.Replace("five", "5");
-            val = val.Replace("six", "6");
-            val = val.Replace("seven", "7");
-            val = val.Replace("eight", "8");
-            val = val.Replace("nine", "9");
-            val = val.Replace("see", "C");
-            val = val.Replace("be", "B");
-            return val;
-        }
-
         private void startGameButt_Click(object sender, EventArgs e)
         {
             if (!curAPI.Instance.ContinueProcess())
@@ -173,6 +153,7 @@ namespace NetCheatPS3
             if (!curAPI.Instance.PauseProcess())
                 MessageBox.Show("Feature not supported with this API!");
         }
+
         private void pauseGameButt_BackColorChanged(object sender, EventArgs e)
         {
             if (pauseGameButt.BackColor != Color.White)

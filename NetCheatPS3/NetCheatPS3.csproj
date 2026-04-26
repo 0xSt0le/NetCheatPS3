@@ -140,6 +140,9 @@
     <Compile Include="Form1.AppUi.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Form1.ApiFacade.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.PluginApi.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -147,6 +150,12 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Form1.RangeManagement.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.SharedUi.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.Startup.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Form1.cs">
