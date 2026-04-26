@@ -630,16 +630,6 @@ namespace NetCheatPS3
                 //MessageBox.Show("This is the 64 bit version of NetCheatPS3.\nThis version DOES NOT work with CCAPI 2.5! It is not my fault, if you want CCAPI to support 64 bit applications then please bug Enstone about it.\nThanks.");
             }
 
-            System.Threading.Thread updateCheckThread = new System.Threading.Thread(new System.Threading.ThreadStart(RunUpdateChecker));
-            updateCheckThread.IsBackground = true;
-            updateCheckThread.Start();
-            //RunUpdateChecker(false);
-
-            //if (File.Exists(Application.ExecutablePath + ".bak"))
-            //    File.Delete(Application.ExecutablePath + ".bak");
-            //if (File.Exists(Application.StartupPath + "\\updateNC.bat"))
-            //    File.Delete(Application.StartupPath + "\\updateNC.bat");
-
             codes.ncCodeTypes = new ncCodeType[10];
             //Byte Write
             codes.ncCodeTypes[0].ParseCode = new ParseCode(codes.parseCode);
