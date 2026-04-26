@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace NetCheatPS3
@@ -23,8 +18,6 @@ namespace NetCheatPS3
 
         private void OptionForm_Shown(object sender, EventArgs e)
         {
-            int x = 0;
-
             origColors[0] = Form1.ncBackColor;
             origColors[1] = Form1.ncForeColor;
 
@@ -238,10 +231,6 @@ namespace NetCheatPS3
             Form1.ncBackColor = Color.FromArgb(int.Parse(bcolR.Text), int.Parse(bcolG.Text), int.Parse(bcolB.Text));
             Form1.ncForeColor = Color.FromArgb(int.Parse(fcolR.Text), int.Parse(fcolG.Text), int.Parse(fcolB.Text));
 
-            //API
-            //Form1.apiDLL = Global.APIs.AvailableAPIs.GetIndex(Form1.curAPI);
-            //Form1.PS3.ChangeAPI((Form1.apiDLL == 0) ? PS3Lib.SelectAPI.TargetManager : PS3Lib.SelectAPI.ControlConsole);
-
             Form1.SaveOptions();
             origColorChanged = false;
 
@@ -274,16 +263,5 @@ namespace NetCheatPS3
         {
             System.Diagnostics.Process.Start(@"https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=werewu45%40yahoo%2ecom&lc=US&item_name=Dnawrkshp%27s%20effort&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted");
         }
-
-        private void ccapiDLL_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void tmapiDLL_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
     }
 }
