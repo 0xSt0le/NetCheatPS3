@@ -81,24 +81,6 @@
             this.descAPIAuth = new System.Windows.Forms.Label();
             this.descAPIName = new System.Windows.Forms.Label();
             this.apiList = new System.Windows.Forms.ListBox();
-            this.DumpCompTab = new System.Windows.Forms.TabPage();
-            this.label4 = new System.Windows.Forms.Label();
-            this.addrFLab = new System.Windows.Forms.Label();
-            this.addrFromTB = new System.Windows.Forms.TextBox();
-            this.stopLab = new System.Windows.Forms.Label();
-            this.stopTB = new System.Windows.Forms.TextBox();
-            this.readLab = new System.Windows.Forms.Label();
-            this.startTB = new System.Windows.Forms.TextBox();
-            this.saveScan = new System.Windows.Forms.Button();
-            this.searchButton = new System.Windows.Forms.Button();
-            this.typeLabel = new System.Windows.Forms.Label();
-            this.searchTypeBox = new System.Windows.Forms.ComboBox();
-            this.searchNameBox = new System.Windows.Forms.ComboBox();
-            this.dumpTB2 = new System.Windows.Forms.TextBox();
-            this.dumpTB1 = new System.Windows.Forms.TextBox();
-            this.browseDump2 = new System.Windows.Forms.Button();
-            this.browseDump1 = new System.Windows.Forms.Button();
-            this.progBar = new NetCheatPS3.ProgressBar();
             this.ps3Disc = new System.Windows.Forms.Button();
             this.attachProcessButton = new System.Windows.Forms.Button();
             this.connectButton = new System.Windows.Forms.Button();
@@ -119,7 +101,6 @@
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshFromPS3ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.refreshFromDumptxtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.codesToolMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -138,7 +119,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.plugIcon)).BeginInit();
             this.apiTab.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.apiIcon)).BeginInit();
-            this.DumpCompTab.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.codesToolMenuStrip.SuspendLayout();
@@ -151,13 +131,11 @@
             this.TabCon.Controls.Add(this.RangeTab);
             this.TabCon.Controls.Add(this.pluginTab);
             this.TabCon.Controls.Add(this.apiTab);
-            this.TabCon.Controls.Add(this.DumpCompTab);
             this.TabCon.Location = new System.Drawing.Point(12, 42);
             this.TabCon.Name = "TabCon";
             this.TabCon.SelectedIndex = 0;
             this.TabCon.Size = new System.Drawing.Size(461, 393);
             this.TabCon.TabIndex = 0;
-            this.TabCon.SelectedIndexChanged += new System.EventHandler(this.TabCon_SelectedIndexChanged);
             this.TabCon.KeyUp += new System.Windows.Forms.KeyEventHandler(this.TabCon_KeyUp);
             // 
             // CodesTab
@@ -748,189 +726,6 @@
             this.apiList.SelectedIndexChanged += new System.EventHandler(this.apiList_SelectedIndexChanged);
             this.apiList.DoubleClick += new System.EventHandler(this.apiList_DoubleClick);
             // 
-            // DumpCompTab
-            // 
-            this.DumpCompTab.BackColor = System.Drawing.Color.Black;
-            this.DumpCompTab.Controls.Add(this.label4);
-            this.DumpCompTab.Controls.Add(this.addrFLab);
-            this.DumpCompTab.Controls.Add(this.addrFromTB);
-            this.DumpCompTab.Controls.Add(this.stopLab);
-            this.DumpCompTab.Controls.Add(this.stopTB);
-            this.DumpCompTab.Controls.Add(this.readLab);
-            this.DumpCompTab.Controls.Add(this.startTB);
-            this.DumpCompTab.Controls.Add(this.saveScan);
-            this.DumpCompTab.Controls.Add(this.searchButton);
-            this.DumpCompTab.Controls.Add(this.typeLabel);
-            this.DumpCompTab.Controls.Add(this.searchTypeBox);
-            this.DumpCompTab.Controls.Add(this.searchNameBox);
-            this.DumpCompTab.Controls.Add(this.dumpTB2);
-            this.DumpCompTab.Controls.Add(this.dumpTB1);
-            this.DumpCompTab.Controls.Add(this.browseDump2);
-            this.DumpCompTab.Controls.Add(this.browseDump1);
-            this.DumpCompTab.Controls.Add(this.progBar);
-            this.DumpCompTab.Location = new System.Drawing.Point(4, 22);
-            this.DumpCompTab.Name = "DumpCompTab";
-            this.DumpCompTab.Size = new System.Drawing.Size(453, 367);
-            this.DumpCompTab.TabIndex = 4;
-            this.DumpCompTab.Text = "Dump Compare";
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(33, 277);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(41, 13);
-            this.label4.TabIndex = 40;
-            this.label4.Text = "Search";
-            // 
-            // addrFLab
-            // 
-            this.addrFLab.AutoSize = true;
-            this.addrFLab.Location = new System.Drawing.Point(3, 251);
-            this.addrFLab.Name = "addrFLab";
-            this.addrFLab.Size = new System.Drawing.Size(71, 13);
-            this.addrFLab.TabIndex = 38;
-            this.addrFLab.Text = "Address From";
-            // 
-            // addrFromTB
-            // 
-            this.addrFromTB.Location = new System.Drawing.Point(80, 248);
-            this.addrFromTB.Name = "addrFromTB";
-            this.addrFromTB.Size = new System.Drawing.Size(68, 20);
-            this.addrFromTB.TabIndex = 37;
-            this.addrFromTB.Text = "00000000";
-            // 
-            // stopLab
-            // 
-            this.stopLab.AutoSize = true;
-            this.stopLab.Location = new System.Drawing.Point(45, 224);
-            this.stopLab.Name = "stopLab";
-            this.stopLab.Size = new System.Drawing.Size(29, 13);
-            this.stopLab.TabIndex = 36;
-            this.stopLab.Text = "Stop";
-            // 
-            // stopTB
-            // 
-            this.stopTB.Location = new System.Drawing.Point(80, 221);
-            this.stopTB.Name = "stopTB";
-            this.stopTB.Size = new System.Drawing.Size(68, 20);
-            this.stopTB.TabIndex = 35;
-            this.stopTB.Text = "00000000";
-            // 
-            // readLab
-            // 
-            this.readLab.AutoSize = true;
-            this.readLab.Location = new System.Drawing.Point(45, 195);
-            this.readLab.Name = "readLab";
-            this.readLab.Size = new System.Drawing.Size(29, 13);
-            this.readLab.TabIndex = 34;
-            this.readLab.Text = "Start";
-            // 
-            // startTB
-            // 
-            this.startTB.Location = new System.Drawing.Point(80, 192);
-            this.startTB.Name = "startTB";
-            this.startTB.Size = new System.Drawing.Size(68, 20);
-            this.startTB.TabIndex = 33;
-            this.startTB.Text = "00000000";
-            // 
-            // saveScan
-            // 
-            this.saveScan.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.saveScan.Location = new System.Drawing.Point(365, 304);
-            this.saveScan.Name = "saveScan";
-            this.saveScan.Size = new System.Drawing.Size(85, 23);
-            this.saveScan.TabIndex = 32;
-            this.saveScan.Text = "Save Scan";
-            this.saveScan.UseVisualStyleBackColor = true;
-            this.saveScan.Click += new System.EventHandler(this.saveScan_Click);
-            // 
-            // searchButton
-            // 
-            this.searchButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.searchButton.Location = new System.Drawing.Point(274, 304);
-            this.searchButton.Name = "searchButton";
-            this.searchButton.Size = new System.Drawing.Size(85, 23);
-            this.searchButton.TabIndex = 31;
-            this.searchButton.Text = "Search";
-            this.searchButton.UseVisualStyleBackColor = true;
-            this.searchButton.Click += new System.EventHandler(this.searchButton_Click);
-            // 
-            // typeLabel
-            // 
-            this.typeLabel.AutoSize = true;
-            this.typeLabel.Location = new System.Drawing.Point(43, 307);
-            this.typeLabel.Name = "typeLabel";
-            this.typeLabel.Size = new System.Drawing.Size(31, 13);
-            this.typeLabel.TabIndex = 30;
-            this.typeLabel.Text = "Type";
-            // 
-            // searchTypeBox
-            // 
-            this.searchTypeBox.FormattingEnabled = true;
-            this.searchTypeBox.Location = new System.Drawing.Point(80, 304);
-            this.searchTypeBox.Name = "searchTypeBox";
-            this.searchTypeBox.Size = new System.Drawing.Size(121, 21);
-            this.searchTypeBox.TabIndex = 28;
-            this.searchTypeBox.SelectedIndexChanged += new System.EventHandler(this.searchTypeBox_SelectedIndexChanged);
-            // 
-            // searchNameBox
-            // 
-            this.searchNameBox.FormattingEnabled = true;
-            this.searchNameBox.Location = new System.Drawing.Point(80, 274);
-            this.searchNameBox.Name = "searchNameBox";
-            this.searchNameBox.Size = new System.Drawing.Size(121, 21);
-            this.searchNameBox.TabIndex = 27;
-            this.searchNameBox.SelectedIndexChanged += new System.EventHandler(this.searchNameBox_SelectedIndexChanged);
-            // 
-            // dumpTB2
-            // 
-            this.dumpTB2.Location = new System.Drawing.Point(3, 32);
-            this.dumpTB2.Name = "dumpTB2";
-            this.dumpTB2.Size = new System.Drawing.Size(361, 20);
-            this.dumpTB2.TabIndex = 26;
-            // 
-            // dumpTB1
-            // 
-            this.dumpTB1.Location = new System.Drawing.Point(3, 3);
-            this.dumpTB1.Name = "dumpTB1";
-            this.dumpTB1.Size = new System.Drawing.Size(361, 20);
-            this.dumpTB1.TabIndex = 25;
-            // 
-            // browseDump2
-            // 
-            this.browseDump2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.browseDump2.Location = new System.Drawing.Point(375, 30);
-            this.browseDump2.Name = "browseDump2";
-            this.browseDump2.Size = new System.Drawing.Size(75, 23);
-            this.browseDump2.TabIndex = 24;
-            this.browseDump2.Text = "Browse";
-            this.browseDump2.UseVisualStyleBackColor = true;
-            this.browseDump2.Click += new System.EventHandler(this.browseDump2_Click);
-            // 
-            // browseDump1
-            // 
-            this.browseDump1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.browseDump1.Location = new System.Drawing.Point(375, 1);
-            this.browseDump1.Name = "browseDump1";
-            this.browseDump1.Size = new System.Drawing.Size(75, 23);
-            this.browseDump1.TabIndex = 23;
-            this.browseDump1.Text = "Browse";
-            this.browseDump1.UseVisualStyleBackColor = true;
-            this.browseDump1.Click += new System.EventHandler(this.browseDump1_Click);
-            // 
-            // progBar
-            // 
-            this.progBar.BackColor = System.Drawing.Color.White;
-            this.progBar.Location = new System.Drawing.Point(3, 333);
-            this.progBar.Maximum = 0;
-            this.progBar.Name = "progBar";
-            this.progBar.printText = "";
-            this.progBar.progressColor = System.Drawing.SystemColors.ControlText;
-            this.progBar.Size = new System.Drawing.Size(447, 31);
-            this.progBar.TabIndex = 39;
-            this.progBar.Value = 0;
-            // 
             // ps3Disc
             // 
             this.ps3Disc.BackColor = System.Drawing.Color.Black;
@@ -1119,22 +914,14 @@
             this.refreshFromPS3ToolStripMenuItem.Text = "Refresh From PS3";
             this.refreshFromPS3ToolStripMenuItem.Click += new System.EventHandler(this.refreshFromPS3ToolStripMenuItem_Click);
             // 
-            // refreshFromDumptxtToolStripMenuItem
-            // 
-            this.refreshFromDumptxtToolStripMenuItem.Name = "refreshFromDumptxtToolStripMenuItem";
-            this.refreshFromDumptxtToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
-            this.refreshFromDumptxtToolStripMenuItem.Text = "Refresh From dump.txt";
-            this.refreshFromDumptxtToolStripMenuItem.Click += new System.EventHandler(this.refreshFromDumptxtToolStripMenuItem_Click);
-            // 
             // contextMenuStrip1
             // 
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyToolStripMenuItem,
             this.deleteToolStripMenuItem,
-            this.refreshFromPS3ToolStripMenuItem,
-            this.refreshFromDumptxtToolStripMenuItem});
+            this.refreshFromPS3ToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(197, 92);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(197, 70);
             // 
             // codesToolMenuStrip
             // 
@@ -1245,8 +1032,6 @@
             this.apiTab.ResumeLayout(false);
             this.apiTab.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.apiIcon)).EndInit();
-            this.DumpCompTab.ResumeLayout(false);
-            this.DumpCompTab.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.contextMenuStrip1.ResumeLayout(false);
@@ -1310,7 +1095,6 @@
         private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem refreshFromPS3ToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem refreshFromDumptxtToolStripMenuItem;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ProgressBar findRangeProgBar;
         private System.Windows.Forms.Button findRanges;
@@ -1320,27 +1104,9 @@
         private System.Windows.Forms.Button cbBackupWrite;
         private System.Windows.Forms.ToolTip toolTip1;
         private SearchControl searchControl1;
-        private System.Windows.Forms.TabPage DumpCompTab;
-        private System.Windows.Forms.Label addrFLab;
-        private System.Windows.Forms.TextBox addrFromTB;
-        private System.Windows.Forms.Label stopLab;
-        private System.Windows.Forms.TextBox stopTB;
-        private System.Windows.Forms.Label readLab;
-        private System.Windows.Forms.TextBox startTB;
-        private System.Windows.Forms.Button saveScan;
-        public System.Windows.Forms.Button searchButton;
-        private System.Windows.Forms.Label typeLabel;
-        private System.Windows.Forms.ComboBox searchTypeBox;
-        private System.Windows.Forms.ComboBox searchNameBox;
-        private System.Windows.Forms.TextBox dumpTB2;
-        private System.Windows.Forms.TextBox dumpTB1;
-        private System.Windows.Forms.Button browseDump2;
-        private System.Windows.Forms.Button browseDump1;
-        public ProgressBar progBar;
         public System.Windows.Forms.ToolStripStatusLabel statusLabel1;
         public System.Windows.Forms.ListView cbList;
         public System.Windows.Forms.RichTextBox cbCodes;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button cbBManager;
         private System.Windows.Forms.ToolStripMenuItem endianStripMenuItem;
         private System.Windows.Forms.ContextMenuStrip codesToolMenuStrip;

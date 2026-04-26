@@ -234,24 +234,6 @@ namespace NetCheatPS3
             return (int)((ret / div) + 1);
         }
 
-        /*
-         * Parses the difference of a and b based on the Memory Range
-         * This returns the real result as a ulong
-         */
-        public static ulong ParseRealDifDump(ulong a, ulong b)
-        {
-            ulong ret = b - a;
-            int x = 0;
-            if (MemArray != null)
-            {
-                for (x = 2; x < MemArray.Length; x += 2)
-                {
-                    if (b > MemArray[x] && a < MemArray[x])
-                        ret -= (MemArray[x] - MemArray[x - 1]);
-                }
-            }
-            return ret;
-        }
 
         /*
          * Compares a and b (and c in the case of certain modes)

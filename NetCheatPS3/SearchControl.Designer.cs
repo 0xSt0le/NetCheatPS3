@@ -25,7 +25,6 @@
             this.stopAddrTB = new System.Windows.Forms.TextBox();
             this.searchMemory = new System.Windows.Forms.Button();
             this.refreshFromMem = new System.Windows.Forms.Button();
-            this.dumpMem = new System.Windows.Forms.Button();
             this.saveScan = new System.Windows.Forms.Button();
             this.loadScan = new System.Windows.Forms.Button();
             this.searchPWS = new System.Windows.Forms.CheckBox();
@@ -129,17 +128,6 @@
             this.refreshFromMem.UseVisualStyleBackColor = true;
             this.refreshFromMem.Click += new System.EventHandler(this.refreshFromMem_Click);
             // 
-            // dumpMem
-            // 
-            this.dumpMem.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.dumpMem.Location = new System.Drawing.Point(3, 126);
-            this.dumpMem.Name = "dumpMem";
-            this.dumpMem.Size = new System.Drawing.Size(85, 23);
-            this.dumpMem.TabIndex = 12;
-            this.dumpMem.Text = "Dump Memory";
-            this.dumpMem.UseVisualStyleBackColor = true;
-            this.dumpMem.Click += new System.EventHandler(this.dumpMem_Click);
-            // 
             // saveScan
             // 
             this.saveScan.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -208,7 +196,6 @@
             this.Controls.Add(this.searchPWS);
             this.Controls.Add(this.loadScan);
             this.Controls.Add(this.saveScan);
-            this.Controls.Add(this.dumpMem);
             this.Controls.Add(this.refreshFromMem);
             this.Controls.Add(this.searchMemory);
             this.Controls.Add(this.label4);
@@ -237,7 +224,6 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox stopAddrTB;
         private System.Windows.Forms.Button refreshFromMem;
-        private System.Windows.Forms.Button dumpMem;
         private System.Windows.Forms.Button saveScan;
         private System.Windows.Forms.Button loadScan;
         private System.Windows.Forms.CheckBox searchPWS;

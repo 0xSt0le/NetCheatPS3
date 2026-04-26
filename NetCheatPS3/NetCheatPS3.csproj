@@ -111,7 +111,6 @@
     <Compile Include="Scanner\ExactScanner.cs" />
     <Compile Include="APIServices.cs" />
     <Compile Include="codes.cs" />
-    <Compile Include="Comparator.cs" />
     <Compile Include="ConditionalEditor.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -119,12 +118,6 @@
       <DependentUpon>ConditionalEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="CrashLogger.cs" />
-    <Compile Include="dumpForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="dumpForm.Designer.cs">
-      <DependentUpon>dumpForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="fileio.cs" />
     <Compile Include="FindReplaceManager.cs">
       <SubType>Form</SubType>
@@ -272,9 +265,6 @@
     <Compile Include="TaskbarProgress.cs" />
     <EmbeddedResource Include="ConditionalEditor.resx">
       <DependentUpon>ConditionalEditor.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="dumpForm.resx">
-      <DependentUpon>dumpForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FindReplaceManager.resx">
       <DependentUpon>FindReplaceManager.cs</DependentUpon>

@@ -33,8 +33,7 @@ namespace NetCheatPS3
             stopAddrTB.Location = new Point(savedLoc[2], yOff); //new Point(label4.Location.X + label4.Width + 5, yOff);
             yOff += stopAddrTB.Height + 5;
 
-            dumpMem.Location = new Point(5, yOff);
-            saveScan.Location = new Point(dumpMem.Location.X + dumpMem.Width + 5, yOff);
+            saveScan.Location = new Point(5, yOff);
             loadScan.Location = new Point(saveScan.Location.X + saveScan.Width + 5, yOff);
             searchPWS.Location = new Point(loadScan.Location.X + loadScan.Width + 5, yOff + 3);
 

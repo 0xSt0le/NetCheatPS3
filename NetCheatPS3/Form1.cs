@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using System.Diagnostics;
-using System.IO;
 using System.Speech.Recognition;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace NetCheatPS3
 {
@@ -84,7 +81,6 @@ namespace NetCheatPS3
         public static bool NewSearch = true; /* When true, Initial Scan will show */
         public static int CancelSearch = 0; /* When 1 the search will cancel, 2 = stop */
         public static ulong GlobAlign = 0; /* Alignment */
-        public static string dFileName = "a.txt"; /* Dump file when searching */
         public static int compMode = 0; /* Comparison type */
 
         /* Pre-parsed code struct */
@@ -117,14 +113,6 @@ namespace NetCheatPS3
             public ncCode[] backUp;         /* Holds what the memory originally held before writing */
         };
 
-        /* Search result struct - NOT USED */
-        public struct CodeRes
-        {    /* Structure for a single search result */
-            public bool state;     /* Determines whether to write constantly or not */
-            public ulong addr;    /* Address of the code */
-            public byte[] val;     /* Value of the code */
-            public int align;      /* Alignment of the code */
-        };
 
         /* List result struct */
         public struct ListRes
@@ -367,8 +355,6 @@ namespace NetCheatPS3
 
             
             InitializeModernRangeUi();Instance = this;
-            compare.LoadSearch();
-
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_Closing);
             this.GotFocus += new EventHandler(Form1_Focused);
             HandleFocusControls(this.Controls);
@@ -455,7 +441,6 @@ namespace NetCheatPS3
             ConstantLoop = 2;
             codes.ExitConstWriter = true;
             this.statusLabel1.Text = "Disconnected";
-            System.IO.File.Delete(dFileName);
 
             //Close all plugins
             foreach (PluginForm a in pluginForm)
@@ -474,9 +459,6 @@ namespace NetCheatPS3
 
         private void Main_Load(object sender, EventArgs e)
         {
-            if (!Debugger.IsAttached)
-                TabCon.TabPages.Remove(DumpCompTab);
-
             if (IntPtr.Size == 8)
             {
                 //MessageBox.Show("This is the 64 bit version of NetCheatPS3.\nThis version DOES NOT work with CCAPI 2.5! It is not my fault, if you want CCAPI to support 64 bit applications then please bug Enstone about it.\nThanks.");
@@ -648,8 +630,6 @@ namespace NetCheatPS3
             //Codes[CodesCount].name = "NEW CODE";
             //Codes[CodesCount].state = false;
             Codes.Add(cdb);
-            dFileName = Application.StartupPath + "\\dump.txt";
-
             cbList.Items[0].Selected = true;
             cbList.Items[0].Selected = false;
 
@@ -1451,10 +1431,6 @@ namespace NetCheatPS3
             //RefreshSearchResults(1);
         }
 
-        private void refreshFromDumptxtToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            //RefreshFromDump();
-        }
 
 
         private void shutdownPS3ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1519,22 +1495,6 @@ private void button1_Click(object sender, EventArgs e)
             return val;
         }
 
-        private void TabCon_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-            if (TabCon.SelectedTab != null)
-            {
-                if (TabCon.SelectedTab.Text == "Dump Compare")
-                {
-                    foreach (SearchValue sv in compare.SearchArgs)
-                    {
-                        sv.Fore = ForeColor;
-                        sv.Back = BackColor;
-                    }
-                }
-            }
-        }
-
         private void startGameButt_Click(object sender, EventArgs e)
         {
             if (!curAPI.Instance.ContinueProcess())
@@ -1591,230 +1551,6 @@ private void button1_Click(object sender, EventArgs e)
             Codes[cbListIndex] = c;
         }
 
-        #region Dump Compare Tab
-
-        int lastSearchIndex = -1;
-        int lastTypeIndex = -1;
-        Comparator compare = new Comparator();
-        public static string[] inputBins = new string[2];
-
-        string BrowseForFile(string filter)
-        {
-            OpenFileDialog fd = new OpenFileDialog();
-            if (filter != null)
-                fd.Filter = filter;
-            fd.RestoreDirectory = true;
-
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                return fd.FileName;
-            }
-
-            return "";
-        }
-
-        private void browseDump1_Click(object sender, EventArgs e)
-        {
-            dumpTB1.Text = BrowseForFile("Binary files (*.bin)|*.bin|All files (*.*)|*.*");
-            inputBins[0] = dumpTB1.Text;
-        }
-
-        private void browseDump2_Click(object sender, EventArgs e)
-        {
-            dumpTB2.Text = BrowseForFile("Binary files (*.bin)|*.bin|All files (*.*)|*.*");
-            inputBins[1] = dumpTB2.Text;
-        }
-
-        private void searchNameBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (lastSearchIndex == searchNameBox.SelectedIndex && compare.SearchArgs.Count > 0)
-                return;
-
-            string[] searchArgsOldValue = new string[compare.SearchArgs.Count];
-            for (int sAOV = 0; sAOV < searchArgsOldValue.Length; sAOV++)
-                searchArgsOldValue[sAOV] = compare.SearchArgs[sAOV].getValue();
-
-            Comparator.ncSearcher searcher = compare.SearchComparisons.Where(ns => ns.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
-            SearchControl.ncSearchType type = compare.SearchTypes[searchTypeBox.SelectedIndex];
-            //searchNameBox.Items.Clear();
-
-            int yOff = 5;
-
-            foreach (SearchValue sv in compare.SearchArgs)
-                DumpCompTab.Controls.Remove(sv);
-            compare.SearchArgs.Clear();
-            if (searcher.Args != null)
-            {
-                int cnt = 0;
-                foreach (string str in searcher.Args)
-                {
-                    SearchValue a = new SearchValue();
-
-                    string def = type.DefaultValue;
-                    if (cnt < searchArgsOldValue.Length && searchArgsOldValue[cnt] != null)
-                        def = searchArgsOldValue[cnt];
-
-                    a.SetSValue(str, def, type.CheckboxName, true, true, type.CheckboxConvert);
-                    a.Location = new Point(5, yOff);
-                    a.Width = Width - 5;
-                    a.Back = BackColor;
-                    a.Fore = ForeColor;
-
-                    compare.SearchArgs.Add(a);
-                    DumpCompTab.Controls.Add(a);
-                    yOff += a.Height + 5;
-                    cnt++;
-                }
-            }
-
-            lastSearchIndex = searchNameBox.SelectedIndex;
-            UpdateSize();
-        }
-
-        private void searchTypeBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (searchTypeBox.SelectedIndex < 0 || searchNameBox.SelectedIndex < 0 || lastTypeIndex == searchTypeBox.SelectedIndex)
-                return;
-
-            foreach (SearchValue sv in compare.SearchArgs)
-                DumpCompTab.Controls.Remove(sv);
-            compare.SearchArgs.Clear();
-
-            Comparator.ncSearcher searcher = compare.SearchComparisons.Where(ns => ns.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
-            SearchControl.ncSearchType type = compare.SearchTypes[searchTypeBox.SelectedIndex];
-            int yOff = 5;
-
-            if (searcher.Args != null)
-            {
-                foreach (string str in searcher.Args)
-                {
-                    SearchValue a = new SearchValue();
-                    a.SetSValue(str, type.DefaultValue, type.CheckboxName, true, true, type.CheckboxConvert);
-                    a.Location = new Point(5, yOff);
-                    a.Width = Width - 5;
-                    a.Back = BackColor;
-                    a.Fore = ForeColor;
-
-                    compare.SearchArgs.Add(a);
-                    DumpCompTab.Controls.Add(a);
-                    yOff += a.Height + 5;
-                }
-            }
-
-            lastTypeIndex = searchTypeBox.SelectedIndex;
-            UpdateSize();
-        }
-
-        private void searchButton_Click(object sender, EventArgs e)
-        {
-            progBar.BackColor = BackColor;
-            progBar.ForeColor = ForeColor;
-
-            if (searchButton.Text == "Stop")
-            {
-                compare._shouldStopSearch = true;
-                return;
-            }
-            else if (searchButton.Text == "New Search")
-            {
-                compare.Items.Clear();
-                searchButton.Text = "Search";
-            }
-            else if (searchButton.Text == "Search")
-            {
-                try
-                {
-                    compare._shouldStopSearch = false;
-                    uint start = Convert.ToUInt32(startTB.Text, 16);
-                    uint stop = Convert.ToUInt32(stopTB.Text, 16);
-                    if (stop == 0)
-                    {
-                        stop = (uint)new FileInfo(inputBins[0]).Length;
-                    }
-
-                    ulong addrFrom = Convert.ToUInt64(addrFromTB.Text, 16);
-                    string[] args = new string[compare.SearchArgs.Count];
-                    for (int x = 0; x < args.Length; x++)
-                        args[x] = compare.SearchArgs[x].GetDefValue();
-                    int typeIndex = searchTypeBox.SelectedIndex;
-
-                    if (searchNameBox.SelectedIndex < 0)
-                        searchNameBox.SelectedIndex = lastSearchIndex;
-                    Comparator.ncSearcher searcher = compare.SearchComparisons.Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
-
-                    //searchThread = new Thread(searcher.InitialSearch(start, stop, searchTypeBox.SelectedIndex, args));
-                    //searchThread = new Thread(ThreadInitSearch(start, stop, searchTypeBox.SelectedIndex, args));
-                    searchButton.Text = "Stop";
-                    compare.ThreadInitSearch(new object[] { searcher, start, stop, addrFrom, typeIndex, args, false });
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
-                }
-            }
-        }
-
-        private void saveScan_Click(object sender, EventArgs e)
-        {
-            SaveFileDialog fd = new SaveFileDialog();
-            fd.Filter = "Text Files (*.txt)|*.txt|All files (*.*)|*.*";
-            fd.RestoreDirectory = true;
-
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                Stream stream = File.Open(fd.FileName, FileMode.Create);
-                BinaryFormatter bformatter = new BinaryFormatter();
-                bformatter.Serialize(stream, compare.Items.ToArray());
-                stream.Close();
-
-                MessageBox.Show("Saved!");
-            }
-        }
-
-        public void SetSearchStr(string text)
-        {
-            Invoke((MethodInvoker)delegate
-            {
-                searchButton.Text = text;
-            });
-        }
-
-        public void ResetSearchCompBox()
-        {
-            lastSearchIndex = searchNameBox.SelectedIndex;
-            searchNameBox.Items.Clear();
-            foreach (Comparator.ncSearcher nS in compare.SearchComparisons)
-            {
-                searchNameBox.Items.Add(nS.Name);
-            }
-
-            if (searchTypeBox.Items.Count == 0)
-            {
-                foreach (SearchControl.ncSearchType nT in compare.SearchTypes)
-                {
-                    searchTypeBox.Items.Add(nT.Name);
-                    searchTypeBox.SelectedIndex = 0;
-                }
-            }
-
-            if (lastSearchIndex < 0)
-                lastSearchIndex = 0;
-
-            searchNameBox.SelectedIndex = lastSearchIndex;
-        }
-
-        void UpdateSize()
-        {
-            int yOff = 20 + dumpTB1.Height + dumpTB2.Height;
-            foreach (SearchValue sb in compare.SearchArgs)
-            {
-                sb.Location = new Point(5, yOff);
-                sb.Width = DumpCompTab.Width - 10;
-                yOff += 5 + sb.Height;
-            }
-        }
-
-        #endregion
 
         private void cbBManager_Click(object sender, EventArgs e)
         {

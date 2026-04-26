@@ -372,14 +372,6 @@ namespace NetCheatPS3
             searchListView1.Refresh();
         }
 
-        private void dumpMem_Click(object sender, EventArgs e)
-        {
-            dumpForm df = new dumpForm();
-            df.start = Convert.ToUInt64(startAddrTB.Text, 16);
-            df.stop = Convert.ToUInt64(stopAddrTB.Text, 16);
-            df.ShowDialog();
-        }
-
         private void saveScan_Click(object sender, EventArgs e)
         {
             SaveFileDialog fd = new SaveFileDialog();

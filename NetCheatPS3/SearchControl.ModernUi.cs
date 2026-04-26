@@ -104,7 +104,6 @@ namespace NetCheatPS3
 
         private void RemoveLegacyScanButtons()
         {
-            RemoveLegacyScanButton(dumpMem);
             RemoveLegacyScanButton(saveScan);
             RemoveLegacyScanButton(loadScan);
         }
