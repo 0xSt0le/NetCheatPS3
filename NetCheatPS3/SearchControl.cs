@@ -282,10 +282,10 @@ namespace NetCheatPS3
 
             try
             {
-                
                 if (AbortScanThreadIfDisconnectedOrUnattached("Initial Scan"))
                     return;
-if (!codes.ConnectAndAttach(searchMemoryStopProc))
+
+                if (!codes.ConnectAndAttach(searchMemoryStopProc))
                 {
                     Invoke((MethodInvoker)delegate
                     {
@@ -311,10 +311,13 @@ if (!codes.ConnectAndAttach(searchMemoryStopProc))
 
                 System.Diagnostics.Stopwatch stopw = new System.Diagnostics.Stopwatch();
                 stopw.Start();
+
                 bool usedFuzzyValueScan = TryRunFuzzyValueInitialSearch(searcher, start, stop, index, passArgs);
                 if (!usedFuzzyValueScan)
                     searcher.InitialSearch(start, stop, index, passArgs);
+
                 CaptureFirstSnapshotAfterInitialScan(searcher);
+
                 stopw.Stop();
                 CaptureLastScanStats("Initial Scan", stopw.ElapsedMilliseconds, start, stop);
 
@@ -377,10 +380,10 @@ if (!codes.ConnectAndAttach(searchMemoryStopProc))
 
             try
             {
-                
                 if (AbortScanThreadIfDisconnectedOrUnattached("Next Scan"))
                     return;
-if (!codes.ConnectAndAttach(searchMemoryStopProc))
+
+                if (!codes.ConnectAndAttach(searchMemoryStopProc))
                 {
                     Invoke((MethodInvoker)delegate
                     {
@@ -407,6 +410,7 @@ if (!codes.ConnectAndAttach(searchMemoryStopProc))
 
                 System.Diagnostics.Stopwatch stopw = new System.Diagnostics.Stopwatch();
                 stopw.Start();
+
                 bool usedSnapshotNext = TryRunSnapshotNextSearch(searcher, (string[])args[2]);
                 if (!usedSnapshotNext)
                     searcher.NextSearch(items, (string[])args[2]);
@@ -459,41 +463,43 @@ if (!codes.ConnectAndAttach(searchMemoryStopProc))
         }
 
         public Thread searchThread;
+
         private void nextSearchMem_Click(object sender, EventArgs e)
         {
             if (searchThread != null && nextSearchMem.Text == "Stop")
             {
                 _shouldStopSearch = true;
-                //while (_shouldStopSearch)
-                //    Thread.Sleep(50);
                 searchThread = null;
                 return;
             }
             else if (nextSearchMem.Text == "Next Scan")
             {
-                
                 if (!EnsureConnectedAndAttachedForScanAction("Next Scan"))
                     return;
 
-if (!EnsureConnectedAndAttachedForScanAction("Next Scan"))try
+                try
                 {
                     if (searchThread != null)
                         searchThread = null;
+
                     progBar.printText = "";
 
                     _shouldStopSearch = false;
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
+
                     ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
                     ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
                     string[] args = new string[SearchArgs.Count];
-                    
+
                     if (HasEmptyVisibleSearchArgText())
                     {
                         ShowEmptySearchArgWarning();
                         return;
                     }
-for (int x = 0; x < args.Length; x++)
+
+                    for (int x = 0; x < args.Length; x++)
                         args[x] = SearchArgs[x].GetDefValue();
+
                     int typeIndex = 0;
                     for (typeIndex = 0; typeIndex < SearchTypes.Count; typeIndex++)
                     {
@@ -508,18 +514,23 @@ for (int x = 0; x < args.Length; x++)
                         return;
                     }
 
-                    ncSearcher searcher = SearchComparisons.Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
+                    ncSearcher searcher = SearchComparisons
+                        .Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString())
+                        .FirstOrDefault();
 
-                    //searchThread = new Thread(searcher.InitialSearch(start, stop, searchTypeBox.SelectedIndex, args));
-                    //searchThread = new Thread(ThreadInitSearch(start, stop, searchTypeBox.SelectedIndex, args));
+                    searchThread = new Thread(() => ThreadNextSearch(new object[]
+                    {
+                        searcher,
+                        searchListView1.a.ToArray(),
+                        args,
+                        searchPWS.Checked && isPWSVisible
+                    }));
 
-                    //progBar.printText = "Duplicating results...";
-                    //SearchListView.SearchListViewItem[] items = searchListView1.CloneItems();
-                    //progBar.printText = "";
-                    searchThread = new Thread(() => ThreadNextSearch(new object[] { searcher, searchListView1.a.ToArray(), args, searchPWS.Checked && isPWSVisible }));
                     searchThread.IsBackground = true;
                     searchThread.Start();
+
                     SetSearchActionRunningStatus("Next Scan");
+                    nextSearchMem.Text = "Stop";
                 }
                 catch (Exception ex)
                 {
@@ -529,58 +540,61 @@ for (int x = 0; x < args.Length; x++)
         }
 
         static bool searchMemoryStopProc = false;
+
         private void searchMemory_Click(object sender, EventArgs e)
         {
             if (searchThread != null && searchMemory.Text == "Stop")
             {
                 _shouldStopSearch = true;
-                //while (_shouldStopSearch)
-                //    Thread.Sleep(50);
                 searchThread = null;
                 return;
             }
             else if (searchMemory.Text == "New Scan")
             {
                 searchListView1.ClearItems();
-                
-                ClearSnapshotStateAndDeleteTempFiles();
 
-                ClearLastScanStats();searchMemory.Text = "Initial Scan";
+                ClearSnapshotStateAndDeleteTempFiles();
+                ClearLastScanStats();
+
+                searchMemory.Text = "Initial Scan";
                 progBar.printText = "";
+
                 forceTBUpdate = true;
                 isInitialScan = true;
                 forceTBUpdate = false;
             }
             else if (searchMemory.Text == "Initial Scan")
             {
-                
                 if (!EnsureConnectedAndAttachedForScanAction("Initial Scan"))
                     return;
 
-if (!EnsureConnectedAndAttachedForScanAction("Initial Scan"))try
+                try
                 {
                     if (searchThread != null)
                         searchThread = null;
 
                     _shouldStopSearch = false;
                     ClearSnapshotStateAndDeleteTempFiles();
+                    ClearLastScanStats();
 
-                    
-                ClearLastScanStats();activeScanUsesNewEngine = false;
+                    activeScanUsesNewEngine = false;
                     activeScanLittleEndian = IsLittleEndianModeChecked();
 
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
+
                     ulong start = Convert.ToUInt64(startAddrTB.Text, 16);
                     ulong stop = Convert.ToUInt64(stopAddrTB.Text, 16);
                     string[] args = new string[SearchArgs.Count];
-                    
+
                     if (HasEmptyVisibleSearchArgText())
                     {
                         ShowEmptySearchArgWarning();
                         return;
                     }
-for (int x = 0; x < args.Length; x++)
+
+                    for (int x = 0; x < args.Length; x++)
                         args[x] = SearchArgs[x].GetDefValue();
+
                     int typeIndex = 0;
                     for (typeIndex = 0; typeIndex < SearchTypes.Count; typeIndex++)
                     {
@@ -597,15 +611,27 @@ for (int x = 0; x < args.Length; x++)
 
                     if (searchNameBox.SelectedIndex < 0)
                         searchNameBox.SelectedIndex = lastSearchIndex;
-                    ncSearcher searcher = SearchComparisons.Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
 
-                    //searchThread = new Thread(searcher.InitialSearch(start, stop, searchTypeBox.SelectedIndex, args));
-                    //searchThread = new Thread(ThreadInitSearch(start, stop, searchTypeBox.SelectedIndex, args));
-                    searchThread = new Thread(() => ThreadInitSearch(new object[] { searcher, start, stop, typeIndex, args, searchPWS.Checked && isPWSVisible }));
+                    ncSearcher searcher = SearchComparisons
+                        .Where(sc => sc.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString())
+                        .FirstOrDefault();
+
+                    searchThread = new Thread(() => ThreadInitSearch(new object[]
+                    {
+                        searcher,
+                        start,
+                        stop,
+                        typeIndex,
+                        args,
+                        searchPWS.Checked && isPWSVisible
+                    }));
+
                     searchThread.Priority = ThreadPriority.Highest;
                     searchThread.IsBackground = true;
                     searchThread.Start();
+
                     SetSearchActionRunningStatus("Initial Scan");
+                    searchMemory.Text = "Stop";
                 }
                 catch (Exception ex)
                 {
@@ -616,36 +642,33 @@ for (int x = 0; x < args.Length; x++)
 
         private void refreshFromMem_Click(object sender, EventArgs e)
         {
-            
             if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))
                 return;
 
-if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResults(1);
+            RefreshResults(1);
         }
 
         public void RefreshResults(int mode)
         {
             switch (mode)
             {
-
                 case 0:
                     searchListView1.AddItemsFromList();
+
                     for (int x = 0; x < searchListView1.TotalCount; x++)
                     {
-                        //int itemIndex1 = x / SearchListView.MaxItemSize;
-                        //int itemIndex2 = x - (itemIndex1 * SearchListView.MaxItemSize);
-
                         SearchListView.SearchListViewItem item = searchListView1.GetItemAtIndex(x);
                         byte[] getBytes = new byte[item.newVal.Length];
+
                         if (Form1.apiGetMem(item.addr, ref getBytes))
                         {
                             item.oldVal = item.newVal;
                             item.newVal = getBytes;
-                            //searchListView1.a[item.addr] = item;
                             searchListView1.UpdateItemAtIndex(x);
                         }
                     }
                     break;
+
                 case 1:
                     for (int x = 0; x < searchListView1.a.Count; x++)
                     {
@@ -655,6 +678,7 @@ if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResul
                     }
                     break;
             }
+
             searchListView1.Refresh();
         }
 
@@ -676,7 +700,6 @@ if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResul
             {
                 Stream stream = File.Open(fd.FileName, FileMode.Create);
                 BinaryFormatter bformatter = new BinaryFormatter();
-                //bformatter.Serialize(stream, searchListView1.GetItemsArray());
                 bformatter.Serialize(stream, searchListView1.a.ToArray());
                 stream.Close();
 
@@ -693,6 +716,7 @@ if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResul
             if (fd.ShowDialog() == DialogResult.OK)
             {
                 SearchListView.SearchListViewItem[] items;
+
                 using (Stream file = File.Open(fd.FileName, FileMode.Open))
                 {
                     BinaryFormatter bf = new BinaryFormatter();
@@ -701,7 +725,6 @@ if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResul
                     items = (obj as IEnumerable<SearchListView.SearchListViewItem>).ToArray();
                     searchListView1.ClearItems();
                     searchListView1.AddItemRange(items);
-                    //searchListView1.a.AddRange(items);
                 }
 
                 if (searchListView1.TotalCount > 0 && items != null && items.Length > 0)
@@ -710,8 +733,10 @@ if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResul
 
                     int ind = 0;
                     for (ind = 0; ind < searchTypeBox.Items.Count; ind++)
+                    {
                         if (searchTypeBox.Items[ind].ToString() == SearchTypes[item.align].Name)
                             break;
+                    }
 
                     searchTypeBox.SelectedIndex = ind;
 
