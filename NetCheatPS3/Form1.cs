@@ -693,90 +693,6 @@ namespace NetCheatPS3
             CreateProbeAddressButton();
         }
 
-        /* Connects to PS3 */
-        private void connectButton_Click(object sender, EventArgs e)
-        {
-            if (curAPI == null)
-                return;
-
-            this.statusLabel1.Text = "Connecting...";
-            try
-            {
-                if (curAPI.Instance.Connect())
-                {
-                    connected = true;
-                    this.statusLabel1.Text = "Connected";
-
-
-                    connectButton.Enabled = false;
-                    attachProcessButton.Enabled = true;
-                    toolStripDropDownButton1.BackColor = Color.DarkGoldenrod;
-                }
-                else
-                {
-                    this.statusLabel1.Text = "Failed to connect";
-                    connected = false;
-                }
-            }
-            catch
-            {
-                this.statusLabel1.Text = "Failed to connect";
-                connected = false;
-            }
-        }
-
-        /* Attachs to process */
-        private void attachProcessButton_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (curAPI.Instance.Attach())
-                {
-                    this.statusLabel1.Text = "Process Attached";
-
-                    ConstantLoop = 1;
-                    attachProcessButton.Enabled = false;
-                    toolStripDropDownButton1.BackColor = Color.DarkGreen;
-                    attached = true;
-                }
-                else
-                {
-                    this.statusLabel1.Text = "Error attaching process";
-                    toolStripDropDownButton1.BackColor = Color.DarkGoldenrod;
-                }
-                
-            }
-            catch (Exception)
-            {
-                this.statusLabel1.Text = "Error attaching process";
-                toolStripDropDownButton1.BackColor = Color.DarkGoldenrod;
-            }
-        }
-
-        /* Disconnects from PS3 */
-        private void ps3Disc_Click(object sender, EventArgs e)
-        {
-            if (curAPI == null)
-                return;
-
-            try
-            {
-                curAPI.Instance.Disconnect();
-                ConstantLoop = 2;
-                this.statusLabel1.Text = "Disconnected";
-                attached = false;
-                connected = false;
-
-                attachProcessButton.Enabled = false;
-                connectButton.Enabled = true;
-                toolStripDropDownButton1.BackColor = Color.Maroon;
-            }
-            catch (Exception)
-            {
-
-            }
-        }
-
         /* Calculates the list index and updates the controls */
         private void cbList_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1863,20 +1779,6 @@ namespace NetCheatPS3
             }
         }
 
-        private void connectToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            connectButton_Click(null, null);
-        }
-
-        private void attachToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            attachProcessButton_Click(null, null);
-        }
-
-        private void disconnectToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ps3Disc_Click(null, null);
-        }
 
         private void shutdownPS3ToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -2684,15 +2586,6 @@ private void button1_Click(object sender, EventArgs e)
                 MessageBox.Show("Feature not supported with this API!");
         }
 
-        public static void PauseProcess()
-        {
-            curAPI.Instance.PauseProcess();
-        }
-
-        public static void ContinueProcess()
-        {
-            curAPI.Instance.ContinueProcess();
-        }
 
         private void pauseGameButt_BackColorChanged(object sender, EventArgs e)
         {
@@ -3129,12 +3022,6 @@ private void button1_Click(object sender, EventArgs e)
             this.AutoScroll = false;
         }
 
-        public bool isProcessStopped()
-        {
-            if (curAPI == null)
-                return true;
-            return curAPI.Instance.isProcessStopped();
-        }
 
         private void endianStripMenuItem_Click(object sender, EventArgs e)
         {

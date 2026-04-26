@@ -135,6 +135,9 @@
     <Compile Include="Form1.ConnectionGuard.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Form1.ConnectionLifecycle.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.ModernRangeUi.cs">
       <SubType>Form</SubType>
     </Compile>
