@@ -983,6 +983,9 @@ namespace NetCheatPS3
 
         private void refreshFromPS3ToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (!EnsureConnectedAndAttachedForResultAction("Refresh From PS3"))
+                return;
+
             SearchControl.Instance.RefreshResults(1);
         }
 
