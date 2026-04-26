@@ -174,14 +174,47 @@ namespace NetCheatPS3
         /* Writes the selected code to the PS3 */
         private void cbWrite_Click(object sender, EventArgs e)
         {
-            if (Codes[cbListIndex].backUp == null || Codes[cbListIndex].backUp.Length == 0)
+            int index;
+            CodeDB code;
+            if (!TryGetSelectedCodeForMemoryAction("Write Code", true, out index, out code))
+                return;
+
+            string codeName = GetCodeDisplayName(code);
+
+            if (code.backUp == null || code.backUp.Length == 0)
             {
-                CodeDB c = Codes[cbListIndex];
-                c.backUp = codes.CreateBackupPS3(Codes[cbListIndex]);
-                //Codes[cbListIndex].backUp = codes.CreateBackupPS3(Codes[cbListIndex]);
-                Codes[cbListIndex] = c;
+                CodeDB c = code;
+                c.backUp = codes.CreateBackupPS3(code);
+                Codes[index] = c;
+                code = c;
             }
-            codes.WriteToPS32(Codes[cbListIndex]);
+
+            MemoryWriteVerificationResult[] results = new MemoryWriteVerificationResult[0];
+            BeginMemoryWriteVerification();
+            try
+            {
+                codes.WriteToPS32(code);
+            }
+            finally
+            {
+                results = EndMemoryWriteVerification();
+            }
+
+            if (results.Length == 0)
+            {
+                SetMainStatusSafe("Write completed, but no memory writes were executed for '" + codeName + "'.");
+                return;
+            }
+
+            MemoryWriteVerificationResult failure = GetFirstMemoryWriteVerificationFailure(results);
+            if (failure == null)
+            {
+                SetMainStatusSafe("Wrote and verified " + results.Length + " memory write(s) for '" + codeName + "'.");
+                return;
+            }
+
+            SetMainStatusSafe("Write verification failed for '" + codeName + "'.");
+            ShowMemoryWriteVerificationFailure("Write Verification Failed", failure);
         }
 
         /* Toggles whether the code is constant writing or not */
@@ -331,21 +364,137 @@ namespace NetCheatPS3
 
         private void cbResetWrite_Click(object sender, EventArgs e)
         {
-            //foreach (ncCode nCode in Codes[cbListIndex].backUp)
-            for (int x = Codes[cbListIndex].backUp.Length - 1; x >= 0; x--)
+            int index;
+            CodeDB code;
+            if (!TryGetSelectedCodeForMemoryAction("Reset Memory", false, out index, out code))
+                return;
+
+            string codeName = GetCodeDisplayName(code);
+
+            if (code.backUp == null || code.backUp.Length == 0)
             {
-                if (Codes[cbListIndex].backUp[x].codeType == '0' || Codes[cbListIndex].backUp[x].codeType == '1')
-                    apiSetMem(Codes[cbListIndex].backUp[x].codeArg1, Codes[cbListIndex].backUp[x].codeArg2);
-            }
-            if (Codes[cbListIndex].backUp.Length == 0)
+                SetMainStatusSafe("No backup available. Write or Backup Memory first.");
                 MessageBox.Show("Please write before you reset.\nKeep in mind constant writing doesn't save a backup and editing the text box erases the backup.");
+                return;
+            }
+
+            MemoryWriteVerificationResult[] results = new MemoryWriteVerificationResult[0];
+            BeginMemoryWriteVerification();
+            try
+            {
+                for (int x = code.backUp.Length - 1; x >= 0; x--)
+                {
+                    if (code.backUp[x].codeType == '0' || code.backUp[x].codeType == '1' || code.backUp[x].codeType == '2')
+                        apiSetMem(code.backUp[x].codeArg1, code.backUp[x].codeArg2);
+                }
+            }
+            finally
+            {
+                results = EndMemoryWriteVerification();
+            }
+
+            if (results.Length == 0)
+            {
+                SetMainStatusSafe("Reset completed, but no memory writes were executed for '" + codeName + "'.");
+                return;
+            }
+
+            MemoryWriteVerificationResult failure = GetFirstMemoryWriteVerificationFailure(results);
+            if (failure == null)
+            {
+                SetMainStatusSafe("Reset and verified " + results.Length + " memory write(s) for '" + codeName + "'.");
+                return;
+            }
+
+            SetMainStatusSafe("Reset verification failed for '" + codeName + "'.");
+            ShowMemoryWriteVerificationFailure("Reset Verification Failed", failure);
         }
 
         private void cbBackupWrite_Click(object sender, EventArgs e)
         {
-            CodeDB c = Codes[cbListIndex];
-            c.backUp = codes.CreateBackupPS3(Codes[cbListIndex]);
-            Codes[cbListIndex] = c;
+            int index;
+            CodeDB code;
+            if (!TryGetSelectedCodeForMemoryAction("Backup Memory", true, out index, out code))
+                return;
+
+            CodeDB c = code;
+            c.backUp = codes.CreateBackupPS3(code);
+            Codes[index] = c;
+
+            string codeName = GetCodeDisplayName(c);
+            if (c.backUp.Length > 0)
+                SetMainStatusSafe("Backed up " + c.backUp.Length + " memory value(s) for '" + codeName + "'.");
+            else
+                SetMainStatusSafe("Backup completed, but no direct writable memory values were found for '" + codeName + "'.");
+        }
+
+        private bool TryGetSelectedCodeForMemoryAction(string actionName, bool requireParsedCode, out int index, out CodeDB code)
+        {
+            index = cbListIndex;
+            code = new CodeDB();
+
+            if (!EnsureConnectedAndAttachedForMainAction(actionName))
+                return false;
+
+            if (index < 0 || index >= Codes.Count)
+            {
+                SetMainStatusSafe("No code selected for " + actionName + ".");
+                return false;
+            }
+
+            code = Codes[index];
+            if (requireParsedCode && (code.CData == null || code.CData.Length == 0))
+            {
+                SetMainStatusSafe("No parsed code data available for '" + GetCodeDisplayName(code) + "'.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static string GetCodeDisplayName(CodeDB code)
+        {
+            return string.IsNullOrEmpty(code.name) ? "selected code" : code.name;
+        }
+
+        private static MemoryWriteVerificationResult GetFirstMemoryWriteVerificationFailure(MemoryWriteVerificationResult[] results)
+        {
+            foreach (MemoryWriteVerificationResult result in results)
+                if (result == null || !result.Matches)
+                    return result;
+
+            return null;
+        }
+
+        private static void ShowMemoryWriteVerificationFailure(string title, MemoryWriteVerificationResult failure)
+        {
+            if (failure == null)
+            {
+                MessageBox.Show("An unknown memory write verification failure occurred.", title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string actual = failure.ReadSucceeded
+                ? FormatVerificationBytes(failure.Actual)
+                : "<read-back failed>";
+
+            string message =
+                "Address: 0x" + failure.Address.ToString("X8") + Environment.NewLine +
+                "Expected: " + FormatVerificationBytes(failure.Expected) + Environment.NewLine +
+                "Actual: " + actual + Environment.NewLine +
+                "Read-back: " + (failure.ReadSucceeded ? "succeeded" : "failed");
+
+            if (!string.IsNullOrEmpty(failure.ErrorMessage))
+                message += Environment.NewLine + "Error: " + failure.ErrorMessage;
+
+            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        private static string FormatVerificationBytes(byte[] value)
+        {
+            return value == null || value.Length == 0
+                ? "<none>"
+                : misc.ByteAToStringHex(value, " ");
         }
 
 

@@ -1,10 +1,45 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace NetCheatPS3
 {
     public partial class Form1
     {
         #region Interface Functions
+
+        [ThreadStatic]
+        private static List<MemoryWriteVerificationResult> memoryWriteVerificationResults;
+
+        [ThreadStatic]
+        private static bool memoryWriteVerificationActive;
+
+        public sealed class MemoryWriteVerificationResult
+        {
+            public ulong Address;
+            public byte[] Expected;
+            public byte[] Actual;
+            public bool ReadSucceeded;
+            public bool Matches;
+            public string ErrorMessage;
+        }
+
+        public static void BeginMemoryWriteVerification()
+        {
+            memoryWriteVerificationResults = new List<MemoryWriteVerificationResult>();
+            memoryWriteVerificationActive = true;
+        }
+
+        public static MemoryWriteVerificationResult[] EndMemoryWriteVerification()
+        {
+            MemoryWriteVerificationResult[] results = memoryWriteVerificationResults != null
+                ? memoryWriteVerificationResults.ToArray()
+                : new MemoryWriteVerificationResult[0];
+
+            memoryWriteVerificationActive = false;
+            memoryWriteVerificationResults = null;
+
+            return results;
+        }
 
         public static void apiSetMem(ulong addr, byte[] val)
         {
@@ -14,7 +49,59 @@ namespace NetCheatPS3
                 Array.Copy(val, 0, newV, 0, val.Length);
                 newV = misc.notrevif(newV);
                 curAPI.Instance.SetBytes(addr, newV);
+                RecordMemoryWriteVerification(addr, newV);
             }
+        }
+
+        private static void RecordMemoryWriteVerification(ulong addr, byte[] expected)
+        {
+            if (!memoryWriteVerificationActive || memoryWriteVerificationResults == null)
+                return;
+
+            MemoryWriteVerificationResult result = new MemoryWriteVerificationResult();
+            result.Address = addr;
+            result.Expected = CloneByteArray(expected);
+            result.Actual = new byte[expected.Length];
+
+            try
+            {
+                byte[] actual = new byte[expected.Length];
+                result.ReadSucceeded = curAPI != null && curAPI.Instance != null && curAPI.Instance.GetBytes(addr, ref actual);
+                result.Actual = CloneByteArray(actual);
+                result.Matches = result.ReadSucceeded && ByteArraysEqual(expected, actual);
+                if (!result.ReadSucceeded)
+                    result.ErrorMessage = "Read-back failed.";
+            }
+            catch (Exception ex)
+            {
+                result.ReadSucceeded = false;
+                result.Matches = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            memoryWriteVerificationResults.Add(result);
+        }
+
+        private static byte[] CloneByteArray(byte[] value)
+        {
+            if (value == null)
+                return new byte[0];
+
+            byte[] clone = new byte[value.Length];
+            Array.Copy(value, 0, clone, 0, value.Length);
+            return clone;
+        }
+
+        private static bool ByteArraysEqual(byte[] expected, byte[] actual)
+        {
+            if (expected == null || actual == null || expected.Length != actual.Length)
+                return false;
+
+            for (int x = 0; x < expected.Length; x++)
+                if (expected[x] != actual[x])
+                    return false;
+
+            return true;
         }
 
         public static bool apiGetMem(ulong addr, ref byte[] val)
