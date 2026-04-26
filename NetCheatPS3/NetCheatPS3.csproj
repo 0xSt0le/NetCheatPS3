@@ -151,7 +151,12 @@
     <Compile Include="FindReplaceManager.Designer.cs">
       <DependentUpon>FindReplaceManager.cs</DependentUpon>
     </Compile>
-    <Compile Include="Form1.ModernRangeUi.cs" />
+    <Compile Include="Form1.ConnectionGuard.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.ModernRangeUi.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -194,21 +199,45 @@
     <Compile Include="Scanner\SnapshotHeader.cs" />
     <Compile Include="Scanner\SnapshotRecord.cs" />
     <Compile Include="Scanner\SnapshotStore.cs" />
-    <Compile Include="SearchControl.ModernUi.cs" />
-    <Compile Include="SearchControl.ResultHelpers.cs" />
-    <Compile Include="SearchControl.SnapshotNextScanner.cs" />
-    <Compile Include="SearchControl.SnapshotCleanup.cs" />
-    <Compile Include="SearchControl.SearchModeCleanup.cs" />
-    <Compile Include="SearchControl.CompareFirstScan.cs" />
-    <Compile Include="SearchControl.SearchTypeCleanup.cs" />
-    <Compile Include="SearchControl.FuzzyValue.cs" />
+    <Compile Include="SearchControl.ModernUi.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.ResultHelpers.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.SnapshotNextScanner.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.SnapshotCleanup.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.SearchModeCleanup.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.CompareFirstScan.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.SearchTypeCleanup.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.ScanAlignment.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.ConnectionGuard.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.FuzzyValue.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="SearchControl.Designer.cs">
       <DependentUpon>SearchControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="SearchListView.ModernResultUi.cs" />
+    <Compile Include="SearchListView.ModernResultUi.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SearchListView.cs">
       <SubType>UserControl</SubType>
     </Compile>

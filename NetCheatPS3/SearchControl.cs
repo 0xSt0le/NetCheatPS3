@@ -282,7 +282,10 @@ namespace NetCheatPS3
 
             try
             {
-                if (!codes.ConnectAndAttach(searchMemoryStopProc))
+                
+                if (AbortScanThreadIfDisconnectedOrUnattached("Initial Scan"))
+                    return;
+if (!codes.ConnectAndAttach(searchMemoryStopProc))
                 {
                     Invoke((MethodInvoker)delegate
                     {
@@ -374,7 +377,10 @@ namespace NetCheatPS3
 
             try
             {
-                if (!codes.ConnectAndAttach(searchMemoryStopProc))
+                
+                if (AbortScanThreadIfDisconnectedOrUnattached("Next Scan"))
+                    return;
+if (!codes.ConnectAndAttach(searchMemoryStopProc))
                 {
                     Invoke((MethodInvoker)delegate
                     {
@@ -465,7 +471,11 @@ namespace NetCheatPS3
             }
             else if (nextSearchMem.Text == "Next Scan")
             {
-                try
+                
+                if (!EnsureConnectedAndAttachedForScanAction("Next Scan"))
+                    return;
+
+if (!EnsureConnectedAndAttachedForScanAction("Next Scan"))try
                 {
                     if (searchThread != null)
                         searchThread = null;
@@ -509,7 +519,7 @@ for (int x = 0; x < args.Length; x++)
                     searchThread = new Thread(() => ThreadNextSearch(new object[] { searcher, searchListView1.a.ToArray(), args, searchPWS.Checked && isPWSVisible }));
                     searchThread.IsBackground = true;
                     searchThread.Start();
-                    nextSearchMem.Text = "Stop";
+                    SetSearchActionRunningStatus("Next Scan");
                 }
                 catch (Exception ex)
                 {
@@ -543,7 +553,11 @@ for (int x = 0; x < args.Length; x++)
             }
             else if (searchMemory.Text == "Initial Scan")
             {
-                try
+                
+                if (!EnsureConnectedAndAttachedForScanAction("Initial Scan"))
+                    return;
+
+if (!EnsureConnectedAndAttachedForScanAction("Initial Scan"))try
                 {
                     if (searchThread != null)
                         searchThread = null;
@@ -591,7 +605,7 @@ for (int x = 0; x < args.Length; x++)
                     searchThread.Priority = ThreadPriority.Highest;
                     searchThread.IsBackground = true;
                     searchThread.Start();
-                    searchMemory.Text = "Stop";
+                    SetSearchActionRunningStatus("Initial Scan");
                 }
                 catch (Exception ex)
                 {
@@ -602,7 +616,11 @@ for (int x = 0; x < args.Length; x++)
 
         private void refreshFromMem_Click(object sender, EventArgs e)
         {
-            RefreshResults(1);
+            
+            if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))
+                return;
+
+if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))RefreshResults(1);
         }
 
         public void RefreshResults(int mode)

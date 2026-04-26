@@ -2627,7 +2627,10 @@ namespace NetCheatPS3
 
         private void ProbeAddress_Click(object sender, EventArgs e)
         {
-            if (curAPI == null)
+            
+            if (!EnsureConnectedAndAttachedForMainAction("Probe Address"))
+                return;
+if (curAPI == null)
             {
                 MessageBox.Show("No API selected!");
                 return;
@@ -2765,7 +2768,10 @@ namespace NetCheatPS3
 
         private void findRanges_Click(object sender, EventArgs e)
         {
-            if (curAPI == null)
+            
+            if (!EnsureConnectedAndAttachedForMainAction("Find Ranges"))
+                return;
+if (curAPI == null)
             {
                 MessageBox.Show("No API selected!");
                 return;

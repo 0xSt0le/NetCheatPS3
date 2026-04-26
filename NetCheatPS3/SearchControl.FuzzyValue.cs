@@ -44,7 +44,7 @@ namespace NetCheatPS3
             double min = target - tolerance;
             double max = target + tolerance;
 
-            int alignment = SearchTypes[typeIndex].ignoreAlignment ? 1 : byteSize;
+            int alignment = GetEffectiveSearchAlignment(typeIndex);
             if (alignment <= 0)
                 alignment = byteSize;
 

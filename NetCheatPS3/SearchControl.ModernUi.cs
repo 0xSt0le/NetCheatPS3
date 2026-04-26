@@ -33,8 +33,7 @@ namespace NetCheatPS3
 
             RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
-            EnsureExactBlockSizeSelector();
-            EnsureCompareFirstScanCheckbox();
+            EnsureExactBlockSizeSelector();            EnsureCompareFirstScanCheckbox();
             EnsureFuzzyValueCheckbox();
             EnsureSnapshotCleanupOnFormClose();
 
@@ -421,6 +420,8 @@ namespace NetCheatPS3
                 fuzzyValueCB.Visible = CurrentSearchTypeIsFloatOrDouble();
             }
 
+            int optionsBottom = Math.Max(startAddrTB.Bottom, stopAddrTB.Bottom);
+
             if (exactBlockSizeLabel != null && exactBlockSizeBox != null)
             {
                 int x = cleanFloatCB != null ? cleanFloatCB.Right + 16 : startAddrTB.Right + 16;
@@ -431,6 +432,8 @@ namespace NetCheatPS3
                 exactBlockSizeBox.Location = new Point(exactBlockSizeLabel.Right + 5, startAddrTB.Top - 1);
                 exactBlockSizeBox.BackColor = BackColor;
                 exactBlockSizeBox.ForeColor = ForeColor;
+
+                optionsBottom = Math.Max(optionsBottom, exactBlockSizeBox.Bottom);
             }
 
             if (compareFirstScanCB != null)
@@ -447,25 +450,12 @@ namespace NetCheatPS3
                     compareFirstScanCB.Checked = false;
 
                 compareFirstScanCB.Enabled = !isInitialScan;
+
+                if (compareFirstScanCB.Visible)
+                    optionsBottom = Math.Max(optionsBottom, compareFirstScanCB.Bottom);
             }
 
-            if (compareFirstScanCB != null)
-            {
-                int x = exactBlockSizeLabel != null ? exactBlockSizeLabel.Left : startAddrTB.Right + 16;
-                int y = exactBlockSizeBox != null ? exactBlockSizeBox.Bottom + 3 : startAddrTB.Bottom + 3;
-
-                compareFirstScanCB.Location = new Point(x, y);
-                compareFirstScanCB.BackColor = BackColor;
-                compareFirstScanCB.ForeColor = ForeColor;
-                compareFirstScanCB.Visible = !isInitialScan;
-
-                if (isInitialScan)
-                    compareFirstScanCB.Checked = false;
-
-                compareFirstScanCB.Enabled = !isInitialScan;
-            }
-
-            int buttonY = filterY + searchPWS.Height + 8;
+            int buttonY = Math.Max(filterY + searchPWS.Height + 8, optionsBottom + 8);
 
             searchMemory.Location = new Point(5, buttonY);
             nextSearchMem.Location = new Point(Width - nextSearchMem.Width - 5, buttonY);

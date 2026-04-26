@@ -581,16 +581,20 @@ namespace NetCheatPS3
                     return currentValue < oldValue;
 
                 case SnapshotNextModeKind.IncreasedBy:
-                    return currentValue == oldValue + ParseArgDouble(args, 0);
+                    double increasedExpected = oldValue + ParseArgDouble(args, 0);
+                    return IsFuzzyValueChecked() ? FuzzyDoubleEquals(currentValue, increasedExpected, args == null || args.Length == 0 ? null : args[0]) : currentValue == increasedExpected;
 
                 case SnapshotNextModeKind.DecreasedBy:
-                    return currentValue == oldValue - ParseArgDouble(args, 0);
+                    double decreasedExpected = oldValue - ParseArgDouble(args, 0);
+                    return IsFuzzyValueChecked() ? FuzzyDoubleEquals(currentValue, decreasedExpected, args == null || args.Length == 0 ? null : args[0]) : currentValue == decreasedExpected;
 
                 case SnapshotNextModeKind.Equal:
-                    return currentValue == ParseArgDouble(args, 0);
+                    double exactValue = ParseArgDouble(args, 0);
+                    return IsFuzzyValueChecked() ? FuzzyDoubleEquals(currentValue, exactValue, args == null || args.Length == 0 ? null : args[0]) : currentValue == exactValue;
 
                 case SnapshotNextModeKind.NotEqual:
-                    return currentValue != ParseArgDouble(args, 0);
+                    double notEqualValue = ParseArgDouble(args, 0);
+                    return IsFuzzyValueChecked() ? !FuzzyDoubleEquals(currentValue, notEqualValue, args == null || args.Length == 0 ? null : args[0]) : currentValue != notEqualValue;
 
                 case SnapshotNextModeKind.LessThan:
                     return currentValue < ParseArgDouble(args, 0);

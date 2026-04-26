@@ -319,6 +319,7 @@
             // 
             // cbState
             // 
+            this.cbState.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.cbState.Location = new System.Drawing.Point(219, 55);
             this.cbState.Name = "cbState";
             this.cbState.Size = new System.Drawing.Size(225, 17);
@@ -334,7 +335,7 @@
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(225, 20);
             this.label5.TabIndex = 22;
-            this.label5.Text = "Name of code";
+            this.label5.Text = "Code Name";
             this.label5.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // cbName
@@ -988,7 +989,7 @@
             this.optButton.BackColor = System.Drawing.Color.Black;
             this.optButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.optButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(130)))), ((int)(((byte)(210)))));
-            this.optButton.Location = new System.Drawing.Point(386, 12);
+            this.optButton.Location = new System.Drawing.Point(657, 12);
             this.optButton.Name = "optButton";
             this.optButton.Size = new System.Drawing.Size(87, 23);
             this.optButton.TabIndex = 11;
@@ -1003,9 +1004,9 @@
             this.toolStripDropDownButton1,
             this.statusLabel1,
             this.statusLabel2});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 439);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 844);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(485, 24);
+            this.statusStrip1.Size = new System.Drawing.Size(756, 24);
             this.statusStrip1.TabIndex = 9;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -1030,14 +1031,14 @@
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
-            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.optionsToolStripMenuItem.Text = "Options";
             this.optionsToolStripMenuItem.Click += new System.EventHandler(this.optionsToolStripMenuItem_Click);
             // 
             // configureAPIToolStripMenuItem
             // 
             this.configureAPIToolStripMenuItem.Name = "configureAPIToolStripMenuItem";
-            this.configureAPIToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.configureAPIToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.configureAPIToolStripMenuItem.Text = "Configure API";
             this.configureAPIToolStripMenuItem.ToolTipText = "Configure API.\r\nIf nothing happens then the API doesn\'t support this feature.";
             this.configureAPIToolStripMenuItem.Click += new System.EventHandler(this.configureAPIToolStripMenuItem_Click);
@@ -1045,42 +1046,42 @@
             // loadPluginsToolStripMenuItem
             // 
             this.loadPluginsToolStripMenuItem.Name = "loadPluginsToolStripMenuItem";
-            this.loadPluginsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.loadPluginsToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.loadPluginsToolStripMenuItem.Text = "Load Plugins";
             this.loadPluginsToolStripMenuItem.Click += new System.EventHandler(this.loadPluginsToolStripMenuItem_Click);
             // 
             // shutdownPS3ToolStripMenuItem
             // 
             this.shutdownPS3ToolStripMenuItem.Name = "shutdownPS3ToolStripMenuItem";
-            this.shutdownPS3ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.shutdownPS3ToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.shutdownPS3ToolStripMenuItem.Text = "Shutdown";
             this.shutdownPS3ToolStripMenuItem.Click += new System.EventHandler(this.shutdownPS3ToolStripMenuItem_Click);
             // 
             // disconnectToolStripMenuItem
             // 
             this.disconnectToolStripMenuItem.Name = "disconnectToolStripMenuItem";
-            this.disconnectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.disconnectToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.disconnectToolStripMenuItem.Text = "Disconnect";
             this.disconnectToolStripMenuItem.Click += new System.EventHandler(this.disconnectToolStripMenuItem_Click);
             // 
             // attachToolStripMenuItem
             // 
             this.attachToolStripMenuItem.Name = "attachToolStripMenuItem";
-            this.attachToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.attachToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.attachToolStripMenuItem.Text = "Attach";
             this.attachToolStripMenuItem.Click += new System.EventHandler(this.attachToolStripMenuItem_Click);
             // 
             // connectToolStripMenuItem
             // 
             this.connectToolStripMenuItem.Name = "connectToolStripMenuItem";
-            this.connectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.connectToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.connectToolStripMenuItem.Text = "Connect";
             this.connectToolStripMenuItem.Click += new System.EventHandler(this.connectToolStripMenuItem_Click);
             // 
             // updateStripMenuItem1
             // 
             this.updateStripMenuItem1.Name = "updateStripMenuItem1";
-            this.updateStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.updateStripMenuItem1.Size = new System.Drawing.Size(165, 22);
             this.updateStripMenuItem1.Text = "Update NetCheat";
             this.updateStripMenuItem1.Click += new System.EventHandler(this.updateStripMenuItem1_Click);
             // 
@@ -1089,7 +1090,7 @@
             this.endianStripMenuItem.Checked = true;
             this.endianStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.endianStripMenuItem.Name = "endianStripMenuItem";
-            this.endianStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.endianStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.endianStripMenuItem.Text = "Big Endian";
             this.endianStripMenuItem.Click += new System.EventHandler(this.endianStripMenuItem_Click);
             // 
@@ -1194,7 +1195,7 @@
             // 
             this.startGameButt.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("startGameButt.BackgroundImage")));
             this.startGameButt.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.startGameButt.Location = new System.Drawing.Point(420, 37);
+            this.startGameButt.Location = new System.Drawing.Point(419, 12);
             this.startGameButt.Name = "startGameButt";
             this.startGameButt.Size = new System.Drawing.Size(24, 24);
             this.startGameButt.TabIndex = 13;
@@ -1207,7 +1208,7 @@
             // 
             this.pauseGameButt.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("pauseGameButt.BackgroundImage")));
             this.pauseGameButt.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.pauseGameButt.Location = new System.Drawing.Point(450, 37);
+            this.pauseGameButt.Location = new System.Drawing.Point(449, 12);
             this.pauseGameButt.Name = "pauseGameButt";
             this.pauseGameButt.Size = new System.Drawing.Size(24, 24);
             this.pauseGameButt.TabIndex = 12;
@@ -1222,7 +1223,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.Black;
-            this.ClientSize = new System.Drawing.Size(485, 463);
+            this.ClientSize = new System.Drawing.Size(756, 868);
             this.Controls.Add(this.startGameButt);
             this.Controls.Add(this.pauseGameButt);
             this.Controls.Add(this.optButton);
@@ -1234,7 +1235,8 @@
             this.Controls.Add(this.TabCon);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(130)))), ((int)(((byte)(210)))));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MinimumSize = new System.Drawing.Size(501, 501);
+            this.MaximizeBox = false;
+            this.MinimumSize = new System.Drawing.Size(772, 898);
             this.Name = "Form1";
             this.Text = "NetCheat PS3 by Dnawrkshp";
             this.Load += new System.EventHandler(this.Main_Load);
