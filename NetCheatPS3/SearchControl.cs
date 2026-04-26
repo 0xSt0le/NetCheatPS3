@@ -194,15 +194,6 @@ namespace NetCheatPS3
 
         #region Search Thread Calls
 
-        public void SetStatusLabel(string str)
-        {
-            Invoke((MethodInvoker)delegate
-            {
-                //statusLabel.Text = str;
-                progBar.printText = str;
-            });
-        }
-
         public void ClearItems()
         {
             Invoke((MethodInvoker)delegate
@@ -224,40 +215,6 @@ namespace NetCheatPS3
             Invoke((MethodInvoker)delegate
             {
                 searchListView1.AddItem(item);
-            });
-        }
-
-        public void IncProgBar(int inc)
-        {
-            Invoke((MethodInvoker)delegate
-            {
-                progBar.Increment(inc);
-            });
-        }
-
-        public void SetProgBar(int val)
-        {
-            Invoke((MethodInvoker)delegate
-            {
-                progBar.Value = val;
-                TaskbarProgress.SetValue(this.Handle, (double)val, (double)progBar.Maximum);
-            });
-        }
-
-        public void SetProgBarText(string val)
-        {
-            Invoke((MethodInvoker)delegate
-            {
-                progBar.printText = val;
-                //TaskbarProgress.SetValue(this.Handle, (double)val, (double)progBar.Maximum);
-            });
-        }
-
-        public void SetProgBarMax(int max)
-        {
-            Invoke((MethodInvoker)delegate
-            {
-                progBar.Maximum = max;
             });
         }
 

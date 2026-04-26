@@ -214,6 +214,9 @@
     <Compile Include="SearchControl.ScanButtons.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="SearchControl.ScanProgress.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
