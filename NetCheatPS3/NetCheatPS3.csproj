@@ -101,9 +101,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Ionic.Zip, Version=1.9.1.8, Culture=neutral, PublicKeyToken=edbe51ad942a3f5c, processorArchitecture=MSIL">
-      <HintPath>..\packages\Ionic.Zip.1.9.1.8\lib\Ionic.Zip.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -259,12 +256,6 @@
       <DependentUpon>snapshot.cs</DependentUpon>
     </Compile>
     <Compile Include="TaskbarProgress.cs" />
-    <Compile Include="updateForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="updateForm.Designer.cs">
-      <DependentUpon>updateForm.cs</DependentUpon>
-    </Compile>
     <EmbeddedResource Include="ConditionalEditor.resx">
       <DependentUpon>ConditionalEditor.cs</DependentUpon>
     </EmbeddedResource>
@@ -314,11 +305,7 @@
     <EmbeddedResource Include="snapshot.resx">
       <DependentUpon>snapshot.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="updateForm.resx">
-      <DependentUpon>updateForm.cs</DependentUpon>
-    </EmbeddedResource>
     <None Include="app.config" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

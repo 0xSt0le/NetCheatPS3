@@ -4,11 +4,9 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Diagnostics;
-using System.Net;
 using System.IO;
 using System.Speech.Recognition;
 using System.Runtime.Serialization.Formatters.Binary;
-using Ionic.Zip;
 
 namespace NetCheatPS3
 {
@@ -58,8 +56,6 @@ namespace NetCheatPS3
                 }
             }
         }
-
-        public bool allowForce = false;
 
         #region NetCheat PS3 Global Variables
 
@@ -361,150 +357,6 @@ namespace NetCheatPS3
             }
 
             return 0;
-        }
-
-        #endregion
-
-        #region NetCheat Updater
-
-        public static void RunUpdateChecker()
-        {
-            bool allowForce = Form1.Instance.allowForce;
-            string[] updateStr = CheckForUpdate();
-            string newVer = updateStr[0].Replace("\r", "").Replace("\n", "");
-            bool update = int.Parse(newVer.Replace(".", "")) > int.Parse(versionNum.Replace(".", ""));
-            string title = update ?
-                "NetCheat PS3 Version " + newVer + " is available for download.\nWould you like to update and restart NetCheat?" :
-                "NetCheat is up-to-date! Would you like to Force Update?";
-            string updateArg = "";
-            if (updateStr.Length > 1)
-                updateArg = String.Join(Environment.NewLine, updateStr);
-            else
-                updateArg = "";
-
-            //string title = update ? "Update Available" : "Force Update?";
-
-            bool allow = false;
-            if (allowForce || update)
-            {
-                updateForm mBox = new updateForm();
-                mBox.Title = title;
-                mBox.UpdateStr = updateArg;
-                mBox.ForeColor = Form1.Instance.ForeColor;
-                mBox.BackColor = Form1.Instance.BackColor;
-                mBox.Show();
-
-                while (mBox.Return < 0)
-                    Application.DoEvents();
-                allow = (mBox.Return == 0) ? false : true;
-                mBox.Close();
-            }
-
-            if (allow)
-            {
-
-                Form loadingFrm = new Form();
-                loadingFrm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-                loadingFrm.ControlBox = false;
-                loadingFrm.Size = new System.Drawing.Size(200, 75);
-                Label lbl = new Label();
-                lbl.Text = "Updating NetCheat PS3...";
-                lbl.AutoSize = false;
-                lbl.Size = loadingFrm.Size;
-                lbl.Location = new Point(0, 0);
-                lbl.TextAlign = ContentAlignment.MiddleCenter;
-                lbl.Font = new System.Drawing.Font(Form1.Instance.Font.FontFamily, 15.0f);
-                loadingFrm.Controls.Add(lbl);
-                loadingFrm.BackColor = Form1.Instance.BackColor;
-                loadingFrm.ForeColor = Form1.Instance.ForeColor;
-                loadingFrm.Show();
-                loadingFrm.TopLevel = true;
-                loadingFrm.Location = new Point(Screen.PrimaryScreen.WorkingArea.Width / 2 - (loadingFrm.Width / 2),
-                    Screen.PrimaryScreen.WorkingArea.Height / 2 - (loadingFrm.Height / 2));
-                Application.DoEvents();
-
-                UpdateNetCheatPS3();
-            }
-        }
-
-        public static string[] CheckForUpdate()
-        {
-            string webpath = "http://netcheat.gamehacking.org/ncUpdater/NetCheatUpdate.txt";
-            string store = Path.GetTempFileName();
-
-            try
-            {
-                WebClient Client = new WebClient();
-                Client.DownloadFile(webpath, store);
-
-                string[] ver = File.ReadAllLines(store);
-                File.Delete(store);
-
-                return ver;
-            }
-            catch (Exception)
-            {
-                return new string[] { "0" };
-            }
-        }
-
-        public static void UpdateNetCheatPS3()
-        {
-            string webpath = "http://netcheat.gamehacking.org/ncUpdater/ncUpdateDir.zip";
-            //FileInfo ncFI = new FileInfo(Application.ExecutablePath);
-            string store = Application.StartupPath + "\\" + "ncUpdateDir.zip";
-
-            WebClient Client = new WebClient();
-            Client.DownloadFile(webpath, store);
-
-            //Decompress rar
-            DecompressFile(store, Application.StartupPath + "\\ncUpdateDir\\");
-            File.Delete(store);
-
-            //If there is a new updater use that and delete it from the extracted directory
-            if (File.Exists(Application.StartupPath + "\\ncUpdateDir\\NetCheatPS3Updater.exe"))
-            {
-                File.Copy(Application.StartupPath + "\\ncUpdateDir\\NetCheatPS3Updater.exe",
-                    Application.StartupPath + "\\NetCheatPS3Updater.exe", true);
-                File.Delete(Application.StartupPath + "\\ncUpdateDir\\NetCheatPS3Updater.exe");
-            }
-
-            System.Threading.Thread.Sleep(1000);
-            Process.Start("NetCheatPS3Updater.exe", Process.GetCurrentProcess().Id.ToString() + 
-                " \"" + Application.StartupPath + "\\ncUpdateDir\"" +
-                " \"" + Application.StartupPath + "\"" +
-                " \"" + Application.ExecutablePath + "\"");
-
-
-            Process.GetCurrentProcess().Kill();
-            //Form1.Instance.Close();
-        }
-
-        public static void DecompressFile(string file, string directory)
-        {
-            using (ZipFile archive = ZipFile.Read(file))
-            {
-                foreach (ZipEntry entry in archive.Entries)
-                {
-                    try
-                    {
-                        if (entry.UncompressedSize > 0)
-                        {
-                            string mergedPath = Path.Combine(directory, entry.FileName);
-                            FileInfo fi = new FileInfo(directory);
-                            if (!Directory.Exists(fi.Directory.FullName))
-                                Directory.CreateDirectory(fi.Directory.FullName);
-                            if (File.Exists(mergedPath))
-                                File.Delete(mergedPath);
-                            entry.Extract(directory, ExtractExistingFileAction.OverwriteSilently);
-                        }
-                    }
-                    catch (Exception error)
-                    {
-                        MessageBox.Show("Exception: \n" + error.Message);
-                    }
-                }
-            }
         }
 
         #endregion
@@ -2039,13 +1891,6 @@ namespace NetCheatPS3
         private void optionsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             optButton_Click(null, null);
-        }
-
-        private void updateStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            allowForce = true;
-            RunUpdateChecker();
-            allowForce = false;
         }
 
         private void gameStatusStripMenuItem1_Click(object sender, EventArgs e)

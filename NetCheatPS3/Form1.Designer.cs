@@ -113,7 +113,6 @@
             this.disconnectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.attachToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.connectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.updateStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.endianStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -1021,7 +1020,6 @@
             this.disconnectToolStripMenuItem,
             this.attachToolStripMenuItem,
             this.connectToolStripMenuItem,
-            this.updateStripMenuItem1,
             this.endianStripMenuItem});
             this.toolStripDropDownButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton1.Image")));
             this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.BlueViolet;
@@ -1077,13 +1075,6 @@
             this.connectToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.connectToolStripMenuItem.Text = "Connect";
             this.connectToolStripMenuItem.Click += new System.EventHandler(this.connectToolStripMenuItem_Click);
-            // 
-            // updateStripMenuItem1
-            // 
-            this.updateStripMenuItem1.Name = "updateStripMenuItem1";
-            this.updateStripMenuItem1.Size = new System.Drawing.Size(165, 22);
-            this.updateStripMenuItem1.Text = "Update NetCheat";
-            this.updateStripMenuItem1.Click += new System.EventHandler(this.updateStripMenuItem1_Click);
             // 
             // endianStripMenuItem
             // 
@@ -1321,7 +1312,6 @@
         private System.Windows.Forms.ToolStripMenuItem refreshFromPS3ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem refreshFromDumptxtToolStripMenuItem;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
-        private System.Windows.Forms.ToolStripMenuItem updateStripMenuItem1;
         private System.Windows.Forms.ProgressBar findRangeProgBar;
         private System.Windows.Forms.Button findRanges;
         private System.Windows.Forms.Button pauseGameButt;
