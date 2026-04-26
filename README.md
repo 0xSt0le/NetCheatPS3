@@ -23,9 +23,9 @@ Checkout [NCMemBrowser](./NCMemBrowser/Plugin.cs) for an example.
 
 ## APIs
 
-	Apis are plugins that extend what platforms you can use with NetCheat. APIs can be selected in the APIs tab. NetCheat currently ships with an API for PS3 and PC. Other third-party APIs may exist somewhere on the internet.
+	APIs are plugins that extend what platforms you can use with NetCheat. APIs can be selected in the APIs tab. This fork ships with TMAPI and PS2RD providers.
 
-Checkout [PCAPI](./PCAPI-NCAPI/API.cs) for an example.
+Checkout [TMAPI](./TMAPI-NCAPI/API.cs) or [PS2RD](./PS2RD-NCAPI/API.cs) for examples.
 	
 ## Tips
 
