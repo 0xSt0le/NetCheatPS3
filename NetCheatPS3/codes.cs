@@ -400,7 +400,7 @@ namespace NetCheatPS3
 
         public static bool isCodeValid(Form1.ncCode c)
         {
-            if (c.codeType != null && c.codeType != '\0') //valid code
+            if (c.codeType != '\0') //valid code
                 if (c.codeArg2 != null && c.codeArg2.Length != 0)
                     if (c.codeArg1_BA != null && c.codeArg1_BA.Length != 0)
                         return true;

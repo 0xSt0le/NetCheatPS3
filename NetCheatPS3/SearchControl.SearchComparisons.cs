@@ -2641,7 +2641,6 @@ namespace NetCheatPS3
             int updateCnt = 0;
 
             ncSearchType type = new ncSearchType();
-            byte[] cmpArray = null;
 
             ClearItems();
 
@@ -2706,7 +2705,6 @@ namespace NetCheatPS3
                     }
                 }
 
-                //if (misc.ArrayCompare(cmpArray, tempArr, null, cmpIntType))
                 if (isTrue)
                 {
                     SearchListView.SearchListViewItem item = old[cnt];
@@ -2750,7 +2748,6 @@ namespace NetCheatPS3
             int resCnt = 0;
 
             ncSearchType type = new ncSearchType();
-            byte[] cmpArray = null;
 
             ClearItems();
 
@@ -2804,7 +2801,6 @@ namespace NetCheatPS3
                         isTrue = true;
                 }
 
-                //if (misc.ArrayCompare(cmpArray, tempArr, null, cmpIntType))
                 if (isTrue)
                 {
                     SearchListView.SearchListViewItem item = old[cnt];

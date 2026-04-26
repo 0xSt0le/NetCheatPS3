@@ -339,7 +339,7 @@ namespace NetCheatPS3
 
                 apiAssembly = null; //more cleanup
             }
-            catch (Exception e)
+            catch (Exception)
             {
 
             }

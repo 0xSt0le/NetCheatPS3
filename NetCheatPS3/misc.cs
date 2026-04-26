@@ -74,19 +74,6 @@ namespace NetCheatPS3
         {
             Array.Reverse(b, 0, b.Length);
             return b;
-
-            byte[] ret = new byte[b.Length];
-            int inc = 4;
-            if (inc > b.Length)
-                inc = b.Length;
-
-            for (int x = 0; x < ret.Length; x += inc)
-            {
-                for (int y = 0; y < inc; y++)
-                //    ret[x + y] = b[x + (inc - y - 1)];
-                    ret[x + y] = b[b.Length - x - y - 1];
-            }
-            return ret;
         }
 
         /* 
