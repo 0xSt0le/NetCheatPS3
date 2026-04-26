@@ -25,8 +25,6 @@
             this.stopAddrTB = new System.Windows.Forms.TextBox();
             this.searchMemory = new System.Windows.Forms.Button();
             this.refreshFromMem = new System.Windows.Forms.Button();
-            this.saveScan = new System.Windows.Forms.Button();
-            this.loadScan = new System.Windows.Forms.Button();
             this.searchPWS = new System.Windows.Forms.CheckBox();
             this.nextSearchMem = new System.Windows.Forms.Button();
             this.progBar = new NetCheatPS3.ProgressBar();
@@ -128,28 +126,6 @@
             this.refreshFromMem.UseVisualStyleBackColor = true;
             this.refreshFromMem.Click += new System.EventHandler(this.refreshFromMem_Click);
             // 
-            // saveScan
-            // 
-            this.saveScan.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.saveScan.Location = new System.Drawing.Point(94, 126);
-            this.saveScan.Name = "saveScan";
-            this.saveScan.Size = new System.Drawing.Size(85, 23);
-            this.saveScan.TabIndex = 13;
-            this.saveScan.Text = "Save Scan";
-            this.saveScan.UseVisualStyleBackColor = true;
-            this.saveScan.Click += new System.EventHandler(this.saveScan_Click);
-            // 
-            // loadScan
-            // 
-            this.loadScan.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.loadScan.Location = new System.Drawing.Point(185, 126);
-            this.loadScan.Name = "loadScan";
-            this.loadScan.Size = new System.Drawing.Size(85, 23);
-            this.loadScan.TabIndex = 14;
-            this.loadScan.Text = "Load Scan";
-            this.loadScan.UseVisualStyleBackColor = true;
-            this.loadScan.Click += new System.EventHandler(this.loadScan_Click);
-            // 
             // searchPWS
             // 
             this.searchPWS.AutoSize = true;
@@ -194,8 +170,6 @@
             this.Controls.Add(this.progBar);
             this.Controls.Add(this.nextSearchMem);
             this.Controls.Add(this.searchPWS);
-            this.Controls.Add(this.loadScan);
-            this.Controls.Add(this.saveScan);
             this.Controls.Add(this.refreshFromMem);
             this.Controls.Add(this.searchMemory);
             this.Controls.Add(this.label4);
@@ -224,8 +198,6 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox stopAddrTB;
         private System.Windows.Forms.Button refreshFromMem;
-        private System.Windows.Forms.Button saveScan;
-        private System.Windows.Forms.Button loadScan;
         private System.Windows.Forms.CheckBox searchPWS;
         private ProgressBar progBar;
         public System.Windows.Forms.Button searchMemory;

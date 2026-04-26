@@ -31,7 +31,6 @@ namespace NetCheatPS3
             if (modernSearchToolTip == null)
                 modernSearchToolTip = new ToolTip();
 
-            RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();            EnsureCompareFirstScanCheckbox();
             EnsureFuzzyValueCheckbox();
@@ -100,25 +99,6 @@ namespace NetCheatPS3
             ClearDefaultSearchArgText();
             UpdateCleanFloatVisibility();
             UpdateModernSearchLayout();
-        }
-
-        private void RemoveLegacyScanButtons()
-        {
-            RemoveLegacyScanButton(saveScan);
-            RemoveLegacyScanButton(loadScan);
-        }
-
-        private void RemoveLegacyScanButton(Button button)
-        {
-            if (button == null)
-                return;
-
-            button.Visible = false;
-            button.Enabled = false;
-            button.TabStop = false;
-
-            if (Controls.Contains(button))
-                Controls.Remove(button);
         }
 
         private void EnsureScanDiagnosticsButton()
@@ -369,7 +349,6 @@ namespace NetCheatPS3
             if (!modernSearchUiInitialized)
                 return;
 
-            RemoveLegacyScanButtons();
             EnsureScanDiagnosticsButton();
             EnsureExactBlockSizeSelector();
             EnsureCompareFirstScanCheckbox();

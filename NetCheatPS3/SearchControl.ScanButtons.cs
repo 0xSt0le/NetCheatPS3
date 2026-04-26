@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -372,66 +368,6 @@ namespace NetCheatPS3
             searchListView1.Refresh();
         }
 
-        private void saveScan_Click(object sender, EventArgs e)
-        {
-            SaveFileDialog fd = new SaveFileDialog();
-            fd.Filter = "Text Files (*.txt)|*.txt|All files (*.*)|*.*";
-            fd.RestoreDirectory = true;
-
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                Stream stream = File.Open(fd.FileName, FileMode.Create);
-                BinaryFormatter bformatter = new BinaryFormatter();
-                bformatter.Serialize(stream, searchListView1.a.ToArray());
-                stream.Close();
-
-                MessageBox.Show("Saved!");
-            }
-        }
-
-        private void loadScan_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog fd = new OpenFileDialog();
-            fd.Filter = "Text Files (*.txt)|*.txt|All files (*.*)|*.*";
-            fd.RestoreDirectory = true;
-
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                SearchListView.SearchListViewItem[] items;
-
-                using (Stream file = File.Open(fd.FileName, FileMode.Open))
-                {
-                    BinaryFormatter bf = new BinaryFormatter();
-                    object obj = bf.Deserialize(file);
-
-                    items = (obj as IEnumerable<SearchListView.SearchListViewItem>).ToArray();
-                    searchListView1.ClearItems();
-                    searchListView1.AddItemRange(items);
-                }
-
-                if (searchListView1.TotalCount > 0 && items != null && items.Length > 0)
-                {
-                    SearchListView.SearchListViewItem item = items[0];
-
-                    int ind = 0;
-                    for (ind = 0; ind < searchTypeBox.Items.Count; ind++)
-                    {
-                        if (searchTypeBox.Items[ind].ToString() == SearchTypes[item.align].Name)
-                            break;
-                    }
-
-                    searchTypeBox.SelectedIndex = ind;
-
-                    SearchTypes[item.align].Initialize(SearchTypes[item.align].ItemToLString(item)[1], item.align);
-
-                    isInitialScan = false;
-                    searchMemory.Text = "New Scan";
-                    MessageBox.Show("Loaded!");
-                }
-
-                items = null;
-            }
-        }
 
         #endregion
     }

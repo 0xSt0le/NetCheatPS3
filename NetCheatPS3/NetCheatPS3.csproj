@@ -125,6 +125,9 @@
     <Compile Include="FindReplaceManager.Designer.cs">
       <DependentUpon>FindReplaceManager.cs</DependentUpon>
     </Compile>
+    <Compile Include="Form1.CodeList.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.ConnectionGuard.cs">
       <SubType>Form</SubType>
     </Compile>
