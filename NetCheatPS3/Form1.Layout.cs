@@ -142,11 +142,6 @@ namespace NetCheatPS3
                 }
             }
 
-            //Buttons on main form
-            {
-
-            }
-
             this.HScroll = false;
             this.VScroll = false;
             this.AutoScroll = false;

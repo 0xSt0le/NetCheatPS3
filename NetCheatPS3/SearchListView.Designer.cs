@@ -145,9 +145,6 @@
             this.Name = "SearchListView";
             this.Size = new System.Drawing.Size(492, 234);
             this.Load += new System.EventHandler(this.SearchListView_Load);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.SearchListView_Paint);
-            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.SearchListView_KeyDown);
-            this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.SearchListView_KeyUp);
             this.Resize += new System.EventHandler(this.SearchListView_Resize);
             ((System.ComponentModel.ISupportInitialize)(this.printBox)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);

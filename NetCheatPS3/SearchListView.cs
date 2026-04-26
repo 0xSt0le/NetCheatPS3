@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using System.Collections;
 
 namespace NetCheatPS3
 {
@@ -22,8 +21,6 @@ namespace NetCheatPS3
             InitializeComponent();
             InitializeModernResultUi();
             this.MouseWheel += new MouseEventHandler(this_MouseWheel);
-
-            //cms = contextMenuStrip1;
         }
 
         public void SetCMenuStrip(ContextMenuStrip c)
@@ -36,7 +33,6 @@ namespace NetCheatPS3
             ParseListViewItem = p;
         }
 
-        //public SkipList a = new SkipList();
         public List<SearchListViewItem> listA = new List<SearchListViewItem>();
         public List<SearchListViewItem> listB = new List<SearchListViewItem>();
 
@@ -66,11 +62,6 @@ namespace NetCheatPS3
         [Serializable]
         public struct SearchListViewItem
         {
-            //public string Address;
-            //public string HexValue;
-            //public string DecValue;
-            //public string Alignment;
-
             public byte[] newVal;
             public byte[] oldVal;
             public uint addr;
@@ -142,11 +133,6 @@ namespace NetCheatPS3
             get
             {
                 return a.Count + b.Count;
-
-                //int total = 0;
-                //foreach (List<SearchListViewItem> t in Items)
-                //    total += t.Count;
-                //return total;
             }
         }
 
@@ -156,13 +142,8 @@ namespace NetCheatPS3
 
         #region Private Variables
 
-        //private string StrItems;
-
-        //private List<List<SearchListViewItem>> Items;
-
         private bool isShiftDown = false;
         private bool isCtrlDown = false;
-        private bool doResetKeys = false;
 
         private int vertCaretMult = 1;
 
@@ -185,19 +166,10 @@ namespace NetCheatPS3
             int newVal = vertSBar.Value + ((e.Delta > 0) ? -1 : 1);
             if (newVal < vertSBar.Maximum && newVal > 0)
                 vertSBar.Value = newVal;
-            //if (e.Delta != 0)
-            //    Console.Out.WriteLine(e.Delta);
-        }
-
-        private void SearchListView_Paint(object sender, PaintEventArgs e)
-        {
-            
         }
 
         private void SearchListView_Load(object sender, EventArgs e)
         {
-            //Items = new List<List<SearchListViewItem>>();
-            //a = new SkipList();
             if (TextBrush == null)
                 TextBrush = Brushes.Black;
             if (ItemFont == null)
@@ -224,22 +196,16 @@ namespace NetCheatPS3
             int x = 0;
             for (int y = start; y < TotalCount; y++)
             {
-                int itemIndex1 = y / MaxItemSize;
-                int itemIndex2 = y - (itemIndex1 * MaxItemSize);
-
                 float yOff = (float)x * ItemHeight;
                 if (yOff > printBox.Height)
                     break;
 
-                //Draw selection boxes
                 if (SelectedIndices.Contains(y))
                 {
                     Rectangle rect = new Rectangle(0, (int)yOff, printBox.Width, (int)ItemHeight);
                     e.Graphics.FillRectangle(SelectionColor, rect);
                 }
 
-                //string[] vals = ParseItem(Items[itemIndex1][itemIndex2]);
-                //string[] vals = ParseItem(GetItemAtIndex(y), y);
                 string[] vals = ParseListViewItem(GetItemAtIndex(y), y);
 
                 TextBrush = new SolidBrush(ForeColor);
@@ -260,7 +226,7 @@ namespace NetCheatPS3
         public string[] ParseItem(SearchListViewItem item, int ind)
         {
             SearchControl.ncSearchType type = SearchControl.SearchTypes[item.align];
-                        SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
+            SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
 
             try
             {
@@ -401,11 +367,6 @@ namespace NetCheatPS3
         }
 
         TextBox tempTB;
-        private void SearchListView_KeyDown(object sender, KeyEventArgs e)
-        {
-
-        }
-
         bool didPressCtrlC = false;
         private void printBox_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
@@ -462,16 +423,7 @@ namespace NetCheatPS3
 
         void CopySelection()
         {
-            bool cont = true;
-            if (SelectedIndices.Count > 100000)
-            {
-                //cont = MessageBox.Show("You are about to copy a hell of a lot of codes... And it will probably take some time.\nAre you sure you want to go through with this?", "Art thou surest?", MessageBoxButtons.YesNo) == DialogResult.Yes;
-            }
-
-            if (!cont)
-                return;
-
-                        SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
+            SearchControl.ncSearcher searcher = new SearchControl.ncSearcher();
 
             try
             {
@@ -492,46 +444,25 @@ namespace NetCheatPS3
             int codeIndex = 0;
             foreach (int x in SelectedIndices)
             {
-                //if (!selParsed.Contains(x))
+                SearchListViewItem item = GetItemAtIndex(x);
+                if (item.newVal != null)
                 {
-                    //selParsed.Add(x);
-                    SearchListViewItem item = GetItemAtIndex(x);
-                    if (item.newVal != null)
-                    {
-                        SearchControl.ncSearchType type = SearchControl.SearchTypes[item.align];
-                        
-                        if (searcher.ItemToString != null)
-                            codes[codeIndex] = searcher.ItemToString(item) + Environment.NewLine;
-                        else
-                            codes[codeIndex] = type.ItemToString(item) + Environment.NewLine;
-                        codeIndex++;
-                    }
+                    SearchControl.ncSearchType type = SearchControl.SearchTypes[item.align];
+
+                    if (searcher.ItemToString != null)
+                        codes[codeIndex] = searcher.ItemToString(item) + Environment.NewLine;
+                    else
+                        codes[codeIndex] = type.ItemToString(item) + Environment.NewLine;
+                    codeIndex++;
                 }
             }
 
             Clipboard.SetDataObject(new DataObject(DataFormats.Text, (String.Join("", codes, 0, codeIndex)).Replace("\0", "")));
         }
 
-        private void SearchListView_KeyUp(object sender, KeyEventArgs e)
-        {
-            //isShiftDown = false;
-            //isCtrlDown = false;
-        }
-
         static bool isMouse2Down = false;
         private void printBox_MouseDown(object sender, MouseEventArgs e)
         {
-            if (doResetKeys)
-            {
-                //isShiftDown = false;
-                //isCtrlDown = false;
-                //doResetKeys = false;
-            }
-            else if (isShiftDown || isCtrlDown && !doResetKeys)
-            {
-                //doResetKeys = true;
-            }
-
             if (e.Button == System.Windows.Forms.MouseButtons.Right)
                 isMouse2Down = true;
             else
@@ -542,17 +473,11 @@ namespace NetCheatPS3
         {
             if (isMouse2Down && cms != null)
             {
-                //contextMenuStrip1.ForeColor = ForeColor;
-                //contextMenuStrip1.BackColor = BackColor;
-                //contextMenuStrip1.Show(printBox, e.Location);
-
                 cms.ForeColor = ForeColor;
                 cms.BackColor = BackColor;
                 cms.Show(printBox, e.Location);
             }
 
-            //isShiftDown = false;
-            //isCtrlDown = false;
             isMouse2Down = false;
         }
 
@@ -568,12 +493,10 @@ namespace NetCheatPS3
 
         public void BeginUpdate()
         {
-            //listView1.BeginUpdate();
         }
 
         public void EndUpdate()
         {
-            //listView1.EndUpdate();
         }
 
         public void SetColumnNames(string[] names)
@@ -589,24 +512,9 @@ namespace NetCheatPS3
 
         public void RemoveItem(SearchListViewItem item)
         {
-            //a.Remove(item.addr);
             a.Remove(item);
             printBox.Refresh();
         }
-
-        //public void RemoveItemAt(int index)
-        //{
-        //    int itemIndex1 = index / MaxItemSize;
-        //    int itemIndex2 = index - (itemIndex1 * MaxItemSize);
-
-        //    if (itemIndex2 >= 0 && itemIndex2 < Items[itemIndex1].Count)
-        //    {
-        //        //a.Remove(Items[itemIndex1][itemIndex2].addr);
-        //        Items[itemIndex1].RemoveAt(itemIndex2);
-        //    }
-
-        //    printBox.Refresh();
-        //}
 
         public void RemoveItemAt(int index)
         {
@@ -630,57 +538,10 @@ namespace NetCheatPS3
             printBox.Refresh();
         }
 
-        //public List<List<SearchListViewItem>> CloneItems()
-        //{
-        //    List<List<SearchListViewItem>> ret = new List<List<SearchListViewItem>>();
-        //    for (int x = 0; x < TotalCount; x++)
-        //    {
-        //        int itemIndex1 = x / MaxItemSize;
-        //        int itemIndex2 = x - (itemIndex1 * MaxItemSize);
-        //        if (itemIndex2 == 0)
-        //            ret.Add(new List<SearchListViewItem>());
-
-        //        ret[itemIndex1].Add(Items[itemIndex1][itemIndex2]);
-        //    }
-
-        //    return ret;
-        //}
-
         public SearchListViewItem[] CloneItems()
         {
             return GetItemsArray();
         }
-
-        //public void AddItem(SearchListViewItem item)
-        //{
-        //    int totalSize = 0;
-        //    foreach (List<SearchListViewItem> t in Items)
-        //        totalSize += t.Count;
-
-        //    int itemIndex1 = totalSize / MaxItemSize;
-        //    int itemIndex2 = totalSize - (itemIndex1 * MaxItemSize);
-        //    if (itemIndex2 == 0)
-        //        Items.Add(new List<SearchListViewItem>());
-
-        //    Items[itemIndex1].Add(item);
-        //    a.Add(item.addr, item);
-        //    int max = (totalSize + 1) - MaxItemsPerPage;
-        //    if (max > 0)
-        //    {
-        //        vertSBar.Maximum = max * vertCaretMult;
-        //        vertSBar.LargeChange = vertCaretMult;
-        //        isVertSBarVisible = true;
-        //        vertSBar.Refresh();
-        //        vertSBar.Update();
-        //    }
-        //    else
-        //    {
-        //        isVertSBarVisible = false;
-        //    }
-
-        //    if (max <= 1)
-        //        printBox.Refresh();
-        //}
 
         public void AddItemsFromList()
         {
@@ -691,7 +552,6 @@ namespace NetCheatPS3
         public void AddItem(SearchListViewItem item)
         {
             CalculateSBarMax();
-            //a.Add(item.addr, item);
             b.Add(item);
             if (b.Count >= MaxItemSize)
                 AddItemsFromList();
@@ -717,13 +577,6 @@ namespace NetCheatPS3
 
         public void AddItemRange(List<SearchListViewItem> items)
         {
-            //foreach (SearchListViewItem i in items)
-            {
-                //a.Add(i.addr, i);
-                //addi(i);
-                //AddItem(i);
-            }
-
             a.AddRange(items);
             CalculateSBarMax();
             printBox.Refresh();
@@ -739,8 +592,6 @@ namespace NetCheatPS3
             foreach (SearchListViewItem i in items)
             {
                 addi(i);
-                //a.Add(i.addr, i);
-                //AddItem(i);
             }
             CalculateSBarMax();
             printBox.Refresh();
@@ -771,65 +622,12 @@ namespace NetCheatPS3
             }
 
             return a[ind];
-
-            //ICollection col = a.Keys;
-
-            //// Get enumerator from collection.
-            //IEnumerator en = col.GetEnumerator();
-
-            //en.MoveNext();
-            //int x = 0;
-
-            //try
-            //{
-            //    while (x < ind)
-            //    {
-            //        en.MoveNext();
-            //        x++;
-            //    }
-            //}
-            //catch (Exception)
-            //{
-
-            //}
-
-            //return (SearchListViewItem)a[en.Current];
         }
 
         public SearchListViewItem[] GetItemsArray()
         {
-            //SearchListViewItem[] ret = new SearchListViewItem[TotalCount];
-
-            //for (int x = 0; x < ret.Length; x++)
-            //{
-            //    int itemIndex1 = x / MaxItemSize;
-            //    int itemIndex2 = x - (itemIndex1 * MaxItemSize);
-            //    ret[x] = Items[itemIndex1][itemIndex2];
-            //}
-
-            //return ret;
-
             if (b.Count > 0)
                 AddItemsFromList();
-
-
-
-            /*
-            ICollection col = a.Keys;
-
-            // Get enumerator from collection.
-            IEnumerator en = col.GetEnumerator();
-
-            SearchListViewItem[] ret = new SearchListViewItem[a.Keys.Count];
-            int x = 0;
-            while (en.MoveNext())
-            {
-                ret[x] = (SearchListViewItem)a[en.Current];
-                x++;
-            }
-            
-            return ret;
-            */
 
             return a.ToArray();
         }
@@ -858,14 +656,12 @@ namespace NetCheatPS3
             if (start < stop)
                 for (int x = start; x <= stop; x++)
                 {
-                    //if (!a.Contains(x))
-                        a.Add(x);
+                    a.Add(x);
                 }
             else
                 for (int x = start; x >= stop; x--)
                 {
-                    //if (!a.Contains(x))
-                        a.Add(x);
+                    a.Add(x);
                 }
             SelectedIndices = a;
         }
@@ -913,7 +709,6 @@ namespace NetCheatPS3
                 s = TotalCount - 1;
 
             SelectedIndices.Add(s);
-            //vertSBar.Value = s;
         }
 
         private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)
@@ -934,7 +729,6 @@ namespace NetCheatPS3
 
         public void UpdateItemAtIndex(int ind)
         {
-            //printBox.Refresh();
         }
 
         #endregion
