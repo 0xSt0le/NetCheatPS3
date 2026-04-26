@@ -220,6 +220,9 @@
     <Compile Include="SearchControl.SearchThreadHelpers.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="SearchControl.SearchTypes.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SearchControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
