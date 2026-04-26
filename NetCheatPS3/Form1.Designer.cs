@@ -98,10 +98,6 @@
             this.endianStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
-            this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.refreshFromPS3ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.codesToolMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.bwStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -120,7 +116,6 @@
             this.apiTab.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.apiIcon)).BeginInit();
             this.statusStrip1.SuspendLayout();
-            this.contextMenuStrip1.SuspendLayout();
             this.codesToolMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -893,36 +888,6 @@
             this.statusLabel2.Size = new System.Drawing.Size(117, 19);
             this.statusLabel2.Text = "API: Target Manager";
             // 
-            // copyToolStripMenuItem
-            // 
-            this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            this.copyToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
-            this.copyToolStripMenuItem.Text = "Copy";
-            this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
-            // 
-            // deleteToolStripMenuItem
-            // 
-            this.deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
-            this.deleteToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
-            this.deleteToolStripMenuItem.Text = "Delete";
-            this.deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
-            // 
-            // refreshFromPS3ToolStripMenuItem
-            // 
-            this.refreshFromPS3ToolStripMenuItem.Name = "refreshFromPS3ToolStripMenuItem";
-            this.refreshFromPS3ToolStripMenuItem.Size = new System.Drawing.Size(196, 22);
-            this.refreshFromPS3ToolStripMenuItem.Text = "Refresh From PS3";
-            this.refreshFromPS3ToolStripMenuItem.Click += new System.EventHandler(this.refreshFromPS3ToolStripMenuItem_Click);
-            // 
-            // contextMenuStrip1
-            // 
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.copyToolStripMenuItem,
-            this.deleteToolStripMenuItem,
-            this.refreshFromPS3ToolStripMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(197, 70);
-            // 
             // codesToolMenuStrip
             // 
             this.codesToolMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -1034,7 +999,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.apiIcon)).EndInit();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
-            this.contextMenuStrip1.ResumeLayout(false);
             this.codesToolMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -1092,10 +1056,6 @@
         private System.Windows.Forms.ToolStripMenuItem disconnectToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem attachToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem connectToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem refreshFromPS3ToolStripMenuItem;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ProgressBar findRangeProgBar;
         private System.Windows.Forms.Button findRanges;
         private System.Windows.Forms.Button pauseGameButt;

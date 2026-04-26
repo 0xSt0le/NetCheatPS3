@@ -137,6 +137,9 @@
     <Compile Include="Form1.ModernRangeUi.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Form1.AppUi.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.PluginApi.cs">
       <SubType>Form</SubType>
     </Compile>
