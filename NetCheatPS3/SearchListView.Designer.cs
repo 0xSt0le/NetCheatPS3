@@ -24,7 +24,6 @@
             this.printBox = new System.Windows.Forms.PictureBox();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.selectAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshFromPS3ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.printBox)).BeginInit();
@@ -95,7 +94,6 @@
             this.printBox.TabStop = false;
             this.printBox.Click += new System.EventHandler(this.printBox_Click);
             this.printBox.Paint += new System.Windows.Forms.PaintEventHandler(this.printBox_Paint);
-            this.printBox.DoubleClick += new System.EventHandler(this.printBox_DoubleClick);
             this.printBox.MouseClick += new System.Windows.Forms.MouseEventHandler(this.printBox_MouseClick);
             this.printBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.printBox_MouseDown);
             this.printBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.printBox_MouseUp);
@@ -106,7 +104,6 @@
             this.contextMenuStrip1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.deleteToolStripMenuItem,
-            this.copyToolStripMenuItem,
             this.selectAllToolStripMenuItem,
             this.refreshFromPS3ToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
@@ -119,13 +116,6 @@
             this.deleteToolStripMenuItem.Size = new System.Drawing.Size(141, 22);
             this.deleteToolStripMenuItem.Text = "Delete";
             this.deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
-            // 
-            // copyToolStripMenuItem
-            // 
-            this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            this.copyToolStripMenuItem.Size = new System.Drawing.Size(141, 22);
-            this.copyToolStripMenuItem.Text = "Copy";
-            this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
             // 
             // selectAllToolStripMenuItem
             // 
@@ -174,7 +164,6 @@
         private System.Windows.Forms.VScrollBar vertSBar;
         private System.Windows.Forms.PictureBox printBox;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem refreshFromPS3ToolStripMenuItem;
         public System.Windows.Forms.ContextMenuStrip contextMenuStrip1;

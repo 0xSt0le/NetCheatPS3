@@ -26,9 +26,6 @@ namespace NetCheatPS3
 
             EnsureModernResultContextMenu();
 
-            // The original built-in double-click handler creates a readonly textbox too.
-            // Remove it so only the modern editor owns textbox placement/write behavior.
-            printBox.DoubleClick -= new EventHandler(printBox_DoubleClick);
             printBox.DoubleClick += printBox_ModernDoubleClick;
 
             printBox.MouseDown += printBox_ModernMouseDown;
@@ -38,9 +35,6 @@ namespace NetCheatPS3
         {
             if (contextMenuStrip1 == null)
                 return;
-
-            if (copyToolStripMenuItem != null && contextMenuStrip1.Items.Contains(copyToolStripMenuItem))
-                contextMenuStrip1.Items.Remove(copyToolStripMenuItem);
 
             if (contextMenuStrip1.Items.Find("copyAddressToolStripMenuItem", false).Length > 0)
             {

@@ -402,55 +402,6 @@ namespace NetCheatPS3
         }
 
         TextBox tempTB;
-        private void printBox_DoubleClick(object sender, EventArgs e)
-        {
-            if (tempTB != null)
-            {
-                printBox.Controls.Remove(tempTB);
-                tempTB = null;
-            }
-
-            Point pos = printBox.PointToClient(Cursor.Position);
-            int item = (int)(pos.Y / ItemHeight) + vertSBar.Value;
-            int index = (int)(pos.X / addrLabel.Width);
-
-            if (item < TotalCount)
-            {
-
-                tempTB = new TextBox();
-                tempTB.Width = addrLabel.Width - 10;
-                tempTB.TextAlign = HorizontalAlignment.Center;
-                tempTB.ReadOnly = true;
-
-                SearchListViewItem lItem = GetItemAtIndex(item);
-                string[] res = ParseListViewItem(lItem, item);
-                switch (index)
-                {
-                    case 0: //Address
-                        tempTB.Text = res[0];
-                        break;
-                    case 1: //Hex
-                        tempTB.Text = res[1];
-                        break;
-                    case 2: //Dec
-                        tempTB.Text = res[2];
-                        break;
-                    case 3: //Align
-                        tempTB.Text = res[3];
-                        break;
-                }
-
-                tempTB.Location = new Point((index * addrLabel.Width) + addrLabel.Width / 2 - tempTB.Width / 2, (item - vertSBar.Value) * (int)ItemHeight - 2);
-                printBox.Controls.Add(tempTB);
-
-                tempTB.Select();
-                tempTB.Refresh();
-                tempTB.SelectionStart = 0;
-                tempTB.SelectionLength = tempTB.Text.Length;
-
-            }
-        }
-
         private void SearchListView_KeyDown(object sender, KeyEventArgs e)
         {
 
@@ -966,11 +917,6 @@ namespace NetCheatPS3
 
             SelectedIndices.Add(s);
             //vertSBar.Value = s;
-        }
-
-        private void copyToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            CopySelection();
         }
 
         private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)
