@@ -226,6 +226,9 @@
     <Compile Include="SearchControl.SearchSelection.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="SearchControl.Layout.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SearchControl.SearchComparisons.cs">
       <SubType>UserControl</SubType>
     </Compile>
