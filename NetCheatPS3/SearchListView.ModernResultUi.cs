@@ -120,6 +120,24 @@ namespace NetCheatPS3
             return true;
         }
 
+
+        private bool EnsureConnectedAndAttachedForResultAction(string actionName)
+        {
+            string message = Form1.GetConnectionAttachErrorMessage(actionName);
+
+            if (message == null)
+                return true;
+
+            Form1.SetMainStatusSafe(message);
+
+            MessageBox.Show(
+                message,
+                "NetCheatPS3",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+
+            return false;
+        }
         private void printBox_ModernMouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button != MouseButtons.Right)
@@ -142,6 +160,9 @@ namespace NetCheatPS3
             if (column != 1 && column != 2)
                 return;
 
+            if (!EnsureConnectedAndAttachedForResultAction("Edit / Write Value"))
+                return;
+
             BeginEditValueAt(itemIndex, column);
         }
 
@@ -150,6 +171,9 @@ namespace NetCheatPS3
             int index;
             SearchListViewItem item;
             if (!TryGetPrimarySelectedItem(out index, out item))
+                return;
+
+            if (!EnsureConnectedAndAttachedForResultAction("Edit / Write Value"))
                 return;
 
             BeginEditValueAt(index, 2);
@@ -347,6 +371,9 @@ namespace NetCheatPS3
         private void WriteEditedValue(int itemIndex, int column, string text)
         {
             if (itemIndex < 0 || itemIndex >= TotalCount)
+                return;
+
+            if (!EnsureConnectedAndAttachedForResultAction("Write Value"))
                 return;
 
             try
