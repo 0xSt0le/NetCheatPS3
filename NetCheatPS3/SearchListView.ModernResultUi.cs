@@ -288,14 +288,25 @@ namespace NetCheatPS3
                 throw new InvalidOperationException("Unsupported result type.");
 
             SearchControl.ncSearchType type = SearchControl.SearchTypes[item.align];
-            int byteSize = type.ByteSize;
+            int byteSize = type.ByteSize > 0 ? type.ByteSize : (item.newVal != null ? item.newVal.Length : 0);
 
             if (byteSize <= 0)
                 throw new InvalidOperationException("Editing this result type is not supported.");
 
             byte[] valueBytes;
 
-            if (column == 1)
+            if (IsIntegerResultType(type))
+            {
+                valueBytes = ParseIntegerValueBytes(text, byteSize);
+            }
+            else if (IsArrayOfBytesResultType(type))
+            {
+                if (column != 1)
+                    throw new InvalidOperationException("Array of Bytes results must be edited as hex bytes.");
+
+                valueBytes = ParseHexValueBytes(text, byteSize);
+            }
+            else if (column == 1)
             {
                 valueBytes = ParseHexValueBytes(text, byteSize);
             }
@@ -326,6 +337,74 @@ namespace NetCheatPS3
                 Array.Reverse(rawBytes);
 
             return rawBytes;
+        }
+
+        private bool IsIntegerResultType(SearchControl.ncSearchType type)
+        {
+            return type.Name == "1 byte" ||
+                type.Name == "2 bytes" ||
+                type.Name == "4 bytes" ||
+                type.Name == "8 bytes";
+        }
+
+        private bool IsArrayOfBytesResultType(SearchControl.ncSearchType type)
+        {
+            return type.Name == "Array of Bytes";
+        }
+
+        private byte[] ParseIntegerValueBytes(string text, int byteSize)
+        {
+            string cleaned = text == null ? "" : text.Trim();
+            if (cleaned.Length == 0)
+                throw new InvalidOperationException("Value is empty.");
+
+            bool isHex = cleaned.StartsWith("0x", StringComparison.OrdinalIgnoreCase) || ContainsHexLetter(cleaned);
+            if (cleaned.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                cleaned = cleaned.Substring(2);
+
+            cleaned = cleaned.Replace("_", "");
+            cleaned = cleaned.Replace(" ", "");
+
+            if (cleaned.Length == 0)
+                throw new InvalidOperationException("Value is empty.");
+
+            ulong value;
+            NumberStyles styles = isHex ? NumberStyles.AllowHexSpecifier : NumberStyles.None;
+            if (!ulong.TryParse(cleaned, styles, CultureInfo.InvariantCulture, out value))
+                throw new InvalidOperationException("Could not parse integer value.");
+
+            ulong maxValue = GetMaxUnsignedValue(byteSize);
+            if (value > maxValue)
+                throw new InvalidOperationException("Value is too large for " + byteSize.ToString(CultureInfo.InvariantCulture) + " byte(s).");
+
+            byte[] result = new byte[byteSize];
+            for (int index = byteSize - 1; index >= 0; index--)
+            {
+                result[index] = (byte)(value & 0xFF);
+                value >>= 8;
+            }
+
+            return result;
+        }
+
+        private bool ContainsHexLetter(string value)
+        {
+            for (int index = 0; index < value.Length; index++)
+            {
+                char c = value[index];
+                if ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private ulong GetMaxUnsignedValue(int byteSize)
+        {
+            if (byteSize >= 8)
+                return ulong.MaxValue;
+
+            return (1UL << (byteSize * 8)) - 1UL;
         }
 
         private byte[] ParseHexValueBytes(string text, int byteSize)
@@ -378,16 +457,38 @@ namespace NetCheatPS3
 
                 Form1.apiSetMem(item.addr, rawBytes);
 
+                bool readBackSucceeded = false;
+                bool readBackMatched = false;
                 byte[] verifyRaw = new byte[rawBytes.Length];
                 if (Form1.apiGetMem(item.addr, ref verifyRaw))
                 {
+                    readBackSucceeded = true;
                     item.oldVal = item.newVal;
                     item.newVal = NormalizeRawMemoryForDisplay(verifyRaw);
+                    readBackMatched = ByteArraysMatch(item.newVal, displayBytes);
+
+                    if (!readBackMatched)
+                    {
+                        string message = "Read-back did not match the edited value at 0x" + item.addr.ToString("X8") + ".";
+                        if (parentControl != null)
+                            parentControl.SetProgBarText(message);
+
+                        MessageBox.Show(
+                            message + Environment.NewLine +
+                            "Expected: " + misc.ByteAToString(displayBytes, "") + Environment.NewLine +
+                            "Actual: " + misc.ByteAToString(item.newVal, ""),
+                            "NetCheatPS3",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                    }
                 }
                 else
                 {
                     item.oldVal = item.newVal;
                     item.newVal = displayBytes;
+
+                    if (parentControl != null)
+                        parentControl.SetProgBarText("Wrote value, but read-back failed at 0x" + item.addr.ToString("X8") + ".");
                 }
 
                 item.refresh = false;
@@ -403,12 +504,31 @@ namespace NetCheatPS3
                 printBox.Refresh();
 
                 if (parentControl != null)
-                    parentControl.SetProgBarText("Wrote " + rawBytes.Length.ToString("N0") + " byte(s) to 0x" + item.addr.ToString("X8"));
+                {
+                    if (readBackSucceeded && readBackMatched)
+                        parentControl.SetProgBarText("Wrote and verified " + rawBytes.Length.ToString("N0") + " byte(s) to 0x" + item.addr.ToString("X8"));
+                    else if (!readBackSucceeded)
+                        parentControl.SetProgBarText("Wrote value, but read-back failed at 0x" + item.addr.ToString("X8") + ".");
+                    else
+                        parentControl.SetProgBarText("Write verification failed at 0x" + item.addr.ToString("X8") + ".");
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Could not write value: " + ex.Message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private bool ByteArraysMatch(byte[] left, byte[] right)
+        {
+            if (left == null || right == null || left.Length != right.Length)
+                return false;
+
+            for (int index = 0; index < left.Length; index++)
+                if (left[index] != right[index])
+                    return false;
+
+            return true;
         }
 
         private void copyAddressToolStripMenuItem_Click(object sender, EventArgs e)

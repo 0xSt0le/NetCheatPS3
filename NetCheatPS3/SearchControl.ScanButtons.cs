@@ -271,7 +271,10 @@ namespace NetCheatPS3
                 progBar.printText = "";
 
                 forceTBUpdate = true;
+                lastSearchIndex = -1;
+                lastTypeIndex = -1;
                 isInitialScan = true;
+                searchNameBox_SelectedIndexChanged(searchNameBox, EventArgs.Empty);
                 forceTBUpdate = false;
             }
             else if (searchMemory.Text == "Initial Scan")

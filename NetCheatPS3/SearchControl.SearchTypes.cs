@@ -308,7 +308,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sType1B_ToString);
             ncST.CheckboxName = "Hex";
-            ncST.DefaultValue = "00";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(ConvertHexDec);
             ncST.ToByteArray = new StringToByteA(sType1B_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sType1B_ItemToString);
@@ -325,7 +325,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sType2B_ToString);
             ncST.CheckboxName = "Hex";
-            ncST.DefaultValue = "0000";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(ConvertHexDec);
             ncST.ToByteArray = new StringToByteA(sType2B_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sType2B_ItemToString);
@@ -342,7 +342,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sType4B_ToString);
             ncST.CheckboxName = "Hex";
-            ncST.DefaultValue = "00000000";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(ConvertHexDec);
             ncST.ToByteArray = new StringToByteA(sType4B_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sType4B_ItemToString);
@@ -359,7 +359,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sType8B_ToString);
             ncST.CheckboxName = "Hex";
-            ncST.DefaultValue = "0000000000000000";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(ConvertHexDec);
             ncST.ToByteArray = new StringToByteA(sType8B_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sType8B_ItemToString);
@@ -376,7 +376,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sTypeXB_ToString);
             ncST.CheckboxName = "";
-            ncST.DefaultValue = "00000000";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(ConvertHexDec);
             ncST.ToByteArray = new StringToByteA(sTypeXB_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sTypeXB_ItemToString);
@@ -393,7 +393,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sTypeText_ToString);
             ncST.CheckboxName = "Match Case";
-            ncST.DefaultValue = "Example";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(NullCheckboxConvert);
             ncST.ToByteArray = new StringToByteA(sTypeText_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sTypeText_ItemToString);
@@ -410,7 +410,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sTypeFloat_ToString);
             ncST.CheckboxName = "";
-            ncST.DefaultValue = "1.0";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(NullCheckboxConvert);
             ncST.ToByteArray = new StringToByteA(sTypeFloat_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sTypeFloat_ItemToString);
@@ -427,7 +427,7 @@ namespace NetCheatPS3
             ncST.ToItem = new SearchToItem(standardByte_ToItem);
             ncST.BAToString = new ByteAToString(sTypeDouble_ToString);
             ncST.CheckboxName = "";
-            ncST.DefaultValue = "1.0";
+            ncST.DefaultValue = "";
             ncST.CheckboxConvert = new CheckboxConvert(NullCheckboxConvert);
             ncST.ToByteArray = new StringToByteA(sTypeDouble_ToByteArray);
             ncST.ItemToString = new ToSListViewItem(sTypeDouble_ItemToString);
