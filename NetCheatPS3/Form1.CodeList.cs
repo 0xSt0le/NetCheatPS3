@@ -295,6 +295,7 @@ namespace NetCheatPS3
             CodesCount = cbList.Items.Count - 1;
             CodeDB c = Codes[ind];
             c.codes = cbCodes.Text.Replace("{", "").Replace("}", "").Replace("#", "");
+            c.backUp = null;
             Codes[ind] = c;
             codes.UpdateCData(Codes[ind].codes, ind);
         }

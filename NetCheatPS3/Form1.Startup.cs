@@ -193,7 +193,7 @@ namespace NetCheatPS3
 
             refPlugin_Click(null, null);
 
-            attachProcessButton.Enabled = false;
+            UpdateConnectionUiState();
 
             //Add the first Code
             cbList.Items.Add("NEW CODE");

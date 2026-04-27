@@ -81,7 +81,6 @@
             this.descAPIAuth = new System.Windows.Forms.Label();
             this.descAPIName = new System.Windows.Forms.Label();
             this.apiList = new System.Windows.Forms.ListBox();
-            this.ps3Disc = new System.Windows.Forms.Button();
             this.attachProcessButton = new System.Windows.Forms.Button();
             this.connectButton = new System.Windows.Forms.Button();
             this.refPlugin = new System.Windows.Forms.Button();
@@ -720,20 +719,6 @@
             this.apiList.TabIndex = 9;
             this.apiList.SelectedIndexChanged += new System.EventHandler(this.apiList_SelectedIndexChanged);
             this.apiList.DoubleClick += new System.EventHandler(this.apiList_DoubleClick);
-            // 
-            // ps3Disc
-            // 
-            this.ps3Disc.BackColor = System.Drawing.Color.Black;
-            this.ps3Disc.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.ps3Disc.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(130)))), ((int)(((byte)(210)))));
-            this.ps3Disc.Location = new System.Drawing.Point(200, 12);
-            this.ps3Disc.Name = "ps3Disc";
-            this.ps3Disc.Size = new System.Drawing.Size(87, 23);
-            this.ps3Disc.TabIndex = 8;
-            this.ps3Disc.Text = "Disconnect";
-            this.ps3Disc.UseVisualStyleBackColor = false;
-            this.ps3Disc.Click += new System.EventHandler(this.ps3Disc_Click);
-            // 
             // attachProcessButton
             // 
             this.attachProcessButton.BackColor = System.Drawing.Color.Black;
@@ -743,7 +728,7 @@
             this.attachProcessButton.Name = "attachProcessButton";
             this.attachProcessButton.Size = new System.Drawing.Size(87, 23);
             this.attachProcessButton.TabIndex = 7;
-            this.attachProcessButton.Text = "Attach Process";
+            this.attachProcessButton.Text = "Attach";
             this.attachProcessButton.UseVisualStyleBackColor = false;
             this.attachProcessButton.Click += new System.EventHandler(this.attachProcessButton_Click);
             // 
@@ -765,7 +750,7 @@
             this.refPlugin.BackColor = System.Drawing.Color.Black;
             this.refPlugin.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.refPlugin.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(130)))), ((int)(((byte)(210)))));
-            this.refPlugin.Location = new System.Drawing.Point(293, 12);
+            this.refPlugin.Location = new System.Drawing.Point(200, 12);
             this.refPlugin.Name = "refPlugin";
             this.refPlugin.Size = new System.Drawing.Size(87, 23);
             this.refPlugin.TabIndex = 10;
@@ -972,7 +957,6 @@
             this.Controls.Add(this.optButton);
             this.Controls.Add(this.refPlugin);
             this.Controls.Add(this.statusStrip1);
-            this.Controls.Add(this.ps3Disc);
             this.Controls.Add(this.attachProcessButton);
             this.Controls.Add(this.connectButton);
             this.Controls.Add(this.TabCon);
@@ -1021,7 +1005,6 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.TextBox cbName;
         private System.Windows.Forms.ColumnHeader columnHeader1;
-        private System.Windows.Forms.Button ps3Disc;
         private System.Windows.Forms.Button attachProcessButton;
         private System.Windows.Forms.Button connectButton;
         private System.Windows.Forms.TabPage RangeTab;

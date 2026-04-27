@@ -22,7 +22,11 @@ namespace NetCheatPS3
             get { return _curapi; }
             set
             {
+                Types.AvailableAPI previousApi = _curapi;
                 _curapi = value;
+                if (Form1.Instance != null && !Object.ReferenceEquals(previousApi, _curapi))
+                    Form1.Instance.ClearAllCodeBackups("API switched.");
+
                 if (_curapi == null)
                 {
                     apiName = "None";
@@ -236,14 +240,12 @@ namespace NetCheatPS3
             /* Related to the keybindings */
             connectButton.KeyUp += new KeyEventHandler(Form1_KeyUp);
             attachProcessButton.KeyUp += new KeyEventHandler(Form1_KeyUp);
-            ps3Disc.KeyUp += new KeyEventHandler(Form1_KeyUp);
             refPlugin.KeyUp += new KeyEventHandler(Form1_KeyUp);
             optButton.KeyUp += new KeyEventHandler(Form1_KeyUp);
             TabCon.KeyUp += new KeyEventHandler(Form1_KeyUp);
 
             connectButton.KeyDown += new KeyEventHandler(Form1_KeyDown);
             attachProcessButton.KeyDown += new KeyEventHandler(Form1_KeyDown);
-            ps3Disc.KeyDown += new KeyEventHandler(Form1_KeyDown);
             refPlugin.KeyDown += new KeyEventHandler(Form1_KeyDown);
             optButton.KeyDown += new KeyEventHandler(Form1_KeyDown);
             TabCon.KeyDown += new KeyEventHandler(Form1_KeyDown);

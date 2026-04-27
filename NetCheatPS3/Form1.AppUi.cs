@@ -78,14 +78,14 @@ namespace NetCheatPS3
             switch (match)
             {
                 case 0: //Connect And Attach
-                    //Connect
-                    connectButton_Click(null, null);
-                    //Attach if connected
-                    if (connected)
+                    if (!connected)
+                        connectButton_Click(null, null);
+
+                    if (connected && !attached)
                         attachProcessButton_Click(null, null);
                     break;
                 case 1: //Disconnect
-                    ps3Disc_Click(null, null);
+                    DisconnectFromTarget("Disconnected. Cleared code backups.");
                     break;
                 case 6: //Toggle Constant Write
                     if (cbListIndex >= 0 && cbListIndex < cbList.Items.Count)

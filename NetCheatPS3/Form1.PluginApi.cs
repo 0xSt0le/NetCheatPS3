@@ -241,8 +241,7 @@ namespace NetCheatPS3
             {
                 if (MessageBox.Show("Are you sure you'd like to switch the API to " + apiList.Items[ind].ToString() + "?", "Current API: " + apiName, MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
                 {
-                    //curAPI.Instance.Disconnect();
-                    ps3Disc_Click(null, null);
+                    DisconnectFromTarget("Disconnected. Cleared code backups.");
                     string[] parts = apiList.Items[ind].ToString().Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
                     int apiDLL = Global.APIs.AvailableAPIs.GetIndex(parts[0].Trim(), parts[1]);
                     curAPI = Global.APIs.AvailableAPIs.GetIndex(apiDLL);
