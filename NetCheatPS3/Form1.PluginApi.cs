@@ -37,7 +37,8 @@ namespace NetCheatPS3
             {
                 foreach (PluginForm pF in pluginForm)
                 {
-                    pF.Close();
+                    if (pF != null)
+                        pF.Close();
                 }
 
                 Global.Plugins.ClosePlugins();
@@ -97,12 +98,20 @@ namespace NetCheatPS3
             }
 
             int index = toolStripDropDownButton1.DropDownItems.IndexOfKey("loadPluginsToolStripMenuItem");
-            toolStripDropDownButton1.DropDownItems[index].Text = refPlugin.Text;
+            if (index >= 0)
+                toolStripDropDownButton1.DropDownItems[index].Text = refPlugin.Text;
         }
 
         private void HandlePlugin_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            int ind = (int)((PluginForm)sender).Tag;
+            PluginForm closingPlugin = sender as PluginForm;
+            if (closingPlugin == null || !(closingPlugin.Tag is int))
+                return;
+
+            int ind = (int)closingPlugin.Tag;
+            if (ind < 0 || ind >= pluginFormActive.Length)
+                return;
+
             if (pluginFormActive[ind])
             {
                 e.Cancel = true;
@@ -193,6 +202,9 @@ namespace NetCheatPS3
                 return;
 
             Types.AvailableAPI api = Global.APIs.AvailableAPIs.GetIndex(ind);
+            if (api == null)
+                return;
+
             descAPIAuth.Text = "by " + api.Instance.Author;
             descAPIName.Text = api.Instance.Name;
             descAPIVer.Text = api.Instance.Version;
