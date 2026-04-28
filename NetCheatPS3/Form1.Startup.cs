@@ -108,7 +108,10 @@ namespace NetCheatPS3
                     for (x = 0; x < keyBinds.Length; x++)
                         keyBinds[x] = (Keys)int.Parse(settLines[x]);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Main_Load.KeyBinds", ex);
+                }
                 x = keyBinds.Length;
 
                 try
@@ -117,7 +120,10 @@ namespace NetCheatPS3
                     ncBackColor = Color.FromArgb(int.Parse(settLines[x], System.Globalization.NumberStyles.HexNumber)); BackColor = ncBackColor;
                     ncForeColor = Color.FromArgb(int.Parse(settLines[x + 1], System.Globalization.NumberStyles.HexNumber)); ForeColor = ncForeColor;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Main_Load.Colors", ex);
+                }
                 x += 2;
 
                 try
@@ -141,7 +147,10 @@ namespace NetCheatPS3
                     Array.Resize(ref rangeImports, size);
                     UpdateRecRangeBox();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Main_Load.RecentRanges", ex);
+                }
                 x += 2;
 
                 try
@@ -175,14 +184,20 @@ namespace NetCheatPS3
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Main_Load.APISelection", ex);
+                }
                 x++;
 
                 try
                 {
                     ncDonatePopup = bool.Parse(settLines[x]);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Main_Load.DonationPopup", ex);
+                }
                 x++;
             }
             else

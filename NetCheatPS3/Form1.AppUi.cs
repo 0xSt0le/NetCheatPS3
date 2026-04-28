@@ -34,7 +34,10 @@ namespace NetCheatPS3
                     a.Dispose();
                     a.Close();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Form1_Closing.PluginDispose", ex);
+                }
             }
 
             if (refPlugin.Text == "Close Plugins")
@@ -112,7 +115,10 @@ namespace NetCheatPS3
                     sRecognize.RecognizeAsyncStop();
                     isRecognizing = false;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Form1_KeyUp.RecognizeAsyncStop", ex);
+                }
             }
             if (ProcessKeyBinds(e.KeyData))
                 e.SuppressKeyPress = true;
@@ -128,7 +134,10 @@ namespace NetCheatPS3
                     //sRecognize.Recognize();
                     isRecognizing = true;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    CrashLogger.Log("Form1.Form1_KeyDown.RecognizeAsync", ex);
+                }
             }
         }
 
