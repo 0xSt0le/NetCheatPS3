@@ -18,9 +18,6 @@ namespace NetCheatPS3
 
         public static string GetConnectionAttachErrorMessage(string actionName)
         {
-            if (Instance != null)
-                Instance.SynchronizeConnectionStateBeforeAction();
-
             if (!connected)
                 return "Not connected. Connect and attach before " + actionName + ".";
 

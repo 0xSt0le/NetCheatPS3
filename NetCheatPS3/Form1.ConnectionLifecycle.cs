@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace NetCheatPS3
@@ -118,8 +119,7 @@ namespace NetCheatPS3
             attached = false;
             ConstantLoop = 0;
             ClearAllCodeBackups(statusMessage);
-            statusLabel1.Text = statusMessage;
-            UpdateConnectionUiState();
+            SetConnectionStatusAndUpdateUi(statusMessage);
         }
 
         private void MarkDisconnected(string statusMessage)
@@ -128,12 +128,49 @@ namespace NetCheatPS3
             connected = false;
             ConstantLoop = 0;
             ClearAllCodeBackups(statusMessage);
-            statusLabel1.Text = statusMessage;
+            SetConnectionStatusAndUpdateUi(statusMessage);
+        }
+
+        public static void MarkAttachedMemoryUnavailable()
+        {
+            if (Instance != null)
+                Instance.MarkDetached("Process detached/lost. Cleared code backups.");
+        }
+
+        public static void ValidateAttachedMemoryStateAfterAccessFailure()
+        {
+            if (Instance != null && connected && attached)
+                Instance.TryValidateAttachedMemoryAccess("memory access", true);
+        }
+
+        private void SetConnectionStatusAndUpdateUi(string statusMessage)
+        {
+            if (IsHandleCreated && InvokeRequired)
+            {
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    SetConnectionStatusAndUpdateUi(statusMessage);
+                });
+                return;
+            }
+
+            if (statusLabel1 != null)
+                statusLabel1.Text = statusMessage;
+
             UpdateConnectionUiState();
         }
 
         private void UpdateConnectionUiState()
         {
+            if (IsHandleCreated && InvokeRequired)
+            {
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    UpdateConnectionUiState();
+                });
+                return;
+            }
+
             if (connectButton != null)
             {
                 connectButton.Enabled = curAPI != null;
@@ -192,14 +229,144 @@ namespace NetCheatPS3
                 return;
             }
 
+            TryValidateAttachedMemoryAccess("connection state check", true);
+        }
+
+        public bool TryValidateAttachedMemoryAccess(string actionName, bool silent)
+        {
+            if (!connected || !attached)
+                return false;
+
+            if (curAPI == null || curAPI.Instance == null)
+            {
+                MarkDisconnected("Disconnected. Cleared code backups.");
+                return false;
+            }
+
+            ulong probeAddress;
+            if (!TryGetAttachedMemoryProbeAddress(out probeAddress))
+                probeAddress = 0x00010000;
+
             try
             {
-                curAPI.Instance.isProcessStopped();
+                byte[] probe = new byte[1];
+                if (curAPI.Instance.GetBytes(probeAddress, ref probe))
+                    return true;
             }
             catch
             {
-                MarkDetached("Process detached/lost. Cleared code backups.");
             }
+
+            MarkDetached("Process detached/lost. Cleared code backups.");
+            if (!silent && !InvokeRequired)
+            {
+                string message = "The process or target appears unavailable. NetCheatPS3 detached locally and cleared code backups.";
+                MessageBox.Show(message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            return false;
+        }
+
+        private bool TryGetAttachedMemoryProbeAddress(out ulong address)
+        {
+            address = 0;
+
+            if (TryGetSelectedCodeWritableAddress(out address))
+                return true;
+
+            if (InvokeRequired)
+            {
+                address = 0x00010000;
+                return true;
+            }
+
+            if (TryGetSearchResultAddress(out address))
+                return true;
+
+            if (TryGetFirstScanRangeStart(out address))
+                return true;
+
+            address = 0x00010000;
+            return true;
+        }
+
+        private bool TryGetSelectedCodeWritableAddress(out ulong address)
+        {
+            address = 0;
+
+            if (cbListIndex < 0 || cbListIndex >= Codes.Count || Codes[cbListIndex].CData == null)
+                return false;
+
+            foreach (ncCode code in Codes[cbListIndex].CData)
+            {
+                if ((code.codeType == '0' || code.codeType == '1' || code.codeType == '2') && code.codeArg1 != 0)
+                {
+                    address = code.codeArg1;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryGetSearchResultAddress(out ulong address)
+        {
+            address = 0;
+
+            try
+            {
+                if (searchControl1 == null || searchControl1.searchListView1 == null || searchControl1.searchListView1.TotalCount <= 0)
+                    return false;
+
+                int index = 0;
+                if (searchControl1.searchListView1.SelectedIndices != null && searchControl1.searchListView1.SelectedIndices.Count > 0)
+                    index = searchControl1.searchListView1.SelectedIndices[0];
+
+                if (index < 0 || index >= searchControl1.searchListView1.TotalCount)
+                    index = 0;
+
+                SearchListView.SearchListViewItem item = searchControl1.searchListView1.GetItemAtIndex(index);
+                if (item.addr == 0)
+                    return false;
+
+                address = item.addr;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool TryGetFirstScanRangeStart(out ulong address)
+        {
+            address = 0;
+
+            try
+            {
+                if (rangeView == null || rangeView.Items.Count <= 0)
+                    return false;
+
+                for (int index = 0; index < rangeView.Items.Count; index++)
+                {
+                    if (rangeView.Items[index].SubItems.Count <= 0)
+                        continue;
+
+                    string text = rangeView.Items[index].SubItems[0].Text;
+                    ulong parsed;
+                    if (ulong.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out parsed) && parsed != 0)
+                    {
+                        address = parsed;
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
         }
 
         private void ClearAllCodeBackups(string reason)

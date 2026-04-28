@@ -119,7 +119,12 @@ namespace NetCheatPS3
             string message = Form1.GetConnectionAttachErrorMessage(actionName);
 
             if (message == null)
-                return true;
+            {
+                if (Form1.Instance == null || Form1.Instance.TryValidateAttachedMemoryAccess(actionName, false))
+                    return true;
+
+                return false;
+            }
 
             Form1.SetMainStatusSafe(message);
 

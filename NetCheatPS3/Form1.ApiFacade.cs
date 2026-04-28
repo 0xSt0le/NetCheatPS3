@@ -48,8 +48,17 @@ namespace NetCheatPS3
                 byte[] newV = new byte[val.Length];
                 Array.Copy(val, 0, newV, 0, val.Length);
                 newV = misc.notrevif(newV);
-                curAPI.Instance.SetBytes(addr, newV);
-                RecordMemoryWriteVerification(addr, newV);
+
+                try
+                {
+                    curAPI.Instance.SetBytes(addr, newV);
+                    RecordMemoryWriteVerification(addr, newV);
+                }
+                catch
+                {
+                    if (connected && attached)
+                        ValidateAttachedMemoryStateAfterAccessFailure();
+                }
             }
         }
 
@@ -109,7 +118,19 @@ namespace NetCheatPS3
             bool ret = false;
             if (val != null && connected)
             {
-                ret = curAPI.Instance.GetBytes(addr, ref val);
+                try
+                {
+                    ret = curAPI.Instance.GetBytes(addr, ref val);
+                    if (!ret && connected && attached)
+                        ValidateAttachedMemoryStateAfterAccessFailure();
+                }
+                catch
+                {
+                    if (connected && attached)
+                        ValidateAttachedMemoryStateAfterAccessFailure();
+
+                    ret = false;
+                }
             }
             return ret;
         }

@@ -9,7 +9,12 @@ namespace NetCheatPS3
             string message = Form1.GetConnectionAttachErrorMessage(actionName);
 
             if (message == null)
-                return true;
+            {
+                if (Form1.Instance == null || Form1.Instance.TryValidateAttachedMemoryAccess(actionName, false))
+                    return true;
+
+                return false;
+            }
 
             Form1.SetMainStatusSafe(message);
 
@@ -25,6 +30,8 @@ namespace NetCheatPS3
         private bool AbortScanThreadIfDisconnectedOrUnattached(string actionName)
         {
             string message = Form1.GetConnectionAttachErrorMessage(actionName);
+            if (message == null && Form1.Instance != null && !Form1.Instance.TryValidateAttachedMemoryAccess(actionName, true))
+                message = "Process detached/lost. Cleared code backups.";
 
             if (message == null)
                 return false;

@@ -6,6 +6,8 @@ namespace NetCheatPS3
 {
     public partial class Form1
     {
+        private bool suppressCodeTextChanged = false;
+
         private void cbList_SelectedIndexChanged(object sender, EventArgs e)
         {
             cbListIndex = FindLI();
@@ -45,7 +47,15 @@ namespace NetCheatPS3
             if (Index < 0 || Index >= MaxCodes)
             {
                 cbName.Text = "";
-                cbCodes.Text = "";
+                suppressCodeTextChanged = true;
+                try
+                {
+                    cbCodes.Text = "";
+                }
+                finally
+                {
+                    suppressCodeTextChanged = false;
+                }
                 cbState.Checked = false;
                 return;
             }
@@ -54,7 +64,15 @@ namespace NetCheatPS3
             if (Index >= Codes.Count)
                 return;
             cbName.Text = Codes[Index].name;
-            cbCodes.Text = Codes[Index].codes;
+            suppressCodeTextChanged = true;
+            try
+            {
+                cbCodes.Text = Codes[Index].codes;
+            }
+            finally
+            {
+                suppressCodeTextChanged = false;
+            }
             cbState.Checked = Codes[Index].state;
         }
 
@@ -287,15 +305,16 @@ namespace NetCheatPS3
         private void cbCodes_TextChanged(object sender, EventArgs e)
         {
             int ind = cbListIndex;
-            if (ind < 0)
+            if (ind < 0 || ind >= Codes.Count)
                 return;
 
-            
-
             CodesCount = cbList.Items.Count - 1;
+            string sanitizedText = cbCodes.Text.Replace("{", "").Replace("}", "").Replace("#", "");
             CodeDB c = Codes[ind];
-            c.codes = cbCodes.Text.Replace("{", "").Replace("}", "").Replace("#", "");
-            c.backUp = null;
+            bool textChanged = c.codes != sanitizedText;
+            c.codes = sanitizedText;
+            if (textChanged && !suppressCodeTextChanged)
+                c.backUp = null;
             Codes[ind] = c;
             codes.UpdateCData(Codes[ind].codes, ind);
         }
@@ -374,8 +393,9 @@ namespace NetCheatPS3
 
             if (code.backUp == null || code.backUp.Length == 0)
             {
-                SetMainStatusSafe("No backup available. Write or Backup Memory first.");
-                MessageBox.Show("Please write before you reset.\nKeep in mind constant writing doesn't save a backup and editing the text box erases the backup.");
+                string message = "No backup is available for this code. Click Write or Backup Memory first.";
+                SetMainStatusSafe(message);
+                MessageBox.Show(message + "\nConstant writing does not create a backup.");
                 return;
             }
 
@@ -435,6 +455,8 @@ namespace NetCheatPS3
             code = new CodeDB();
 
             if (!EnsureConnectedAndAttachedForMainAction(actionName))
+                return false;
+            if (!TryValidateAttachedMemoryAccess(actionName, false))
                 return false;
 
             if (index < 0 || index >= Codes.Count)
