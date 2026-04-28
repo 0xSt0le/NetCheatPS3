@@ -73,11 +73,15 @@ namespace NetCheatPS3
             RemoveSearchArgs();
             ncSearcher searcher = SearchComparisons.Where(ns => ns.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
             ncSearchType type = SearchTypes.Where(st => st.Name == searchTypeBox.SelectedItem.ToString()).FirstOrDefault(); //SearchTypes[searchTypeBox.SelectedIndex];
+            if (searcher.Name == null || type.Name == null)
+                return;
+
             int yOff = 5;
 
             ResetSearchTypes();
-            RemoveSearchTypes(searcher.Exceptions);
-            if (searcher.Exceptions.Contains(type.Name))
+            string[] exceptions = searcher.Exceptions ?? new string[0];
+            RemoveSearchTypes(exceptions);
+            if (exceptions.Contains(type.Name))
                 lastTypeIndex = 0;
             else
                 lastTypeIndex = searchTypeBox.Items.IndexOf(type.Name);
@@ -85,6 +89,8 @@ namespace NetCheatPS3
                 lastTypeIndex = 0;
             searchTypeBox.SelectedIndex = lastTypeIndex;
             type = SearchTypes.Where(st => st.Name == searchTypeBox.SelectedItem.ToString()).FirstOrDefault();
+            if (type.Name == null)
+                return;
 
             if (searcher.Args != null)
             {
@@ -135,6 +141,9 @@ namespace NetCheatPS3
             ncSearcher searcher = SearchComparisons.Where(ns => ns.Name == searchNameBox.Items[searchNameBox.SelectedIndex].ToString()).FirstOrDefault();
             //ncSearchType type = SearchTypes[searchTypeBox.SelectedIndex];
             ncSearchType type = SearchTypes.Where(ns => ns.Name == searchTypeBox.Items[searchTypeBox.SelectedIndex].ToString()).FirstOrDefault();
+            if (searcher.Name == null || type.Name == null)
+                return;
+
             int yOff = 5;
 
             if (searcher.TypeColumnOverride != null && searcher.TypeColumnOverride.Length == 4)
