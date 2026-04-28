@@ -55,29 +55,24 @@ namespace NetCheatPS3
                 Global.Plugins.ClosePlugins();
                 pluginList.Items.Clear();
 
-                if (System.IO.Directory.Exists(Application.StartupPath + @"\Plugins") == false)
-                    return;
+                if (System.IO.Directory.Exists(Application.StartupPath + @"\Plugins"))
+                {
+                    //Delete any excess PluginInterface.dll's (result of a build and not a copy)
+                    foreach (string file in System.IO.Directory.GetFiles(Application.StartupPath + @"\Plugins", "PluginInterface.dll", System.IO.SearchOption.AllDirectories))
+                        System.IO.File.Delete(file);
 
-                //Delete any excess PluginInterface.dll's (result of a build and not a copy)
-                foreach (string file in System.IO.Directory.GetFiles(Application.StartupPath + @"\Plugins", "PluginInterface.dll", System.IO.SearchOption.AllDirectories))
-                    System.IO.File.Delete(file);
-
-                //Call the find plugins routine, to search in our Plugins Folder
-                Global.Plugins.FindPlugins(Application.StartupPath + @"\Plugins");
+                    //Call the find plugins routine, to search in our Plugins Folder
+                    Global.Plugins.FindPlugins(Application.StartupPath + @"\Plugins");
+                }
 
                 //Load plugins
                 pluginForm = Global.Plugins.GetPlugin(ncBackColor, ncForeColor);
-                Array.Resize(ref pluginForm, pluginForm.Length + 1);
-                pluginForm[pluginForm.Length - 1] = new PluginForm();
-                pluginForm[pluginForm.Length - 1].plugAuth = snapshot.author;
-                pluginForm[pluginForm.Length - 1].plugDesc = snapshot.desc;
-                pluginForm[pluginForm.Length - 1].plugName = snapshot.name;
-                pluginForm[pluginForm.Length - 1].plugText = snapshot.tabName;
-                pluginForm[pluginForm.Length - 1].plugVers = snapshot.version;
+                if (pluginForm == null)
+                    pluginForm = new PluginForm[0];
 
-                if (pluginForm != null)
+                Array.Resize(ref pluginFormActive, pluginForm.Length);
+                if (pluginForm.Length > 0)
                 {
-                    Array.Resize(ref pluginFormActive, pluginForm.Length);
                     for (x = 0; x < pluginForm.Length; x++)
                     {
                         pluginForm[x].Tag = x;
@@ -98,7 +93,7 @@ namespace NetCheatPS3
                 if (pluginForm.Length != 0)
                     pluginList.SelectedIndex = 0;
 
-                refPlugin.Text = "Close Plugins";
+                refPlugin.Text = pluginForm.Length == 0 ? "Load Plugins" : "Close Plugins";
             }
 
             int index = toolStripDropDownButton1.DropDownItems.IndexOfKey("loadPluginsToolStripMenuItem");
@@ -119,6 +114,9 @@ namespace NetCheatPS3
         private void pluginList_DoubleClick(object sender, EventArgs e)
         {
             int ind = pluginList.SelectedIndex;
+            if (ind < 0 || ind >= pluginForm.Length || ind >= pluginFormActive.Length)
+                return;
+
             if (pluginFormActive[ind]) //Already on
             {
                 pluginForm[ind].WindowState = FormWindowState.Normal;
@@ -137,40 +135,20 @@ namespace NetCheatPS3
             }
         }
 
-        snapshot snapShotPlugin = new snapshot();
         private void pluginList_SelectedIndexChanged(object sender, EventArgs e)
         {
             int ind = pluginList.SelectedIndex;
-            if (ind < 0)
+            if (ind < 0 || ind >= pluginForm.Length)
                 return;
 
-            if (pluginList.Items[ind].ToString().IndexOf(snapshot.tabName) >= 0)
-            {
-                descPlugAuth.Text = "by " + pluginForm[ind].plugAuth;
-                descPlugName.Text = pluginForm[ind].plugName;
-                descPlugVer.Text = pluginForm[ind].plugVers;
-                descPlugDesc.Text = pluginForm[ind].plugDesc;
-                pluginForm[ind].Text = pluginForm[ind].plugName + " by " + pluginForm[ind].plugAuth;
-                plugIcon.Image = (Bitmap)plugIcon.InitialImage.Clone();
-
-                pluginForm[ind].Controls.Clear();
-                pluginForm[ind].Controls.Add(snapShotPlugin);
-                pluginForm[ind].Controls[0].Resize += new EventHandler(pluginForm[ind].Plugin_Resize);
-                pluginForm[ind].Resize += new EventHandler(snapShotPlugin.snapshot_Resize);
-
-                if (pluginForm[ind].allowColoring)
-                {
-                    HandlePluginControls(pluginForm[ind].Controls[0].Controls);
-                    pluginForm[ind].Controls[0].BackColor = ncBackColor;
-                    pluginForm[ind].Controls[0].ForeColor = ncForeColor;
-                }
-            }
-            if (ind >= 0 && pluginForm[ind] != null)
+            if (pluginForm[ind] != null)
             {
                 //Get the selected Plugin
                 Types.AvailablePlugin selectedPlugin = Global.Plugins.AvailablePlugins.GetIndex(ind);
+                if (selectedPlugin == null)
+                    return;
 
-                if (selectedPlugin != null && pluginForm[ind].Controls.Count == 0)
+                if (pluginForm[ind].Controls.Count == 0)
                 {
                     pluginForm[ind].Controls.Clear();
 
@@ -188,7 +166,7 @@ namespace NetCheatPS3
                     }
                 }
 
-                if (pluginForm[ind].Controls.Count > 0 && pluginList.Items[ind].ToString().IndexOf(snapshot.tabName) < 0)
+                if (pluginForm[ind].Controls.Count > 0)
                 {
                     descPlugAuth.Text = "by " + selectedPlugin.Instance.Author;
                     descPlugName.Text = selectedPlugin.Instance.Name;

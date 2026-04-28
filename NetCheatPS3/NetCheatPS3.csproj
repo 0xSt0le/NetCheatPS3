@@ -277,12 +277,6 @@
       <DependentUpon>SearchValue.cs</DependentUpon>
     </Compile>
     <Compile Include="SkipList.cs" />
-    <Compile Include="snapshot.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="snapshot.Designer.cs">
-      <DependentUpon>snapshot.cs</DependentUpon>
-    </Compile>
     <Compile Include="TaskbarProgress.cs" />
     <EmbeddedResource Include="ConditionalEditor.resx">
       <DependentUpon>ConditionalEditor.cs</DependentUpon>
@@ -326,9 +320,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SearchValue.resx">
       <DependentUpon>SearchValue.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="snapshot.resx">
-      <DependentUpon>snapshot.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
   </ItemGroup>
