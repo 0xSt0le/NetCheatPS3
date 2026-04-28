@@ -701,14 +701,16 @@ namespace NetCheatPS3
             else if (vertSBar.Value >= vertSBar.Maximum)
                 vertSBar.Value = vertSBar.Maximum - 1;
 
-            parentControl.SetProgBarText("Results: " + a.Count.ToString("N0"));
+            if (parentControl != null)
+                parentControl.SetProgBarText("Results: " + a.Count.ToString("N0"));
 
             SelectedIndices.Clear();
 
             if (s >= TotalCount)
                 s = TotalCount - 1;
 
-            SelectedIndices.Add(s);
+            if (s >= 0)
+                SelectedIndices.Add(s);
         }
 
         private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)

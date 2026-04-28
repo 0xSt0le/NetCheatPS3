@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -24,6 +25,11 @@ namespace NetCheatPS3
             cms = contextMenuStrip1;
 
             EnsureModernResultContextMenu();
+            if (contextMenuStrip1 != null)
+            {
+                contextMenuStrip1.Opening -= contextMenuStrip1_Opening;
+                contextMenuStrip1.Opening += contextMenuStrip1_Opening;
+            }
 
             printBox.DoubleClick += printBox_ModernDoubleClick;
 
@@ -69,6 +75,31 @@ namespace NetCheatPS3
             contextMenuStrip1.Items.Insert(2, setScanToThisRegionToolStripMenuItem);
             contextMenuStrip1.Items.Insert(3, editWriteValueToolStripMenuItem);
             contextMenuStrip1.Items.Insert(4, new ToolStripSeparator());
+        }
+
+        private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
+        {
+            bool hasItems = TotalCount > 0;
+            bool hasSelection = SelectedIndices != null && SelectedIndices.Count > 0 && SelectedIndices[0] >= 0 && SelectedIndices[0] < TotalCount;
+            bool canUseMemory = hasSelection && Form1.connected && Form1.attached;
+
+            SetContextMenuItemEnabled("copyAddressToolStripMenuItem", hasSelection);
+            SetContextMenuItemEnabled("copyNetCheatCodeToolStripMenuItem", hasSelection);
+            SetContextMenuItemEnabled("setScanToThisRegionToolStripMenuItem", hasSelection);
+            SetContextMenuItemEnabled("editWriteValueToolStripMenuItem", canUseMemory);
+            SetContextMenuItemEnabled("deleteToolStripMenuItem", hasSelection);
+            SetContextMenuItemEnabled("selectAllToolStripMenuItem", hasItems);
+            SetContextMenuItemEnabled("refreshFromPS3ToolStripMenuItem", hasItems && Form1.connected && Form1.attached);
+        }
+
+        private void SetContextMenuItemEnabled(string itemName, bool enabled)
+        {
+            if (contextMenuStrip1 == null)
+                return;
+
+            ToolStripItem[] items = contextMenuStrip1.Items.Find(itemName, false);
+            foreach (ToolStripItem item in items)
+                item.Enabled = enabled;
         }
 
         private int GetVisibleStartIndex()
@@ -143,7 +174,13 @@ namespace NetCheatPS3
 
             int index = GetIndexAtPoint(e.Location);
             if (index >= 0)
+            {
                 SetSelectedIndex(index);
+            }
+            else
+            {
+                ClearSelectedIndices();
+            }
         }
 
         private void printBox_ModernDoubleClick(object sender, EventArgs e)
