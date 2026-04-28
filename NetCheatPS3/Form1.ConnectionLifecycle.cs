@@ -131,12 +131,6 @@ namespace NetCheatPS3
             SetConnectionStatusAndUpdateUi(statusMessage);
         }
 
-        public static void MarkAttachedMemoryUnavailable()
-        {
-            if (Instance != null)
-                Instance.MarkDetached("Process detached/lost. Cleared code backups.");
-        }
-
         public static void ValidateAttachedMemoryStateAfterAccessFailure()
         {
             if (Instance != null && connected && attached)
@@ -204,32 +198,6 @@ namespace NetCheatPS3
                 else
                     toolStripDropDownButton1.BackColor = Color.Maroon;
             }
-        }
-
-        private void SynchronizeConnectionStateBeforeAction()
-        {
-            if (!connected)
-            {
-                if (attached)
-                    MarkDisconnected("Disconnected. Cleared code backups.");
-
-                UpdateConnectionUiState();
-                return;
-            }
-
-            if (curAPI == null || curAPI.Instance == null)
-            {
-                MarkDisconnected("Disconnected. Cleared code backups.");
-                return;
-            }
-
-            if (!attached)
-            {
-                UpdateConnectionUiState();
-                return;
-            }
-
-            TryValidateAttachedMemoryAccess("connection state check", true);
         }
 
         public bool TryValidateAttachedMemoryAccess(string actionName, bool silent)

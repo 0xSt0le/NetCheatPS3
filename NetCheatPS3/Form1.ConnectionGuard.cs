@@ -8,8 +8,17 @@ namespace NetCheatPS3
         {
             try
             {
-                if (Instance != null)
+                if (Instance != null && Instance.IsHandleCreated && Instance.InvokeRequired)
+                {
+                    Instance.BeginInvoke((MethodInvoker)delegate
+                    {
+                        SetMainStatusSafe(message);
+                    });
+                }
+                else if (Instance != null)
+                {
                     Instance.statusLabel1.Text = message;
+                }
             }
             catch
             {

@@ -79,13 +79,17 @@ namespace NetCheatPS3
                 result.Actual = CloneByteArray(actual);
                 result.Matches = result.ReadSucceeded && ByteArraysEqual(expected, actual);
                 if (!result.ReadSucceeded)
+                {
                     result.ErrorMessage = "Read-back failed.";
+                    ValidateAttachedMemoryStateAfterAccessFailure();
+                }
             }
             catch (Exception ex)
             {
                 result.ReadSucceeded = false;
                 result.Matches = false;
                 result.ErrorMessage = ex.Message;
+                ValidateAttachedMemoryStateAfterAccessFailure();
             }
 
             memoryWriteVerificationResults.Add(result);
