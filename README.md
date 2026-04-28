@@ -1,42 +1,33 @@
-# NetCheat PS3 4.53
+# NetCheatPS3
 
-Written by Dnawrkshp
-
-## Comments
-
-This version differs slightly from the released version of NetCheat 4.53 in the following ways:
-
- - Removed online PS3 codelist browser
- - Removed donation garbage
+NetCheatPS3 is a Windows memory cheating and scanning tool for PS3 targets.
+This fork is focused on TMAPI and PS2RD providers, cheat writing, range scanning,
+and external plugins.
 
 ## Compile
 
-	1. Install Visual Studio 2019 with .NET Desktop Development package
-	2. Open Solution in Visual Studio
-	3. Build
+1. Install Visual Studio 2022 with the .NET desktop development workload.
+2. Open `NetCheatPS3.sln`.
+3. Build the `NetCheatPS3` project.
 
 ## Plugins
 
-	Plugins allow third-party developers to add new features to NetCheat. They are accessible from the Plugins tab.
-	
-Checkout [NCMemBrowser](./NCMemBrowser/Plugin.cs) for an example.
+Plugins allow third-party developers to add features to NetCheatPS3. They are
+loaded from the `Plugins` folder and are accessible from the Plugins tab.
 
 ## APIs
 
-	APIs are plugins that extend what platforms you can use with NetCheat. APIs can be selected in the APIs tab. This fork ships with TMAPI and PS2RD providers.
+APIs are providers that connect NetCheatPS3 to a target. APIs can be selected in
+the APIs tab. This fork ships with:
 
-Checkout [TMAPI](./TMAPI-NCAPI/API.cs) or [PS2RD](./PS2RD-NCAPI/API.cs) for examples.
-	
+- [TMAPI](./TMAPI-NCAPI/API.cs)
+- [PS2RD](./PS2RD-NCAPI/API.cs)
+
 ## Tips
 
-	- Double click on a plugin to open/close it
-	- Double click a code to toggle constant write
-	- Ctrl-C on result(s) will copy them into the clipboard in code format
-	- Search results do not automatically refresh
-	- When you test a subroutine and you want to update it after already writing it, click Reset Written. Then you can replace the code and write again without a possible freeze
-
-
-If you want to make a plugin I suggest watching my tutorial on how:
-	http://youtu.be/ySDr5H6VD58
-	
-Enjoy.
+- Double-click a plugin to open or close it.
+- Double-click a code to toggle constant write.
+- Ctrl+C on selected search results copies NetCheat code format.
+- Search results do not automatically refresh.
+- Use Backup Memory before testing risky writes, and Reset Memory to restore a
+  verified backup for the selected code.
