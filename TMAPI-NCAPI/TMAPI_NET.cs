@@ -687,15 +687,25 @@ namespace TMAPI_NCAPI
 
         public static SNRESULT GetThreadList(int target, uint processID, out ulong[] ppuThreadIDs, out ulong[] spuThreadIDs)
         {
-            uint[] ppu = new uint[0x1], spu = new uint[0x1];
+            ppuThreadIDs = new ulong[0];
+            spuThreadIDs = new ulong[0];
+
+            uint[] ppu = new uint[1], spu = new uint[1];
+            SNRESULT result;
             if (!Is32Bit())
             {
-                ThreadListX64(target, processID, ppu, null, spu, null);
-                ppuThreadIDs = new ulong[ppu.Length];
-                spuThreadIDs = new ulong[spu.Length];
+                result = ThreadListX64(target, processID, ppu, null, spu, null);
+                if (!SUCCEEDED(result))
+                    return result;
+
+                ppuThreadIDs = new ulong[ppu[0]];
+                spuThreadIDs = new ulong[spu[0]];
                 return ThreadListX64(target, processID, ppu, ppuThreadIDs, spu, spuThreadIDs);
             }
-            ThreadListX86(target, processID, ppu, null, spu, null);
+
+            result = ThreadListX86(target, processID, ppu, null, spu, null);
+            if (!SUCCEEDED(result))
+                return result;
 
             ppuThreadIDs = new ulong[ppu[0]];
             spuThreadIDs = new ulong[spu[0]];

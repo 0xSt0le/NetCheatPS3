@@ -175,6 +175,8 @@ namespace TMAPI_NCAPI
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
             private Thread stoppedThreadPoller;
             private bool isProcessingStop;
+            private bool reportedPollingThreadCount;
+            private string lastPollingListError;
             private ulong lastStoppedThreadId;
             private bool isRunning;
             private bool registeredEvents;
@@ -422,6 +424,13 @@ namespace TMAPI_NCAPI
                         return false;
                     }
 
+                    if (!reportedPollingThreadCount)
+                    {
+                        reportedPollingThreadCount = true;
+                        int ppuCount = ppuThreadIDs == null ? 0 : ppuThreadIDs.Length;
+                        PublishDiagnostic("Stopped-thread polling sees " + ppuCount.ToString("N0") + " PPU thread(s).");
+                    }
+
                     foreach (ulong candidateThreadId in ppuThreadIDs)
                     {
                         PS3TMAPI.PPUThreadInfo threadInfo;
@@ -476,12 +485,18 @@ namespace TMAPI_NCAPI
                         string error;
                         if (TryRecoverStoppedThread(out stoppedThread, out error))
                         {
+                            lastPollingListError = null;
                             if (stoppedThread.ThreadId != lastStoppedThreadId)
                                 ProcessStoppedThreadCandidate(stoppedThread, "polling fallback");
                         }
                         else
                         {
                             lastStoppedThreadId = 0;
+                            if (error.StartsWith("GetThreadList failed:", StringComparison.Ordinal) && error != lastPollingListError)
+                            {
+                                lastPollingListError = error;
+                                PublishError("Stopped-thread polling fallback: " + error);
+                            }
                         }
                     }
                     catch (Exception ex)
