@@ -204,11 +204,6 @@ namespace NetCheatPS3
             }
         }
 
-        public bool TryValidateAttachedMemoryAccess(string actionName, bool silent)
-        {
-            return TryValidateReadableMemoryForAction(actionName, 0, 4, true, silent);
-        }
-
         public bool TryValidateReadableMemoryForAction(string actionName, ulong address, int length, bool markLostIfClearlyGone, bool silent)
         {
             string connectionMessage = GetConnectionAttachErrorMessage(actionName);
@@ -222,6 +217,8 @@ namespace NetCheatPS3
             if (address != 0 && TryReadProbeBytes(address, length, out readError))
                 return true;
 
+            // Failed read at one address is not proof of detach. Only a separate
+            // liveness failure across multiple candidates marks the target lost.
             string livenessError;
             if (TryValidateTargetStillAlive(address, out livenessError))
             {

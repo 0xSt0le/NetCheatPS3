@@ -1,6 +1,5 @@
-﻿using System.Windows.Forms;
-
 using System;
+using System.Windows.Forms;
 
 namespace NetCheatPS3
 {
