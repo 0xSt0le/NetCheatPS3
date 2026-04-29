@@ -1,5 +1,7 @@
 ﻿using System.Windows.Forms;
 
+using System;
+
 namespace NetCheatPS3
 {
     public partial class SearchControl
@@ -9,12 +11,7 @@ namespace NetCheatPS3
             string message = Form1.GetConnectionAttachErrorMessage(actionName);
 
             if (message == null)
-            {
-                if (Form1.Instance == null || Form1.Instance.TryValidateAttachedMemoryAccess(actionName, false))
-                    return true;
-
-                return false;
-            }
+                return true;
 
             Form1.SetMainStatusSafe(message);
 
@@ -30,8 +27,6 @@ namespace NetCheatPS3
         private bool AbortScanThreadIfDisconnectedOrUnattached(string actionName)
         {
             string message = Form1.GetConnectionAttachErrorMessage(actionName);
-            if (message == null && Form1.Instance != null && !Form1.Instance.TryValidateAttachedMemoryAccess(actionName, true))
-                message = "Process detached/lost. Cleared code backups.";
 
             if (message == null)
                 return false;
@@ -62,6 +57,30 @@ namespace NetCheatPS3
             _shouldStopSearch = false;
             searchThread = null;
             return true;
+        }
+
+        private bool ValidateScanMemoryBeforeStart(string actionName, ulong address, int byteSize)
+        {
+            if (Form1.Instance == null)
+                return false;
+
+            int readLength = Math.Max(4, byteSize);
+            string probeError;
+            if (Form1.Instance.TryReadProbeBytes(address, readLength, out probeError))
+                return true;
+
+            string livenessError;
+            if (Form1.Instance.TryValidateTargetStillAlive(address, out livenessError))
+            {
+                string message = "Scan range is not readable. Check start/stop range or process attach.";
+                Form1.SetMainStatusSafe(message);
+                if (progBar != null)
+                    progBar.printText = message;
+                return false;
+            }
+
+            Form1.Instance.TryValidateReadableMemoryForAction(actionName, address, readLength, true, true);
+            return false;
         }
 
         private void SetSearchActionRunningStatus(string actionName)

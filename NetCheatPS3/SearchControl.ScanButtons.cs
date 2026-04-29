@@ -229,6 +229,10 @@ namespace NetCheatPS3
                     if (!TryBuildScanRequest("Next Scan", out start, out stop, out typeIndex, out searcher, out args))
                         return;
 
+                    ulong probeAddress = GetNextScanProbeAddress(start);
+                    if (!ValidateScanMemoryBeforeStart("Next Scan", probeAddress, SearchTypes[typeIndex].ByteSize))
+                        return;
+
                     searchThread = new Thread(() => ThreadNextSearch(new object[]
                     {
                         searcher,
@@ -305,6 +309,9 @@ namespace NetCheatPS3
                     if (!TryBuildScanRequest("Initial Scan", out start, out stop, out typeIndex, out searcher, out args))
                         return;
 
+                    if (!ValidateScanMemoryBeforeStart("Initial Scan", start, SearchTypes[typeIndex].ByteSize))
+                        return;
+
                     searchThread = new Thread(() => ThreadInitSearch(new object[]
                     {
                         searcher,
@@ -334,7 +341,37 @@ namespace NetCheatPS3
             if (!EnsureConnectedAndAttachedForScanAction("Refresh From Memory"))
                 return;
 
+            ulong probeAddress;
+            int byteSize;
+            if (TryGetRefreshProbeAddress(out probeAddress, out byteSize) &&
+                !ValidateScanMemoryBeforeStart("Refresh From Memory", probeAddress, byteSize))
+                return;
+
             RefreshResults(1);
+        }
+
+        private ulong GetNextScanProbeAddress(ulong fallbackStart)
+        {
+            if (searchListView1 != null && searchListView1.a != null && searchListView1.a.Count > 0)
+                return searchListView1.a[0].addr;
+
+            return fallbackStart;
+        }
+
+        private bool TryGetRefreshProbeAddress(out ulong address, out int byteSize)
+        {
+            address = 0;
+            byteSize = 4;
+
+            if (searchListView1 == null || searchListView1.a == null || searchListView1.a.Count <= 0)
+                return false;
+
+            SearchListView.SearchListViewItem item = searchListView1.a[0];
+            address = item.addr;
+            if (item.newVal != null && item.newVal.Length > 0)
+                byteSize = item.newVal.Length;
+
+            return address != 0;
         }
 
         public void RefreshResults(int mode)
