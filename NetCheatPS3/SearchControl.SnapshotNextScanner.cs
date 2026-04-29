@@ -107,14 +107,12 @@ namespace NetCheatPS3
                     hasFirstRecord = firstRecords.MoveNext();
                 }
 
-                SetProgBar(0);
-
                 ulong span = stop - start;
                 int blockCount = (int)((span + (ulong)blockSize - 1UL) / (ulong)blockSize);
                 if (blockCount <= 0)
                     blockCount = 1;
 
-                SetProgBarMax(blockCount);
+                BeginScanProgress("Next Scan", blockCount, "blocks");
 
                 using (SnapshotStore output = SnapshotStore.Create(newSnapshotPath, typeIndex, byteSize, activeScanLittleEndian))
                 using (IEnumerator<SnapshotRecord> records = SnapshotStore.ReadRecords(oldSnapshotPath).GetEnumerator())
@@ -123,11 +121,13 @@ namespace NetCheatPS3
 
                     byte[] block = new byte[blockSize];
 
-                    for (ulong blockStart = start; blockStart < stop; blockStart += (ulong)blockSize)
+                    int blockIndex = 0;
+                    for (ulong blockStart = start; blockStart < stop; blockStart += (ulong)blockSize, blockIndex++)
                     {
                         if (_shouldStopSearch)
                         {
                             reader.PublishStats("Snapshot next scan stopped by user");
+                            ResetScanProgress("Scan stopped");
                             return true;
                         }
 
@@ -178,7 +178,7 @@ namespace NetCheatPS3
                                 });
                         }
 
-                        IncProgBar(1);
+                        UpdateScanProgress(blockIndex + 1, matchCount);
                     }
 
                     output.Complete();
@@ -209,8 +209,8 @@ namespace NetCheatPS3
                     AddResultRange(visible);
 
                 double readMb = reader.Stats.BytesRead / (1024.0 * 1024.0);
-                SetProgBarText(
-                    "Next: " + matchCount.ToString("N0") +
+                CompleteScanProgress(
+                    "Next Scan complete | Results: " + matchCount.ToString("N0") +
                     " | Vis: " + searchListView1.TotalCount.ToString("N0") +
                     " | OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                     " | Fail: " + reader.Stats.ReadFailures.ToString("N0") +

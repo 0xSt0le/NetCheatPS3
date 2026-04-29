@@ -427,9 +427,7 @@ namespace NetCheatPS3
 
             if (old == null || old.Length == 0)
             {
-                SetProgBarMax(1);
-                SetProgBar(0);
-                SetStatusLabel("Results: 0");
+                CompleteScanProgress("Next Scan complete | Results: 0");
 
                 Invoke((MethodInvoker)delegate
                 {
@@ -439,8 +437,7 @@ namespace NetCheatPS3
                 return;
             }
 
-            SetProgBarMax(old.Length - 1);
-            SetProgBar(0);
+            BeginScanProgress("Next Scan", old.Length, "candidates");
 
             ClearItems();
 
@@ -525,11 +522,7 @@ namespace NetCheatPS3
                     }
                 }
 
-                if ((cnt & 0x3FF) == 0)
-                {
-                    SetProgBar(cnt);
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
-                }
+                UpdateScanProgress(cnt + 1, resCnt);
             }
 
             if (batch.Count > 0)
@@ -543,9 +536,8 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(old.Length - 1);
-            SetStatusLabel(
-                "Results: " + resCnt.ToString("N0") +
+            CompleteScanProgress(
+                "Next Scan complete | Results: " + resCnt.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -644,9 +636,7 @@ namespace NetCheatPS3
 
             if (old == null || old.Length == 0)
             {
-                SetProgBarMax(1);
-                SetProgBar(0);
-                SetStatusLabel("Results: 0");
+                CompleteScanProgress("Next Scan complete | Results: 0");
 
                 Invoke((MethodInvoker)delegate
                 {
@@ -656,8 +646,7 @@ namespace NetCheatPS3
                 return;
             }
 
-            SetProgBarMax(old.Length - 1);
-            SetProgBar(0);
+            BeginScanProgress("Next Scan", old.Length, "candidates");
 
             ClearItems();
 
@@ -714,11 +703,7 @@ namespace NetCheatPS3
                     }
                 }
 
-                if ((cnt & 0x3FF) == 0)
-                {
-                    SetProgBar(cnt);
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
-                }
+                UpdateScanProgress(cnt + 1, resCnt);
             }
 
             if (batch.Count > 0)
@@ -732,9 +717,8 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(old.Length - 1);
-            SetStatusLabel(
-                "Results: " + resCnt.ToString("N0") +
+            CompleteScanProgress(
+                "Next Scan complete | Results: " + resCnt.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -824,9 +808,7 @@ namespace NetCheatPS3
 
             if (old == null || old.Length == 0 || args == null || args.Length == 0)
             {
-                SetProgBarMax(1);
-                SetProgBar(0);
-                SetStatusLabel("Results: 0");
+                CompleteScanProgress("Next Scan complete | Results: 0");
 
                 Invoke((MethodInvoker)delegate
                 {
@@ -836,8 +818,7 @@ namespace NetCheatPS3
                 return;
             }
 
-            SetProgBarMax(old.Length - 1);
-            SetProgBar(0);
+            BeginScanProgress("Next Scan", old.Length, "candidates");
 
             ClearItems();
 
@@ -903,11 +884,7 @@ namespace NetCheatPS3
                     }
                 }
 
-                if ((cnt & 0x3FF) == 0)
-                {
-                    SetProgBar(cnt);
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
-                }
+                UpdateScanProgress(cnt + 1, resCnt);
             }
 
             if (batch.Count > 0)
@@ -921,9 +898,8 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(old.Length - 1);
-            SetStatusLabel(
-                "Results: " + resCnt.ToString("N0") +
+            CompleteScanProgress(
+                "Next Scan complete | Results: " + resCnt.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -1315,9 +1291,7 @@ namespace NetCheatPS3
 
             if (old == null || old.Length == 0 || args == null || args.Length < 2)
             {
-                SetProgBarMax(1);
-                SetProgBar(0);
-                SetStatusLabel("Results: 0");
+                CompleteScanProgress("Next Scan complete | Results: 0");
 
                 Invoke((MethodInvoker)delegate
                 {
@@ -1327,8 +1301,7 @@ namespace NetCheatPS3
                 return;
             }
 
-            SetProgBarMax(old.Length - 1);
-            SetProgBar(0);
+            BeginScanProgress("Next Scan", old.Length, "candidates");
 
             ClearItems();
 
@@ -1396,11 +1369,7 @@ namespace NetCheatPS3
                     }
                 }
 
-                if ((cnt & 0x3FF) == 0)
-                {
-                    SetProgBar(cnt);
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
-                }
+                UpdateScanProgress(cnt + 1, resCnt);
             }
 
             if (batch.Count > 0)
@@ -1414,9 +1383,8 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(old.Length - 1);
-            SetStatusLabel(
-                "Results: " + resCnt.ToString("N0") +
+            CompleteScanProgress(
+                "Next Scan complete | Results: " + resCnt.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -2134,7 +2102,7 @@ namespace NetCheatPS3
 
         void standardByte_NextSearch(SearchListView.SearchListViewItem[] old, string[] args, int cmpIntType)
         {
-            SetProgBarMax(old.Length - 1);
+            BeginScanProgress("Next Scan", old == null ? 0 : old.Length, "candidates");
             int resCnt = 0;
             int updateCnt = 0;
 
@@ -2179,10 +2147,9 @@ namespace NetCheatPS3
 
                 if ((cnt % rec.Length) == 0 || updateCnt > 50)
                 {
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
                     AddResultRange(itemsToAdd);
                     itemsToAdd.Clear();
-                    SetProgBar(cnt);
+                    UpdateScanProgress(cnt + 1, resCnt);
                     updateCnt = 0;
                 }
 
@@ -2199,7 +2166,7 @@ namespace NetCheatPS3
             {
                 searchListView1.AddItemsFromList();
             });
-            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+            CompleteScanProgress("Next Scan complete | Results: " + resCnt.ToString("N0"));
         }
 
         void EqualTo_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
@@ -2290,7 +2257,7 @@ namespace NetCheatPS3
                 return;
             }
 
-            SetProgBarMax(old.Length - 1);
+            BeginScanProgress("Next Scan", old == null ? 0 : old.Length, "candidates");
             int resCnt = 0;
 
             ncSearchType type = new ncSearchType();
@@ -2335,10 +2302,9 @@ namespace NetCheatPS3
 
                 if ((cnt % rec.Length) == 0)
                 {
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
                     AddResultRange(itemsToAdd);
                     itemsToAdd.Clear();
-                    SetProgBar(cnt);
+                    UpdateScanProgress(cnt + 1, resCnt);
                 }
             }
 
@@ -2352,12 +2318,12 @@ namespace NetCheatPS3
             {
                 searchListView1.AddItemsFromList();
             });
-            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+            CompleteScanProgress("Next Scan complete | Results: " + resCnt.ToString("N0"));
         }
 
         void standardIncDec_NextSearch(SearchListView.SearchListViewItem[] old, string[] args, int cmpIntIndex)
         {
-            SetProgBarMax(old.Length - 1);
+            BeginScanProgress("Next Scan", old == null ? 0 : old.Length, "candidates");
             int resCnt = 0;
 
             ncSearchType type = new ncSearchType();
@@ -2403,10 +2369,9 @@ namespace NetCheatPS3
 
                 if ((cnt % rec.Length) == 0)
                 {
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
                     AddResultRange(itemsToAdd);
                     itemsToAdd.Clear();
-                    SetProgBar(cnt);
+                    UpdateScanProgress(cnt + 1, resCnt);
                 }
             }
 
@@ -2420,7 +2385,7 @@ namespace NetCheatPS3
             {
                 searchListView1.AddItemsFromList();
             });
-            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+            CompleteScanProgress("Next Scan complete | Results: " + resCnt.ToString("N0"));
         }
 
         void Increased_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
@@ -2529,7 +2494,7 @@ namespace NetCheatPS3
         {
             uint val = uint.Parse((string)args[0], System.Globalization.NumberStyles.HexNumber);
 
-            SetProgBarMax(old.Length - 1);
+            BeginScanProgress("Next Scan", old == null ? 0 : old.Length, "candidates");
             int resCnt = 0;
 
             ncSearchType type = new ncSearchType();
@@ -2686,10 +2651,9 @@ namespace NetCheatPS3
 
                 if ((cnt % rec.Length) == 0 || updateCnt > 50)
                 {
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
                     AddResultRange(itemsToAdd);
                     itemsToAdd.Clear();
-                    SetProgBar(cnt);
+                    UpdateScanProgress(cnt + 1, resCnt);
                     updateCnt = 0;
                 }
 
@@ -2706,12 +2670,12 @@ namespace NetCheatPS3
             {
                 searchListView1.AddItemsFromList();
             });
-            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+            CompleteScanProgress("Next Scan complete | Results: " + resCnt.ToString("N0"));
         }
 
         void BitDif_NextSearch(SearchListView.SearchListViewItem[] old, string[] args)
         {
-            SetProgBarMax(old.Length - 1);
+            BeginScanProgress("Next Scan", old == null ? 0 : old.Length, "candidates");
             int resCnt = 0;
 
             ncSearchType type = new ncSearchType();
@@ -2782,10 +2746,9 @@ namespace NetCheatPS3
 
                 if ((cnt % rec.Length) == 0)
                 {
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
                     AddResultRange(itemsToAdd);
                     itemsToAdd.Clear();
-                    SetProgBar(cnt);
+                    UpdateScanProgress(cnt + 1, resCnt);
                 }
 
                 //Thread.Sleep(100);
@@ -2801,7 +2764,7 @@ namespace NetCheatPS3
             {
                 searchListView1.AddItemsFromList();
             });
-            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+            CompleteScanProgress("Next Scan complete | Results: " + resCnt.ToString("N0"));
         }
 
         #endregion
