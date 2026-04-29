@@ -221,7 +221,7 @@ namespace NetCheatPS3
                     if (searchThread != null)
                         searchThread = null;
 
-                    progBar.printText = "";
+                    ResetScanProgress("");
 
                     _shouldStopSearch = false;
                     searchMemoryStopProc = Form1.Instance.isProcessStopped();
@@ -278,7 +278,7 @@ namespace NetCheatPS3
                 ClearLastScanStats();
 
                 searchMemory.Text = "Initial Scan";
-                progBar.printText = "";
+                ResetScanProgress("");
 
                 forceTBUpdate = true;
                 lastSearchIndex = -1;
