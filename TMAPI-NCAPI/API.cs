@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using NCAppInterface;
 
 namespace TMAPI_NCAPI
@@ -172,6 +173,9 @@ namespace TMAPI_NCAPI
             private readonly Action<AddressAccessHit> hitCallback;
             private readonly object sync = new object();
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
+            private Thread stoppedThreadPoller;
+            private bool isProcessingStop;
+            private ulong lastStoppedThreadId;
             private bool isRunning;
             private bool registeredEvents;
             private bool savedOldDabr;
@@ -216,6 +220,8 @@ namespace TMAPI_NCAPI
 
                 if (!shouldStop)
                     return;
+
+                StopPollingWorker();
 
                 try
                 {
@@ -284,6 +290,7 @@ namespace TMAPI_NCAPI
                     isRunning = true;
                 }
 
+                StartPollingWorker();
                 PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
             }
 
@@ -342,47 +349,56 @@ namespace TMAPI_NCAPI
 
             private void HandleDabrMatch(PS3TMAPI.TargetSpecificEvent specific)
             {
-                AddressAccessHit hit = new AddressAccessHit();
-                hit.WatchedAddress = Address;
-                hit.Mode = Mode;
-                hit.RawDabr = rawDabr;
-                hit.Timestamp = DateTime.Now;
-
-                PS3TMAPI.PPUExceptionData exceptionData = specific.Data.PPUException;
-                hit.ThreadId = exceptionData.ThreadID;
-                hit.ProgramCounter = exceptionData.PC;
-                hit.StackPointer = exceptionData.SP;
-
-                if ((hit.ProgramCounter == 0 || hit.ThreadId == 0) && specific.Data.PPUDataMatException.ThreadID != 0)
+                lock (sync)
                 {
-                    hit.ThreadId = specific.Data.PPUDataMatException.ThreadID;
-                    hit.ProgramCounter = specific.Data.PPUDataMatException.PC;
-                    hit.StackPointer = specific.Data.PPUDataMatException.SP;
+                    if (!isRunning || isProcessingStop)
+                        return;
+
+                    isProcessingStop = true;
                 }
 
-                hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
-                PublishHit(hit);
+                try
+                {
+                    AddressAccessHit hit = new AddressAccessHit();
+                    hit.WatchedAddress = Address;
+                    hit.Mode = Mode;
+                    hit.RawDabr = rawDabr;
+                    hit.Timestamp = DateTime.Now;
 
-                ResumeAfterHit(hit.ThreadId);
+                    PS3TMAPI.PPUExceptionData exceptionData = specific.Data.PPUException;
+                    hit.ThreadId = exceptionData.ThreadID;
+                    hit.ProgramCounter = exceptionData.PC;
+                    hit.StackPointer = exceptionData.SP;
+
+                    if ((hit.ProgramCounter == 0 || hit.ThreadId == 0) && specific.Data.PPUDataMatException.ThreadID != 0)
+                    {
+                        hit.ThreadId = specific.Data.PPUDataMatException.ThreadID;
+                        hit.ProgramCounter = specific.Data.PPUDataMatException.PC;
+                        hit.StackPointer = specific.Data.PPUDataMatException.SP;
+                    }
+
+                    lastStoppedThreadId = hit.ThreadId;
+                    hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
+                    PublishHit(hit);
+
+                    ResumeAfterHit(hit.ThreadId);
+                }
+                finally
+                {
+                    lock (sync)
+                    {
+                        isProcessingStop = false;
+                    }
+                }
             }
 
             private void RecoverLogAndResumeFromRawCallback()
             {
-                AddressAccessHit hit = new AddressAccessHit();
-                hit.WatchedAddress = Address;
-                hit.Mode = Mode;
-                hit.RawDabr = rawDabr;
-                hit.Timestamp = DateTime.Now;
-
-                ulong recoveredThreadId;
+                StoppedThreadInfo stoppedThread;
                 string recoverError;
-                if (TryRecoverStoppedThread(out recoveredThreadId, out recoverError))
+                if (TryRecoverStoppedThread(out stoppedThread, out recoverError))
                 {
-                    hit.ThreadId = recoveredThreadId;
-                    hit.InstructionBytes = new byte[0];
-                    PublishHit(hit);
-                    PublishDiagnostic("Parsed event was not usable; recovered stopped PPU thread 0x" + hit.ThreadId.ToString("X16") + " and logged PC=0.");
-                    ResumeAfterHit(hit.ThreadId);
+                    ProcessStoppedThreadCandidate(stoppedThread, "raw target callback fallback");
                     return;
                 }
 
@@ -390,9 +406,9 @@ namespace TMAPI_NCAPI
                 ResumeProcessFallback("No stopped PPU thread was recovered from raw callback.");
             }
 
-            private bool TryRecoverStoppedThread(out ulong threadId, out string error)
+            private bool TryRecoverStoppedThread(out StoppedThreadInfo stoppedThread, out string error)
             {
-                threadId = 0;
+                stoppedThread = new StoppedThreadInfo();
                 error = "";
 
                 try
@@ -415,7 +431,7 @@ namespace TMAPI_NCAPI
 
                         if (threadInfo.State == PS3TMAPI.PPUThreadState.Stop)
                         {
-                            threadId = candidateThreadId;
+                            stoppedThread.ThreadId = candidateThreadId;
                             return true;
                         }
                     }
@@ -427,6 +443,94 @@ namespace TMAPI_NCAPI
                 {
                     error = "Stopped-thread recovery failed: " + ex.Message;
                     return false;
+                }
+            }
+
+            private void StartPollingWorker()
+            {
+                stoppedThreadPoller = new Thread(PollStoppedThreads);
+                stoppedThreadPoller.IsBackground = true;
+                stoppedThreadPoller.Name = "TMAPI DABR stopped-thread poller";
+                stoppedThreadPoller.Start();
+                PublishDiagnostic("Stopped-thread polling fallback active.");
+            }
+
+            private void StopPollingWorker()
+            {
+                Thread worker = stoppedThreadPoller;
+                stoppedThreadPoller = null;
+                if (worker == null || worker == Thread.CurrentThread)
+                    return;
+
+                if (!worker.Join(250))
+                    PublishDiagnostic("Stopped-thread polling fallback did not exit before timeout.");
+            }
+
+            private void PollStoppedThreads()
+            {
+                while (IsRunning)
+                {
+                    try
+                    {
+                        StoppedThreadInfo stoppedThread;
+                        string error;
+                        if (TryRecoverStoppedThread(out stoppedThread, out error))
+                        {
+                            if (stoppedThread.ThreadId != lastStoppedThreadId)
+                                ProcessStoppedThreadCandidate(stoppedThread, "polling fallback");
+                        }
+                        else
+                        {
+                            lastStoppedThreadId = 0;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        PublishError("Stopped-thread polling fallback failed: " + ex.Message);
+                    }
+
+                    Thread.Sleep(35);
+                }
+            }
+
+            private void ProcessStoppedThreadCandidate(StoppedThreadInfo stoppedThread, string source)
+            {
+                lock (sync)
+                {
+                    if (!isRunning || isProcessingStop)
+                        return;
+
+                    isProcessingStop = true;
+                    lastStoppedThreadId = stoppedThread.ThreadId;
+                }
+
+                try
+                {
+                    PublishDiagnostic("Stopped thread detected by " + source + ": 0x" + stoppedThread.ThreadId.ToString("X16") + ".");
+
+                    AddressAccessHit hit = new AddressAccessHit();
+                    hit.WatchedAddress = Address;
+                    hit.Mode = Mode;
+                    hit.RawDabr = rawDabr;
+                    hit.Timestamp = DateTime.Now;
+                    hit.ThreadId = stoppedThread.ThreadId;
+                    hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
+
+                    if (hit.ProgramCounter == 0)
+                        hit.Diagnostic = "Stopped thread recovered, but PC/SP are unavailable without a TMAPI exception event.";
+
+                    PublishHit(hit);
+                    if (hit.ProgramCounter != 0)
+                        PublishDiagnostic("Hit logged at PC " + hit.ProgramCounter.ToString("X8") + ".");
+
+                    ResumeAfterHit(stoppedThread.ThreadId);
+                }
+                finally
+                {
+                    lock (sync)
+                    {
+                        isProcessingStop = false;
+                    }
                 }
             }
 
@@ -538,6 +642,11 @@ namespace TMAPI_NCAPI
                 }
 
                 return new string(chars);
+            }
+
+            private struct StoppedThreadInfo
+            {
+                public ulong ThreadId;
             }
         }
 
