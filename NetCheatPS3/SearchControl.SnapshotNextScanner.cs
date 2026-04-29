@@ -178,7 +178,7 @@ namespace NetCheatPS3
                                 });
                         }
 
-                        UpdateScanProgress(blockIndex + 1, matchCount);
+                        UpdateScanProgress(blockIndex + 1, matchCount, visible.Count);
                     }
 
                     output.Complete();
@@ -210,8 +210,7 @@ namespace NetCheatPS3
 
                 double readMb = reader.Stats.BytesRead / (1024.0 * 1024.0);
                 CompleteScanProgress(
-                    "Next Scan complete | Results: " + matchCount.ToString("N0") +
-                    " | Vis: " + searchListView1.TotalCount.ToString("N0") +
+                    "Next Scan complete | " + FormatResultCount(matchCount, searchListView1.TotalCount) +
                     " | OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                     " | Fail: " + reader.Stats.ReadFailures.ToString("N0") +
                     " | MB: " + readMb.ToString("0.0"));

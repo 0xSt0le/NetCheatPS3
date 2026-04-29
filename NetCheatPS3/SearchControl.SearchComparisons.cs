@@ -1480,7 +1480,7 @@ namespace NetCheatPS3
                         }
                     }
 
-                    UpdateScanProgress(blockIndex + 1, totalCount);
+                    UpdateScanProgress(blockIndex + 1, totalCount, visibleCount);
                 }
             }
 
@@ -1499,8 +1499,7 @@ namespace NetCheatPS3
             });
 
             CompleteScanProgress(
-                "Initial Scan complete | Snapshot records: " + totalCount.ToString("N0") +
-                " | Visible: " + visibleCount.ToString("N0") +
+                "Initial Scan complete | " + FormatResultCount(totalCount, visibleCount) +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -1648,7 +1647,7 @@ namespace NetCheatPS3
 
                     processed++;
 
-                    UpdateScanProgress(processed, resultCount);
+                    UpdateScanProgress(processed, resultCount, visibleCount);
                 }
             }
 
@@ -1677,8 +1676,7 @@ namespace NetCheatPS3
             });
 
             CompleteScanProgress(
-                "Next Scan complete | Snapshot results: " + resultCount.ToString("N0") +
-                " | Visible: " + visibleCount.ToString("N0") +
+                "Next Scan complete | " + FormatResultCount(resultCount, visibleCount) +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }

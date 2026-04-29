@@ -109,8 +109,8 @@ namespace NetCheatPS3
             reader.PublishStats("Fuzzy Value scan completed");
 
             CompleteScanProgress(
-                "Initial Scan complete | Fuzzy: " + matchCount.ToString("N0") +
-                " | " + min.ToString("0.###", CultureInfo.InvariantCulture) +
+                "Initial Scan complete | " + FormatResultCount(matchCount, matchCount) +
+                " | Fuzzy range: " + min.ToString("0.###", CultureInfo.InvariantCulture) +
                 "-" + max.ToString("0.###", CultureInfo.InvariantCulture) +
                 " | OK " + reader.Stats.ReadSuccesses.ToString("N0") +
                 "/" + reader.Stats.ReadAttempts.ToString("N0"));

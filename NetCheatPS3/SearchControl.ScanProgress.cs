@@ -18,6 +18,7 @@ namespace NetCheatPS3
         private long scanProgressLastCompletedUnits = -1;
         private int scanProgressLastValue = -1;
         private long scanProgressLastResultCount = -1;
+        private long scanProgressLastVisibleResultCount = -1;
         private long scanProgressLastUiUpdateMs = -1;
 
         // Scan code reports completed/total work units here; it should not mix
@@ -35,16 +36,22 @@ namespace NetCheatPS3
                 scanProgressLastCompletedUnits = -1;
                 scanProgressLastValue = -1;
                 scanProgressLastResultCount = -1;
+                scanProgressLastVisibleResultCount = -1;
                 scanProgressLastUiUpdateMs = -1;
                 scanProgressStopwatch = Stopwatch.StartNew();
             }
 
-            UpdateScanProgressCore(0, 0, true);
+            UpdateScanProgressCore(0, 0, -1, true);
         }
 
         public void UpdateScanProgress(long completedUnits, long resultCount)
         {
-            UpdateScanProgressCore(completedUnits, resultCount, false);
+            UpdateScanProgressCore(completedUnits, resultCount, -1, false);
+        }
+
+        public void UpdateScanProgress(long completedUnits, long resultCount, long visibleResultCount)
+        {
+            UpdateScanProgressCore(completedUnits, resultCount, visibleResultCount, false);
         }
 
         public void UpdateScanProgressText(string text)
@@ -60,7 +67,11 @@ namespace NetCheatPS3
                 totalUnits = scanProgressTotalUnits;
             }
 
-            UpdateScanProgressCore(totalUnits, scanProgressLastResultCount < 0 ? 0 : scanProgressLastResultCount, true);
+            UpdateScanProgressCore(
+                totalUnits,
+                scanProgressLastResultCount < 0 ? 0 : scanProgressLastResultCount,
+                scanProgressLastVisibleResultCount,
+                true);
             SetScanProgressUi(ScanProgressMaximum, finalText);
         }
 
@@ -74,6 +85,7 @@ namespace NetCheatPS3
                 scanProgressLastCompletedUnits = -1;
                 scanProgressLastValue = -1;
                 scanProgressLastResultCount = -1;
+                scanProgressLastVisibleResultCount = -1;
                 scanProgressLastUiUpdateMs = -1;
                 scanProgressStopwatch = null;
             }
@@ -126,7 +138,7 @@ namespace NetCheatPS3
             });
         }
 
-        private void UpdateScanProgressCore(long completedUnits, long resultCount, bool force)
+        private void UpdateScanProgressCore(long completedUnits, long resultCount, long visibleResultCount, bool force)
         {
             string actionName;
             string unitName;
@@ -159,26 +171,41 @@ namespace NetCheatPS3
                 scanProgressLastCompletedUnits = completedUnits;
                 scanProgressLastValue = value;
                 scanProgressLastResultCount = resultCount;
+                scanProgressLastVisibleResultCount = visibleResultCount;
                 scanProgressLastUiUpdateMs = elapsedMs;
                 actionName = scanProgressActionName;
                 unitName = scanProgressUnitName;
             }
 
-            SetScanProgressUi(value, FormatScanProgressText(actionName, value, completedUnits, totalUnits, unitName, resultCount));
+            SetScanProgressUi(value, FormatScanProgressText(actionName, value, completedUnits, totalUnits, unitName, resultCount, visibleResultCount));
         }
 
-        private string FormatScanProgressText(string actionName, int value, long completedUnits, long totalUnits, string unitName, long resultCount)
+        private string FormatScanProgressText(string actionName, int value, long completedUnits, long totalUnits, string unitName, long resultCount, long visibleResultCount)
         {
             double percent = (double)value * 100.0 / (double)ScanProgressMaximum;
             string text = actionName + ": " + percent.ToString("0.0") + "%";
 
             if (resultCount >= 0)
-                text += " | Results: " + resultCount.ToString("N0");
+                text += " | " + FormatResultCount(resultCount, visibleResultCount);
 
             if (!String.IsNullOrEmpty(unitName))
                 text += " | " + completedUnits.ToString("N0") + "/" + totalUnits.ToString("N0") + " " + unitName;
 
             return text;
+        }
+
+        private string FormatResultCount(long totalResults, long visibleResults)
+        {
+            if (totalResults < 0)
+                totalResults = 0;
+
+            if (visibleResults < 0 || visibleResults == totalResults)
+                return "Results: " + totalResults.ToString("N0");
+
+            if (visibleResults > totalResults)
+                visibleResults = totalResults;
+
+            return "Results: " + totalResults.ToString("N0") + " (showing " + visibleResults.ToString("N0") + ")";
         }
 
         private void SetScanProgressUi(int value, string text)

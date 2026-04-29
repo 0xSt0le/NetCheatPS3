@@ -72,7 +72,7 @@ namespace NetCheatPS3
                     {
                         searchMemory.Text = "New Scan";
                         Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
-                        CompleteScanProgress("Initial Scan complete | Results: " + searchListView1.TotalCount.ToString("N0"));
+                        CompleteScanProgress("Initial Scan complete | " + FormatResultCount(GetFinishedScanResultCount(), searchListView1.TotalCount));
                         isInitialScan = false;
                     }
                 });
@@ -169,7 +169,7 @@ namespace NetCheatPS3
                     else
                     {
                         Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
-                        CompleteScanProgress("Next Scan complete | Results: " + searchListView1.TotalCount.ToString("N0"));
+                        CompleteScanProgress("Next Scan complete | " + FormatResultCount(GetFinishedScanResultCount(), searchListView1.TotalCount));
                     }
                 });
             }
@@ -202,6 +202,14 @@ namespace NetCheatPS3
         }
 
         public Thread searchThread;
+
+        private long GetFinishedScanResultCount()
+        {
+            if (HasActiveSnapshot())
+                return activeSnapshotResultCount;
+
+            return searchListView1 == null ? 0 : searchListView1.TotalCount;
+        }
 
         private void nextSearchMem_Click(object sender, EventArgs e)
         {
