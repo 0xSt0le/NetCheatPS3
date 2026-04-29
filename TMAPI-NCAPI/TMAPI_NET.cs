@@ -507,9 +507,9 @@ namespace TMAPI_NCAPI
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3Disconnect", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT DisconnectX86(int target);
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadList", CallingConvention = CallingConvention.Cdecl)]
-        private static extern SNRESULT ThreadListX64(int target, uint processID, uint[] numPPU, ulong[] ppuThreadIDs, uint[] numSPU, ulong[] spuThreadIDs);
+        private static extern SNRESULT ThreadListX64(int target, uint processID, ref uint numPPUThreads, ulong[] ppuThreadIDs, ref uint numSPUThreadGroups, ulong[] spuThreadIDs);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadList", CallingConvention = CallingConvention.Cdecl)]
-        private static extern SNRESULT ThreadListX86(int target, uint processID, uint[] numPPU, ulong[] ppuThreadIDs, uint[] numSPU, ulong[] spuThreadIDs);
+        private static extern SNRESULT ThreadListX86(int target, uint processID, ref uint numPPUThreads, ulong[] ppuThreadIDs, ref uint numSPUThreadGroups, ulong[] spuThreadIDs);
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadContinue", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT ThreadContinueX64(int target, UnitType unit, uint processId, ulong threadId);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadContinue", CallingConvention = CallingConvention.Cdecl)]
@@ -869,26 +869,20 @@ namespace TMAPI_NCAPI
             ppuThreadIDs = new ulong[0];
             spuThreadIDs = new ulong[0];
 
-            uint[] ppu = new uint[1], spu = new uint[1];
-            SNRESULT result;
-            if (!Is32Bit())
-            {
-                result = ThreadListX64(target, processID, ppu, null, spu, null);
-                if (!SUCCEEDED(result))
-                    return result;
+            uint numPpu = 0;
+            uint numSpu = 0;
+            SNRESULT result = !Is32Bit()
+                ? ThreadListX64(target, processID, ref numPpu, null, ref numSpu, null)
+                : ThreadListX86(target, processID, ref numPpu, null, ref numSpu, null);
 
-                ppuThreadIDs = new ulong[ppu[0]];
-                spuThreadIDs = new ulong[spu[0]];
-                return ThreadListX64(target, processID, ppu, ppuThreadIDs, spu, spuThreadIDs);
-            }
-
-            result = ThreadListX86(target, processID, ppu, null, spu, null);
             if (!SUCCEEDED(result))
                 return result;
 
-            ppuThreadIDs = new ulong[ppu[0]];
-            spuThreadIDs = new ulong[spu[0]];
-            return ThreadListX86(target, processID, ppu, ppuThreadIDs, spu, spuThreadIDs);
+            ppuThreadIDs = new ulong[numPpu];
+            spuThreadIDs = new ulong[numSpu];
+            return !Is32Bit()
+                ? ThreadListX64(target, processID, ref numPpu, ppuThreadIDs, ref numSpu, spuThreadIDs)
+                : ThreadListX86(target, processID, ref numPpu, ppuThreadIDs, ref numSpu, spuThreadIDs);
         }
 
         public static SNRESULT GetPPUThreadInfo(int target, uint processID, ulong threadID, out PPUThreadInfo threadInfo)

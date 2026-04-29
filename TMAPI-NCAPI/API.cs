@@ -261,6 +261,9 @@ namespace TMAPI_NCAPI
 
             private void Start()
             {
+                PS3TMAPI.SNRESULT initResult = tmapi.EnsureTargetCommsInitialized();
+                PublishDiagnostic("InitTargetComms: " + initResult.ToString());
+
                 PS3TMAPI.SNRESULT result = tmapi.GetDABR(out oldDabr);
                 savedOldDabr = PS3TMAPI.SUCCEEDED(result);
 
@@ -508,6 +511,7 @@ namespace TMAPI_NCAPI
                 stoppedThreadPoller.Name = "TMAPI DABR stopped-thread poller";
                 stoppedThreadPoller.Start();
                 PublishDiagnostic("Stopped-thread polling fallback active.");
+                PublishInitialThreadListProbe();
             }
 
             private void StopPollingWorker()
@@ -559,6 +563,28 @@ namespace TMAPI_NCAPI
                     }
 
                     Thread.Sleep(35);
+                }
+            }
+
+            private void PublishInitialThreadListProbe()
+            {
+                try
+                {
+                    ulong[] ppuThreadIDs;
+                    ulong[] spuThreadIDs;
+                    PS3TMAPI.SNRESULT listResult = tmapi.GetThreadList(TMAPI.Target, tmapi.SCE.ProcessID(), out ppuThreadIDs, out spuThreadIDs);
+                    int ppuCount = ppuThreadIDs == null ? 0 : ppuThreadIDs.Length;
+                    int spuCount = spuThreadIDs == null ? 0 : spuThreadIDs.Length;
+                    PublishDiagnostic("GetThreadList initial probe: " + listResult.ToString() +
+                        ", PPU=" + ppuCount.ToString("N0") +
+                        ", SPU=" + spuCount.ToString("N0") + ".");
+
+                    if (listResult == PS3TMAPI.SNRESULT.SN_E_DLL_NOT_INITIALISED)
+                        PublishDiagnostic("InitTargetComms last result: " + tmapi.LastTargetCommsInitResult.ToString() + ".");
+                }
+                catch (Exception ex)
+                {
+                    PublishError("GetThreadList initial probe failed: " + ex.Message);
                 }
             }
 

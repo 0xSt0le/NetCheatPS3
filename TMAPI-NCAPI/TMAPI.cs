@@ -24,6 +24,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
@@ -35,9 +36,18 @@ namespace TMAPI_NCAPI
         public static int Target = 0xFF;
         public static bool AssemblyLoaded = true;
         public static PS3TMAPI.ResetParameter resetParameter;
+        private const string LocalProdgBinPath = @"C:\FAST_Apps\SN Systems\PS3\bin";
+        private const string LocalProdgManagedDllPath = @"C:\FAST_Apps\SN Systems\PS3\bin\ps3tmapi_net.dll";
+        private static readonly object _targetCommsInitLock = new object();
+        private static bool _nativeDllDirectoryConfigured = false;
+        private static PS3TMAPI.SNRESULT _lastTargetCommsInitResult = PS3TMAPI.SNRESULT.SN_E_DLL_NOT_INITIALISED;
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool SetDllDirectory(string lpPathName);
 
         public TMAPI()
         {
+            EnsureNativeDllDirectoryConfigured();
             PS3TMAPI_NET();
         }
 
@@ -54,7 +64,7 @@ namespace TMAPI_NCAPI
             {
                 if (Parameters.ConsoleName == null || Parameters.ConsoleName == String.Empty)
                 {
-                    PS3TMAPI.InitTargetComms();
+                    EnsureTargetCommsInitializedStatic();
                     PS3TMAPI.TargetInfo TargetInfo = new PS3TMAPI.TargetInfo();
                     TargetInfo.Flags = PS3TMAPI.TargetInfoFlag.TargetID;
                     TargetInfo.Target = TMAPI.Target;
@@ -129,7 +139,44 @@ namespace TMAPI_NCAPI
 
         public void InitComms()
         {
-            PS3TMAPI.InitTargetComms();
+            EnsureTargetCommsInitialized();
+        }
+
+        public PS3TMAPI.SNRESULT EnsureTargetCommsInitialized()
+        {
+            return EnsureTargetCommsInitializedStatic();
+        }
+
+        public PS3TMAPI.SNRESULT LastTargetCommsInitResult
+        {
+            get { return _lastTargetCommsInitResult; }
+        }
+
+        private static PS3TMAPI.SNRESULT EnsureTargetCommsInitializedStatic()
+        {
+            lock (_targetCommsInitLock)
+            {
+                EnsureNativeDllDirectoryConfigured();
+                _lastTargetCommsInitResult = PS3TMAPI.InitTargetComms();
+                return _lastTargetCommsInitResult;
+            }
+        }
+
+        private static void EnsureNativeDllDirectoryConfigured()
+        {
+            if (_nativeDllDirectoryConfigured)
+                return;
+
+            if (Directory.Exists(LocalProdgBinPath))
+            {
+                SetDllDirectory(LocalProdgBinPath);
+
+                string path = Environment.GetEnvironmentVariable("PATH") ?? "";
+                if (path.IndexOf(LocalProdgBinPath, StringComparison.OrdinalIgnoreCase) < 0)
+                    Environment.SetEnvironmentVariable("PATH", LocalProdgBinPath + ";" + path);
+            }
+
+            _nativeDllDirectoryConfigured = true;
         }
 
         /// <summary>Connect the default target and initialize the dll. Possible to put an int as arugment for determine which target to connect.</summary>
@@ -140,7 +187,7 @@ namespace TMAPI_NCAPI
                 PS3TMAPI_NET();
             AssemblyLoaded = false;
             Target = TargetIndex;
-            result = PS3TMAPI.SUCCEEDED(PS3TMAPI.InitTargetComms());
+            result = PS3TMAPI.SUCCEEDED(EnsureTargetCommsInitialized());
             result = PS3TMAPI.SUCCEEDED(PS3TMAPI.Connect(TargetIndex, null));
             return result;
         }
@@ -152,7 +199,7 @@ namespace TMAPI_NCAPI
             if (AssemblyLoaded)
                 PS3TMAPI_NET();
             AssemblyLoaded = false;
-            result = PS3TMAPI.SUCCEEDED(PS3TMAPI.InitTargetComms());
+            result = PS3TMAPI.SUCCEEDED(EnsureTargetCommsInitialized());
             if (result)
             {
                 result = PS3TMAPI.SUCCEEDED(PS3TMAPI.GetTargetFromName(TargetName, out Target));
@@ -170,18 +217,21 @@ namespace TMAPI_NCAPI
         /// <summary>Get thread list.</summary>
         public PS3TMAPI.SNRESULT GetThreadList(int target, uint processID, out ulong[] ppuThreadIDs, out ulong[] spuThreadIDs)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.GetThreadList(target, processID, out ppuThreadIDs, out spuThreadIDs);
         }
 
         /// <summary>Get thread list.</summary>
         public PS3TMAPI.SNRESULT GetPPUThreadInfo(int target, uint processID, ulong threadID, out PS3TMAPI.PPUThreadInfo threadInfo)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.GetPPUThreadInfo(target, processID, threadID, out threadInfo);
         }
 
         /// <summary>Get target process tree.</summary>
         public PS3TMAPI.SNRESULT GetProcessTree(int target, out PS3TMAPI.ProcessTreeBranch[] processTree)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.GetProcessTree(target, out processTree);
         }
 
@@ -238,46 +288,55 @@ namespace TMAPI_NCAPI
 
         public void ContinueProcess()
         {
+            EnsureTargetCommsInitialized();
             PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
         }
 
         public PS3TMAPI.SNRESULT ProcessContinue()
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
         }
 
         public PS3TMAPI.SNRESULT SetDABR(ulong address)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.SetDABR(Target, Parameters.ProcessID, address);
         }
 
         public PS3TMAPI.SNRESULT GetDABR(out ulong address)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.GetDABR(Target, Parameters.ProcessID, out address);
         }
 
         public PS3TMAPI.SNRESULT RegisterTargetEventHandler(PS3TMAPI.TargetEventCallback callback, ref object userData)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.RegisterTargetEventHandler(Target, callback, ref userData);
         }
 
         public PS3TMAPI.SNRESULT CancelTargetEvents()
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.CancelTargetEvents(Target);
         }
 
         public PS3TMAPI.SNRESULT ThreadExceptionClean(ulong threadID)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.ThreadExceptionClean(Target, Parameters.ProcessID, threadID);
         }
 
         public PS3TMAPI.SNRESULT ThreadContinue(ulong threadID)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.ThreadContinue(Target, PS3TMAPI.UnitType.PPU, Parameters.ProcessID, threadID);
         }
 
         public PS3TMAPI.SNRESULT ThreadGetRegisters(ulong threadID, uint[] registerNums, out ulong[] registerValues)
         {
+            EnsureTargetCommsInitialized();
             return PS3TMAPI.ThreadGetRegisters(Target, PS3TMAPI.UnitType.PPU, Parameters.ProcessID, threadID, registerNums, out registerValues);
         }
 
@@ -285,6 +344,8 @@ namespace TMAPI_NCAPI
         {
             try
             {
+                EnsureTargetCommsInitialized();
+
                 Assembly apiAssembly = PS3TMAPI_NET();
                 if (apiAssembly == null)
                     return "DebugThreadControlInfo unavailable: ps3tmapi_net.dll could not be loaded.";
@@ -521,6 +582,7 @@ namespace TMAPI_NCAPI
                         string pfw6432 = Environment.GetEnvironmentVariable("ProgramW6432");
 
                         List<string> candidates = new List<string>();
+                        candidates.Add(LocalProdgManagedDllPath);
 
                         if (!String.IsNullOrEmpty(baseDir))
                         {
@@ -582,7 +644,7 @@ namespace TMAPI_NCAPI
                 _ps3TmApiResolverRegistered = true;
             }
 
-            return LoadApi;
+            return ResolvePS3TMAPIAssemblyByName("ps3tmapi_net");
         }
 
         private static Assembly ResolvePS3TMAPIAssembly(object sender, ResolveEventArgs e)
@@ -617,6 +679,8 @@ namespace TMAPI_NCAPI
 
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string currentDir = Directory.GetCurrentDirectory();
+
+            addCandidate(LocalProdgManagedDllPath);
 
             addCandidate(Path.Combine(baseDir, dllName));
             addCandidate(Path.Combine(baseDir, "APIs", dllName));
