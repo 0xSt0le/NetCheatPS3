@@ -150,12 +150,7 @@ namespace NetCheatPS3
             string message = Form1.GetConnectionAttachErrorMessage(actionName);
 
             if (message == null)
-            {
-                if (Form1.Instance == null || Form1.Instance.TryValidateAttachedMemoryAccess(actionName, false))
-                    return true;
-
-                return false;
-            }
+                return true;
 
             Form1.SetMainStatusSafe(message);
 
@@ -198,6 +193,10 @@ namespace NetCheatPS3
             if (!EnsureConnectedAndAttachedForResultAction("Edit / Write Value"))
                 return;
 
+            SearchListViewItem item = GetItemAtIndex(itemIndex);
+            if (!ValidateResultAddressForAction("Edit / Write Value", item.addr, item.newVal != null ? item.newVal.Length : 4))
+                return;
+
             BeginEditValueAt(itemIndex, column);
         }
 
@@ -209,6 +208,9 @@ namespace NetCheatPS3
                 return;
 
             if (!EnsureConnectedAndAttachedForResultAction("Edit / Write Value"))
+                return;
+
+            if (!ValidateResultAddressForAction("Edit / Write Value", item.addr, item.newVal != null ? item.newVal.Length : 4))
                 return;
 
             BeginEditValueAt(index, 2);
@@ -497,6 +499,9 @@ namespace NetCheatPS3
                 byte[] displayBytes;
                 byte[] rawBytes = BuildEditedValueBytes(item, column, text, out displayBytes);
 
+                if (!ValidateResultAddressForAction("Write Value", item.addr, rawBytes.Length))
+                    return;
+
                 Form1.apiSetMem(item.addr, rawBytes);
 
                 bool readBackSucceeded = false;
@@ -571,6 +576,31 @@ namespace NetCheatPS3
                     return false;
 
             return true;
+        }
+
+        private bool ValidateResultAddressForAction(string actionName, ulong address, int byteSize)
+        {
+            if (Form1.Instance == null)
+                return false;
+
+            string error;
+            if (Form1.Instance.TryReadProbeBytes(address, byteSize, out error))
+                return true;
+
+            string livenessError;
+            if (Form1.Instance.TryValidateTargetStillAlive(address, out livenessError))
+            {
+                string message = "Result address is not readable/writable. Check the selected result or process attach.";
+                Form1.SetMainStatusSafe(message);
+                if (parentControl != null)
+                    parentControl.SetProgBarText(message);
+
+                MessageBox.Show(message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            Form1.Instance.TryValidateReadableMemoryForAction(actionName, address, byteSize, true, false);
+            return false;
         }
 
         private void copyAddressToolStripMenuItem_Click(object sender, EventArgs e)

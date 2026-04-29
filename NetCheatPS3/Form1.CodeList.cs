@@ -456,8 +456,6 @@ namespace NetCheatPS3
 
             if (!EnsureConnectedAndAttachedForMainAction(actionName))
                 return false;
-            if (!TryValidateAttachedMemoryAccess(actionName, false))
-                return false;
 
             if (index < 0 || index >= Codes.Count)
             {
@@ -472,7 +470,62 @@ namespace NetCheatPS3
                 return false;
             }
 
+            ulong address;
+            if (TryGetWritableAddressForCodeAction(code, true, out address) &&
+                !TryValidateCodeAddressForMemoryAction(actionName, address))
+                return false;
+
             return true;
+        }
+
+        private bool TryGetWritableAddressForCodeAction(CodeDB code, bool includeBackup, out ulong address)
+        {
+            address = 0;
+
+            if (code.CData != null)
+            {
+                foreach (ncCode data in code.CData)
+                {
+                    if ((data.codeType == '0' || data.codeType == '1' || data.codeType == '2') && data.codeArg1 != 0)
+                    {
+                        address = data.codeArg1;
+                        return true;
+                    }
+                }
+            }
+
+            if (includeBackup && code.backUp != null)
+            {
+                foreach (ncCode data in code.backUp)
+                {
+                    if ((data.codeType == '0' || data.codeType == '1' || data.codeType == '2') && data.codeArg1 != 0)
+                    {
+                        address = data.codeArg1;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryValidateCodeAddressForMemoryAction(string actionName, ulong address)
+        {
+            string error;
+            if (TryReadProbeBytes(address, 4, out error))
+                return true;
+
+            string livenessError;
+            if (TryValidateTargetStillAlive(address, out livenessError))
+            {
+                string message = "Code address is not readable/writable. Check the selected code address or process attach.";
+                SetMainStatusSafe(message);
+                MessageBox.Show(message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            TryValidateReadableMemoryForAction(actionName, address, 4, true, false);
+            return false;
         }
 
         private static string GetCodeDisplayName(CodeDB code)

@@ -54,12 +54,28 @@ namespace NetCheatPS3
                     curAPI.Instance.SetBytes(addr, newV);
                     RecordMemoryWriteVerification(addr, newV);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    RecordMemoryWriteFailure(addr, newV, ex.Message);
                     if (connected && attached)
                         ValidateAttachedMemoryStateAfterAccessFailure();
                 }
             }
+        }
+
+        private static void RecordMemoryWriteFailure(ulong addr, byte[] expected, string errorMessage)
+        {
+            if (!memoryWriteVerificationActive || memoryWriteVerificationResults == null)
+                return;
+
+            MemoryWriteVerificationResult result = new MemoryWriteVerificationResult();
+            result.Address = addr;
+            result.Expected = CloneByteArray(expected);
+            result.Actual = new byte[expected != null ? expected.Length : 0];
+            result.ReadSucceeded = false;
+            result.Matches = false;
+            result.ErrorMessage = errorMessage;
+            memoryWriteVerificationResults.Add(result);
         }
 
         private static void RecordMemoryWriteVerification(ulong addr, byte[] expected)
