@@ -235,6 +235,41 @@ namespace TMAPI_NCAPI
             PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
         }
 
+        public PS3TMAPI.SNRESULT SetDABR(ulong address)
+        {
+            return PS3TMAPI.SetDABR(Target, Parameters.ProcessID, address);
+        }
+
+        public PS3TMAPI.SNRESULT GetDABR(out ulong address)
+        {
+            return PS3TMAPI.GetDABR(Target, Parameters.ProcessID, out address);
+        }
+
+        public PS3TMAPI.SNRESULT RegisterTargetEventHandler(PS3TMAPI.TargetEventCallback callback, ref object userData)
+        {
+            return PS3TMAPI.RegisterTargetEventHandler(Target, callback, ref userData);
+        }
+
+        public PS3TMAPI.SNRESULT CancelTargetEvents()
+        {
+            return PS3TMAPI.CancelTargetEvents(Target);
+        }
+
+        public PS3TMAPI.SNRESULT ThreadExceptionClean(ulong threadID)
+        {
+            return PS3TMAPI.ThreadExceptionClean(Target, Parameters.ProcessID, threadID);
+        }
+
+        public PS3TMAPI.SNRESULT ThreadContinue(ulong threadID)
+        {
+            return PS3TMAPI.ThreadContinue(Target, PS3TMAPI.UnitType.PPU, Parameters.ProcessID, threadID);
+        }
+
+        public PS3TMAPI.SNRESULT ThreadGetRegisters(ulong threadID, uint[] registerNums, out ulong[] registerValues)
+        {
+            return PS3TMAPI.ThreadGetRegisters(Target, PS3TMAPI.UnitType.PPU, Parameters.ProcessID, threadID, registerNums, out registerValues);
+        }
+
         /// <summary>Set memory to the target (byte[]).</summary>
         public void SetMemory(uint Address, byte[] Bytes)
         {

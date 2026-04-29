@@ -5,6 +5,43 @@ using System.Text;
 
 namespace NCAppInterface
 {
+    public enum AddressAccessMode
+    {
+        Read,
+        Write
+    }
+
+    public sealed class AddressAccessHit
+    {
+        public ulong WatchedAddress { get; set; }
+        public ulong ProgramCounter { get; set; }
+        public ulong StackPointer { get; set; }
+        public ulong ThreadId { get; set; }
+        public ulong RawDabr { get; set; }
+        public AddressAccessMode Mode { get; set; }
+        public byte[] InstructionBytes { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Error { get; set; }
+    }
+
+    public interface IAddressAccessLoggerApi
+    {
+        bool SupportsAddressAccessLogging { get; }
+
+        IAddressAccessLoggerSession StartAddressAccessLogger(
+            ulong address,
+            AddressAccessMode mode,
+            Action<AddressAccessHit> hitCallback);
+    }
+
+    public interface IAddressAccessLoggerSession : IDisposable
+    {
+        ulong Address { get; }
+        AddressAccessMode Mode { get; }
+        bool IsRunning { get; }
+        void Stop();
+    }
+
     /// <summary>
     /// Interface for the API.cs file in all NetCheat PS3 APIs.
     /// Contains all elements NetCheat needs for the API.

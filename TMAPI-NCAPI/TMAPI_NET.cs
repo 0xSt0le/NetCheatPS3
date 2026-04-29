@@ -85,6 +85,73 @@ namespace TMAPI_NCAPI
             SPURAW
         }
 
+        public enum EventType
+        {
+            TTY = 100,
+            Target = 101,
+            System = 102,
+            FTP = 103,
+            PadCapture = 104,
+            FileTrace = 105,
+            PadPlayback = 106,
+            Server = 107
+        }
+
+        public enum TargetEventType : uint
+        {
+            TargetSpecific = 0x80000000
+        }
+
+        public enum TargetSpecificEventType : uint
+        {
+            PPUExcDabrMatch = 25
+        }
+
+        public delegate void TargetEventCallback(int target, SNRESULT res, TargetEvent[] targetEventList, object userData);
+
+        private delegate void HandleEventCallbackPriv(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData);
+
+        public struct TargetEvent
+        {
+            public uint TargetID;
+            public TargetEventType Type;
+            public TargetSpecificEvent TargetSpecific;
+        }
+
+        public struct TargetSpecificEvent
+        {
+            public uint CommandID;
+            public uint RequestID;
+            public uint ProcessID;
+            public uint Result;
+            public TargetSpecificData Data;
+        }
+
+        public struct TargetSpecificData
+        {
+            public TargetSpecificEventType Type;
+            public PPUExceptionData PPUException;
+            public PPUDataMatExceptionData PPUDataMatException;
+        }
+
+        public struct PPUExceptionData
+        {
+            public ulong ThreadID;
+            public uint HWThreadNumber;
+            public ulong PC;
+            public ulong SP;
+        }
+
+        public struct PPUDataMatExceptionData
+        {
+            public ulong ThreadID;
+            public uint HWThreadNumber;
+            public ulong DSISR;
+            public ulong DAR;
+            public ulong PC;
+            public ulong SP;
+        }
+
         [Flags]
         public enum ResetParameter : ulong
         {
@@ -288,6 +355,18 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT ThreadListX64(int target, uint processID, uint[] numPPU, ulong[] ppuThreadIDs, uint[] numSPU, ulong[] spuThreadIDs);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadList", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT ThreadListX86(int target, uint processID, uint[] numPPU, ulong[] ppuThreadIDs, uint[] numSPU, ulong[] spuThreadIDs);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadContinue", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ThreadContinueX64(int target, UnitType unit, uint processId, ulong threadId);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadContinue", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ThreadContinueX86(int target, UnitType unit, uint processId, ulong threadId);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadExceptionClean", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ThreadExceptionCleanX64(int target, uint processId, ulong threadId);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadExceptionClean", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ThreadExceptionCleanX86(int target, uint processId, ulong threadId);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadGetRegisters", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ThreadGetRegistersX64(int target, UnitType unit, uint processId, ulong threadId, uint numRegisters, uint[] registerNums, ulong[] registerValues);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadGetRegisters", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ThreadGetRegistersX86(int target, UnitType unit, uint processId, ulong threadId, uint numRegisters, uint[] registerNums, ulong[] registerValues);
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3PPUThreadInfoEx", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT PPUThreadInfoX64(int target, uint processID, ulong threadID, uint[] bufferSize, byte[] buffer);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3PPUThreadInfoEx", CallingConvention = CallingConvention.Cdecl)]
@@ -296,6 +375,26 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT GetProcessInfoX64(int target, uint processID, out ProcessInfo pInfo);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3GetProcessInfo", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT GetProcessInfoX86(int target, uint processID, out ProcessInfo pInfo);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3SetDABR", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT SetDABRX64(int target, uint processId, ulong address);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3SetDABR", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT SetDABRX86(int target, uint processId, ulong address);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3GetDABR", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT GetDABRX64(int target, uint processId, out ulong address);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3GetDABR", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT GetDABRX86(int target, uint processId, out ulong address);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3RegisterTargetEventHandler", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT RegisterTargetEventHandlerX64(int target, HandleEventCallbackPriv callback, IntPtr userData);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3RegisterTargetEventHandler", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT RegisterTargetEventHandlerX86(int target, HandleEventCallbackPriv callback, IntPtr userData);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3CancelTargetEvents", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT CancelTargetEventsX64(int target);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3CancelTargetEvents", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT CancelTargetEventsX86(int target);
+
+        private static readonly HandleEventCallbackPriv targetEventCallbackWrapper = MarshalTargetEvent;
+        private static TargetEventCallback targetEventCallback;
+        private static object targetEventUserData;
 
         private static bool Is32Bit()
         {
@@ -418,6 +517,37 @@ namespace TMAPI_NCAPI
             return ProcessContinueX86(target, processID);
         }
 
+        public static SNRESULT ThreadContinue(int target, UnitType unit, uint processID, ulong threadID)
+        {
+            if (!Is32Bit())
+            {
+                return ThreadContinueX64(target, unit, processID, threadID);
+            }
+            return ThreadContinueX86(target, unit, processID, threadID);
+        }
+
+        public static SNRESULT ThreadExceptionClean(int target, uint processID, ulong threadID)
+        {
+            if (!Is32Bit())
+            {
+                return ThreadExceptionCleanX64(target, processID, threadID);
+            }
+            return ThreadExceptionCleanX86(target, processID, threadID);
+        }
+
+        public static SNRESULT ThreadGetRegisters(int target, UnitType unit, uint processID, ulong threadID, uint[] registerNums, out ulong[] registerValues)
+        {
+            if (registerNums == null)
+                registerNums = new uint[0];
+
+            registerValues = new ulong[registerNums.Length];
+            if (!Is32Bit())
+            {
+                return ThreadGetRegistersX64(target, unit, processID, threadID, (uint)registerNums.Length, registerNums, registerValues);
+            }
+            return ThreadGetRegistersX86(target, unit, processID, threadID, (uint)registerNums.Length, registerNums, registerValues);
+        }
+
         public static SNRESULT GetTargetInfo(ref TargetInfo targetInfo)
         {
             TargetInfoPriv targetInfoPriv = new TargetInfoPriv
@@ -500,6 +630,44 @@ namespace TMAPI_NCAPI
             return ProcessSetMemoryX86(target, unit, processID, threadID, address, buffer.Length, buffer);
         }
 
+        public static SNRESULT SetDABR(int target, uint processID, ulong address)
+        {
+            if (!Is32Bit())
+            {
+                return SetDABRX64(target, processID, address);
+            }
+            return SetDABRX86(target, processID, address);
+        }
+
+        public static SNRESULT GetDABR(int target, uint processID, out ulong address)
+        {
+            if (!Is32Bit())
+            {
+                return GetDABRX64(target, processID, out address);
+            }
+            return GetDABRX86(target, processID, out address);
+        }
+
+        public static SNRESULT RegisterTargetEventHandler(int target, TargetEventCallback callback, ref object userData)
+        {
+            targetEventCallback = callback;
+            targetEventUserData = userData;
+
+            if (!Is32Bit())
+            {
+                return RegisterTargetEventHandlerX64(target, targetEventCallbackWrapper, IntPtr.Zero);
+            }
+            return RegisterTargetEventHandlerX86(target, targetEventCallbackWrapper, IntPtr.Zero);
+        }
+
+        public static SNRESULT CancelTargetEvents(int target)
+        {
+            SNRESULT result = !Is32Bit() ? CancelTargetEventsX64(target) : CancelTargetEventsX86(target);
+            targetEventCallback = null;
+            targetEventUserData = null;
+            return result;
+        }
+
         public static SNRESULT Disconnect(int target)
         {
             if (!Is32Bit())
@@ -550,6 +718,118 @@ namespace TMAPI_NCAPI
             threadInfo.ThreadName = TMAPI.ByteArrayToString(buffer, 0x28, 0);
 
             return ret;
+        }
+
+        private static void MarshalTargetEvent(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData)
+        {
+            TargetEventCallback callback = targetEventCallback;
+            if (callback == null)
+                return;
+
+            TargetEvent[] events = ParseTargetEvents(length, data);
+            callback(target, result, events, targetEventUserData);
+        }
+
+        private static TargetEvent[] ParseTargetEvents(uint length, IntPtr data)
+        {
+            if (data == IntPtr.Zero || length == 0)
+                return new TargetEvent[0];
+
+            List<TargetEvent> events = new List<TargetEvent>();
+            int offset = 0;
+            int totalLength = length > Int32.MaxValue ? Int32.MaxValue : (int)length;
+
+            while (offset + 12 <= totalLength)
+            {
+                uint size = (uint)Marshal.ReadInt32(data, offset);
+                uint targetId = (uint)Marshal.ReadInt32(data, offset + 4);
+                TargetEventType eventType = (TargetEventType)(uint)Marshal.ReadInt32(data, offset + 8);
+
+                if (size < 12 || offset + size > totalLength)
+                    break;
+
+                TargetEvent targetEvent = new TargetEvent();
+                targetEvent.TargetID = targetId;
+                targetEvent.Type = eventType;
+
+                if (eventType == TargetEventType.TargetSpecific)
+                    targetEvent.TargetSpecific = ReadTargetSpecificEvent(data, offset + 12, totalLength - (offset + 12));
+
+                events.Add(targetEvent);
+                offset += (int)size;
+            }
+
+            if (events.Count == 0)
+            {
+                TargetEvent targetEvent = TryReadDirectTargetEvent(data, totalLength);
+                if (targetEvent.Type == TargetEventType.TargetSpecific)
+                    events.Add(targetEvent);
+            }
+
+            return events.ToArray();
+        }
+
+        private static TargetEvent TryReadDirectTargetEvent(IntPtr data, int totalLength)
+        {
+            TargetEvent targetEvent = new TargetEvent();
+
+            if (totalLength < 60)
+                return targetEvent;
+
+            targetEvent.TargetID = (uint)Marshal.ReadInt32(data, 0);
+            targetEvent.Type = (TargetEventType)(uint)Marshal.ReadInt32(data, 4);
+            if (targetEvent.Type == TargetEventType.TargetSpecific)
+                targetEvent.TargetSpecific = ReadTargetSpecificEvent(data, 56, totalLength - 56);
+
+            return targetEvent;
+        }
+
+        private static TargetSpecificEvent ReadTargetSpecificEvent(IntPtr data, int offset, int available)
+        {
+            TargetSpecificEvent targetSpecific = new TargetSpecificEvent();
+            if (available < 64)
+                return targetSpecific;
+
+            targetSpecific.CommandID = (uint)Marshal.ReadInt32(data, offset);
+            targetSpecific.RequestID = (uint)Marshal.ReadInt32(data, offset + 4);
+            targetSpecific.ProcessID = (uint)Marshal.ReadInt32(data, offset + 8);
+            targetSpecific.Result = (uint)Marshal.ReadInt32(data, offset + 12);
+
+            int dataOffset = offset + 16;
+            targetSpecific.Data.Type = (TargetSpecificEventType)(uint)Marshal.ReadInt32(data, dataOffset);
+            targetSpecific.Data.PPUException = ReadPPUExceptionData(data, dataOffset + 32, available - 48);
+            if (available >= 160)
+                targetSpecific.Data.PPUDataMatException = ReadPPUDataMatExceptionData(data, dataOffset + 112, available - 128);
+
+            return targetSpecific;
+        }
+
+        private static PPUExceptionData ReadPPUExceptionData(IntPtr data, int offset, int available)
+        {
+            PPUExceptionData exceptionData = new PPUExceptionData();
+            if (available < 32)
+                return exceptionData;
+
+            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, offset);
+            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, offset + 8);
+            exceptionData.PC = (ulong)Marshal.ReadInt64(data, offset + 16);
+            exceptionData.SP = (ulong)Marshal.ReadInt64(data, offset + 24);
+            return exceptionData;
+        }
+
+        private static PPUDataMatExceptionData ReadPPUDataMatExceptionData(IntPtr data, int offset, int available)
+        {
+            PPUDataMatExceptionData exceptionData = new PPUDataMatExceptionData();
+            if (available < 48)
+                return exceptionData;
+
+            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, offset);
+            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, offset + 8);
+            exceptionData.DSISR = (ulong)Marshal.ReadInt64(data, offset + 16);
+            exceptionData.DAR = (ulong)Marshal.ReadInt64(data, offset + 24);
+            exceptionData.PC = (ulong)Marshal.ReadInt64(data, offset + 32);
+            exceptionData.SP = (ulong)Marshal.ReadInt64(data, offset + 40);
+            return exceptionData;
         }
 
     }

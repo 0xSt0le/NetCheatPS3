@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
+using NCAppInterface;
 
 namespace NetCheatPS3
 {
@@ -14,6 +15,8 @@ namespace NetCheatPS3
         private ToolStripMenuItem copyNetCheatCodeToolStripMenuItem;
         private ToolStripMenuItem setScanToThisRegionToolStripMenuItem;
         private ToolStripMenuItem editWriteValueToolStripMenuItem;
+        private ToolStripMenuItem findWritesToolStripMenuItem;
+        private ToolStripMenuItem findReadsToolStripMenuItem;
 
         private void InitializeModernResultUi()
         {
@@ -70,11 +73,21 @@ namespace NetCheatPS3
             editWriteValueToolStripMenuItem.Name = "editWriteValueToolStripMenuItem";
             editWriteValueToolStripMenuItem.Click += editWriteValueToolStripMenuItem_Click;
 
+            findWritesToolStripMenuItem = new ToolStripMenuItem("Find out what Writes To this address");
+            findWritesToolStripMenuItem.Name = "findWritesToolStripMenuItem";
+            findWritesToolStripMenuItem.Click += findWritesToolStripMenuItem_Click;
+
+            findReadsToolStripMenuItem = new ToolStripMenuItem("Find out what Reads From this address");
+            findReadsToolStripMenuItem.Name = "findReadsToolStripMenuItem";
+            findReadsToolStripMenuItem.Click += findReadsToolStripMenuItem_Click;
+
             contextMenuStrip1.Items.Insert(0, copyAddressToolStripMenuItem);
             contextMenuStrip1.Items.Insert(1, copyNetCheatCodeToolStripMenuItem);
             contextMenuStrip1.Items.Insert(2, setScanToThisRegionToolStripMenuItem);
             contextMenuStrip1.Items.Insert(3, editWriteValueToolStripMenuItem);
-            contextMenuStrip1.Items.Insert(4, new ToolStripSeparator());
+            contextMenuStrip1.Items.Insert(4, findWritesToolStripMenuItem);
+            contextMenuStrip1.Items.Insert(5, findReadsToolStripMenuItem);
+            contextMenuStrip1.Items.Insert(6, new ToolStripSeparator());
         }
 
         private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
@@ -82,14 +95,29 @@ namespace NetCheatPS3
             bool hasItems = TotalCount > 0;
             bool hasSelection = SelectedIndices != null && SelectedIndices.Count > 0 && SelectedIndices[0] >= 0 && SelectedIndices[0] < TotalCount;
             bool canUseMemory = hasSelection && Form1.connected && Form1.attached;
+            bool canUseAddressAccessLogger = canUseMemory && GetAddressAccessLoggerApi() != null;
 
             SetContextMenuItemEnabled("copyAddressToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("copyNetCheatCodeToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("setScanToThisRegionToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("editWriteValueToolStripMenuItem", canUseMemory);
+            SetContextMenuItemEnabled("findWritesToolStripMenuItem", canUseAddressAccessLogger);
+            SetContextMenuItemEnabled("findReadsToolStripMenuItem", canUseAddressAccessLogger);
             SetContextMenuItemEnabled("deleteToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("selectAllToolStripMenuItem", hasItems);
             SetContextMenuItemEnabled("refreshFromPS3ToolStripMenuItem", hasItems && Form1.connected && Form1.attached);
+        }
+
+        private IAddressAccessLoggerApi GetAddressAccessLoggerApi()
+        {
+            if (Form1.curAPI == null || Form1.curAPI.Instance == null)
+                return null;
+
+            IAddressAccessLoggerApi loggerApi = Form1.curAPI.Instance as IAddressAccessLoggerApi;
+            if (loggerApi == null || !loggerApi.SupportsAddressAccessLogging)
+                return null;
+
+            return loggerApi;
         }
 
         private void SetContextMenuItemEnabled(string itemName, bool enabled)
@@ -214,6 +242,52 @@ namespace NetCheatPS3
                 return;
 
             BeginEditValueAt(index, 2);
+        }
+
+        private void findWritesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            StartAddressAccessLogger(AddressAccessMode.Write);
+        }
+
+        private void findReadsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            StartAddressAccessLogger(AddressAccessMode.Read);
+        }
+
+        private void StartAddressAccessLogger(AddressAccessMode mode)
+        {
+            int index;
+            SearchListViewItem item;
+            if (!TryGetPrimarySelectedItem(out index, out item))
+                return;
+
+            if (!EnsureConnectedAndAttachedForResultAction(mode == AddressAccessMode.Write ? "Find Writes" : "Find Reads"))
+                return;
+
+            IAddressAccessLoggerApi loggerApi = GetAddressAccessLoggerApi();
+            if (loggerApi == null)
+            {
+                MessageBox.Show(
+                    "The current API does not support address access logging.",
+                    "NetCheatPS3",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                AddressAccessLoggerForm form = new AddressAccessLoggerForm(loggerApi, item.addr, mode);
+                form.Show(Form1.Instance);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Could not start address access logger: " + ex.Message,
+                    "NetCheatPS3",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
 
         private void BeginEditValueAt(int itemIndex, int column)
