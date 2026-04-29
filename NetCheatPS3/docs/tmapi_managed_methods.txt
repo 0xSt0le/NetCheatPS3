@@ -1,0 +1,1125 @@
+Assembly: C:\FAST_Apps\SN Systems\PS3\bin\ps3tmapi_net.dll
+FullName: PS3TMAPI_NET, Version=470.1.3.7, Culture=neutral, PublicKeyToken=null
+Filter terms: Break, Breakpoint, DABR, HWBreak, Watch, Debug, Exception, Event, Register, Context, Thread, Stop, Continue, Process, PPU, Memory, NIP, PC, ProgramCounter, Instruction
+
+TYPE PS3TMAPI
+  METHOD private static PS3TMAPI+SNRESULT RegisterServerEventHandlerX86(PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterServerEventHandlerX64(PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterServerEventHandler(PS3TMAPI+ServerEventCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterServerEventHandlerX86()
+  METHOD private static PS3TMAPI+SNRESULT UnregisterServerEventHandlerX64()
+  METHOD public static PS3TMAPI+SNRESULT UnregisterServerEventHandler()
+  METHOD private static System.Void MarshalServerEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT RegisterTtyEventHandlerX86(System.Int32 target, System.UInt32 streamIndex, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterTtyEventHandlerX64(System.Int32 target, System.UInt32 streamIndex, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterTTYEventHandler(System.Int32 target, System.UInt32 streamID, PS3TMAPI+TTYCallback callback, System.Object& userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterTTYEventHandlerRaw(System.Int32 target, System.UInt32 streamID, PS3TMAPI+TTYCallbackRaw callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterTTYEventHandlerHelper(System.Int32 target, System.UInt32 streamID, System.Object callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT CancelTtyEventsX86(System.Int32 target, System.UInt32 index)
+  METHOD private static PS3TMAPI+SNRESULT CancelTtyEventsX64(System.Int32 target, System.UInt32 index)
+  METHOD public static PS3TMAPI+SNRESULT CancelTTYEvents(System.Int32 target, System.UInt32 streamID)
+  METHOD private static System.Void MarshalTTYEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT ProcessLoadX86(System.Int32 target, System.UInt32 priority, System.IntPtr fileName, System.Int32 argCount, System.String[] args, System.Int32 envCount, System.String[] env, System.UInt32& processId, System.UInt64& threadId, System.UInt32 flags)
+  METHOD private static PS3TMAPI+SNRESULT ProcessLoadX64(System.Int32 target, System.UInt32 priority, System.IntPtr fileName, System.Int32 argCount, System.String[] args, System.Int32 envCount, System.String[] env, System.UInt32& processId, System.UInt64& threadId, System.UInt32 flags)
+  METHOD public static PS3TMAPI+SNRESULT ProcessLoad(System.Int32 target, System.UInt32 priority, System.String fileName, System.String[] argv, System.String[] envv, System.UInt32& processID, System.UInt64& threadID, PS3TMAPI+LoadFlag loadFlags)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessListX86(System.Int32 target, System.UInt32& count, System.IntPtr processIdArray)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessListX64(System.Int32 target, System.UInt32& count, System.IntPtr processIdArray)
+  METHOD public static PS3TMAPI+SNRESULT GetProcessList(System.Int32 target, System.UInt32[]& processIDs)
+  METHOD private static PS3TMAPI+SNRESULT GetUserProcessListX86(System.Int32 target, System.UInt32& count, System.IntPtr processIdArray)
+  METHOD private static PS3TMAPI+SNRESULT GetUserProcessListX64(System.Int32 target, System.UInt32& count, System.IntPtr processIdArray)
+  METHOD public static PS3TMAPI+SNRESULT GetUserProcessList(System.Int32 target, System.UInt32[]& processIDs)
+  METHOD private static PS3TMAPI+SNRESULT ProcessStopX86(System.Int32 target, System.UInt32 processId)
+  METHOD private static PS3TMAPI+SNRESULT ProcessStopX64(System.Int32 target, System.UInt32 processId)
+  METHOD public static PS3TMAPI+SNRESULT ProcessStop(System.Int32 target, System.UInt32 processID)
+  METHOD private static PS3TMAPI+SNRESULT ProcessContinueX86(System.Int32 target, System.UInt32 processId)
+  METHOD private static PS3TMAPI+SNRESULT ProcessContinueX64(System.Int32 target, System.UInt32 processId)
+  METHOD public static PS3TMAPI+SNRESULT ProcessContinue(System.Int32 target, System.UInt32 processID)
+  METHOD private static PS3TMAPI+SNRESULT ProcessKillX86(System.Int32 target, System.UInt32 processId)
+  METHOD private static PS3TMAPI+SNRESULT ProcessKillX64(System.Int32 target, System.UInt32 processId)
+  METHOD public static PS3TMAPI+SNRESULT ProcessKill(System.Int32 target, System.UInt32 processID)
+  METHOD private static PS3TMAPI+SNRESULT TerminateGameProcessX86(System.Int32 target, System.UInt32 processId, System.UInt32 timeout)
+  METHOD private static PS3TMAPI+SNRESULT TerminateGameProcessX64(System.Int32 target, System.UInt32 processId, System.UInt32 timeout)
+  METHOD public static PS3TMAPI+SNRESULT TerminateGameProcess(System.Int32 target, System.UInt32 processID, System.UInt32 timeout)
+  METHOD private static PS3TMAPI+SNRESULT GetThreadListX86(System.Int32 target, System.UInt32 processId, System.UInt32& numPPUThreads, System.UInt64[] ppuThreadIds, System.UInt32& numSPUThreadGroups, System.UInt64[] spuThreadGroupIds)
+  METHOD private static PS3TMAPI+SNRESULT GetThreadListX64(System.Int32 target, System.UInt32 processId, System.UInt32& numPPUThreads, System.UInt64[] ppuThreadIds, System.UInt32& numSPUThreadGroups, System.UInt64[] spuThreadGroupIds)
+  METHOD public static PS3TMAPI+SNRESULT GetThreadList(System.Int32 target, System.UInt32 processID, System.UInt64[]& ppuThreadIDs, System.UInt64[]& spuThreadGroupIDs)
+  METHOD private static PS3TMAPI+SNRESULT ThreadStopX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId)
+  METHOD private static PS3TMAPI+SNRESULT ThreadStopX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId)
+  METHOD public static PS3TMAPI+SNRESULT ThreadStop(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID)
+  METHOD private static PS3TMAPI+SNRESULT ThreadContinueX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId)
+  METHOD private static PS3TMAPI+SNRESULT ThreadContinueX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId)
+  METHOD public static PS3TMAPI+SNRESULT ThreadContinue(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID)
+  METHOD private static PS3TMAPI+SNRESULT ThreadGetRegistersX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32 numRegisters, System.UInt32[] registerNums, System.UInt64[] registerValues)
+  METHOD private static PS3TMAPI+SNRESULT ThreadGetRegistersX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32 numRegisters, System.UInt32[] registerNums, System.UInt64[] registerValues)
+  METHOD public static PS3TMAPI+SNRESULT ThreadGetRegisters(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt32[] registerNums, System.UInt64[]& registerValues)
+  METHOD private static PS3TMAPI+SNRESULT ThreadSetRegistersX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32 numRegisters, System.UInt32[] registerNums, System.UInt64[] registerValues)
+  METHOD private static PS3TMAPI+SNRESULT ThreadSetRegistersX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32 numRegisters, System.UInt32[] registerNums, System.UInt64[] registerValues)
+  METHOD public static PS3TMAPI+SNRESULT ThreadSetRegisters(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt32[] registerNums, System.UInt64[] registerValues)
+  METHOD private static System.Void ProcessInfoMarshalHelper(System.IntPtr unmanagedBuf, PS3TMAPI+ProcessInfo& processInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessInfoX86(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr processInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessInfoX64(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr processInfo)
+  METHOD public static PS3TMAPI+SNRESULT GetProcessInfo(System.Int32 target, System.UInt32 processID, PS3TMAPI+ProcessInfo& processInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessInfoExX86(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr processInfo, PS3TMAPI+ExtraProcessInfo& extraProcessInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessInfoExX64(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr processInfo, PS3TMAPI+ExtraProcessInfo& extraProcessInfo)
+  METHOD public static PS3TMAPI+SNRESULT GetProcessInfoEx(System.Int32 target, System.UInt32 processID, PS3TMAPI+ProcessInfo& processInfo, PS3TMAPI+ExtraProcessInfo& extraProcessInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessInfoEx2X86(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr processInfo, PS3TMAPI+ExtraProcessInfo& extraProcessInfo, PS3TMAPI+ProcessLoadInfo& processLoadInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessInfoEx2X64(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr processInfo, PS3TMAPI+ExtraProcessInfo& extraProcessInfo, PS3TMAPI+ProcessLoadInfo& processLoadInfo)
+  METHOD public static PS3TMAPI+SNRESULT GetProcessInfoEx2(System.Int32 target, System.UInt32 processID, PS3TMAPI+ProcessInfo& processInfo, PS3TMAPI+ExtraProcessInfo& extraProcessInfo, PS3TMAPI+ProcessLoadInfo& processLoadInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetThreadInfoX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetThreadInfoX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetPPUThreadInfo(System.Int32 target, System.UInt32 processID, System.UInt64 threadID, PS3TMAPI+PPUThreadInfo& threadInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetPPUThreadInfoExX86(System.Int32 target, System.UInt32 processId, System.UInt64 threadId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetPPUThreadInfoExX64(System.Int32 target, System.UInt32 processId, System.UInt64 threadId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetPPUThreadInfoEx(System.Int32 target, System.UInt32 processID, System.UInt64 threadID, PS3TMAPI+PPUThreadInfoEx& threadInfoEx)
+  METHOD public static PS3TMAPI+SNRESULT GetSPUThreadInfo(System.Int32 target, System.UInt32 processID, System.UInt64 threadID, PS3TMAPI+SPUThreadInfo& threadInfo)
+  METHOD private static PS3TMAPI+SNRESULT SetDefaultPPUThreadStackSizeX86(System.Int32 target, PS3TMAPI+ELFStackSize size)
+  METHOD private static PS3TMAPI+SNRESULT SetDefaultPPUThreadStackSizeX64(System.Int32 target, PS3TMAPI+ELFStackSize size)
+  METHOD public static PS3TMAPI+SNRESULT SetDefaultPPUThreadStackSize(System.Int32 target, PS3TMAPI+ELFStackSize stackSize)
+  METHOD private static PS3TMAPI+SNRESULT GetDefaultPPUThreadStackSizeX86(System.Int32 target, PS3TMAPI+ELFStackSize& size)
+  METHOD private static PS3TMAPI+SNRESULT GetDefaultPPUThreadStackSizeX64(System.Int32 target, PS3TMAPI+ELFStackSize& size)
+  METHOD public static PS3TMAPI+SNRESULT GetDefaultPPUThreadStackSize(System.Int32 target, PS3TMAPI+ELFStackSize& stackSize)
+  METHOD private static PS3TMAPI+SNRESULT SetBreakPointX86(System.Int32 target, System.UInt32 unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address)
+  METHOD private static PS3TMAPI+SNRESULT SetBreakPointX64(System.Int32 target, System.UInt32 unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address)
+  METHOD public static PS3TMAPI+SNRESULT SetBreakPoint(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt64 address)
+  METHOD private static PS3TMAPI+SNRESULT ClearBreakPointX86(System.Int32 target, System.UInt32 unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address)
+  METHOD private static PS3TMAPI+SNRESULT ClearBreakPointX64(System.Int32 target, System.UInt32 unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address)
+  METHOD public static PS3TMAPI+SNRESULT ClearBreakPoint(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt64 address)
+  METHOD private static PS3TMAPI+SNRESULT GetBreakPointsX86(System.Int32 target, System.UInt32 unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32& numBreakpoints, System.UInt64[] addresses)
+  METHOD private static PS3TMAPI+SNRESULT GetBreakPointsX64(System.Int32 target, System.UInt32 unit, System.UInt32 processId, System.UInt64 threadId, System.UInt32& numBreakpoints, System.UInt64[] addresses)
+  METHOD public static PS3TMAPI+SNRESULT GetBreakPoints(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt64[]& bpAddresses)
+  METHOD private static PS3TMAPI+SNRESULT GetDebugThreadControlInfoX86(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetDebugThreadControlInfoX64(System.Int32 target, System.UInt32 processId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetDebugThreadControlInfo(System.Int32 target, System.UInt32 processID, PS3TMAPI+DebugThreadControlInfo& threadCtrlInfo)
+  METHOD private static PS3TMAPI+SNRESULT SetDebugThreadControlInfoX86(System.Int32 target, System.UInt32 processId, System.IntPtr threadCtrlInfo, System.UInt32& maxEntries)
+  METHOD private static PS3TMAPI+SNRESULT SetDebugThreadControlInfoX64(System.Int32 target, System.UInt32 processId, System.IntPtr threadCtrlInfo, System.UInt32& maxEntries)
+  METHOD public static PS3TMAPI+SNRESULT SetDebugThreadControlInfo(System.Int32 target, System.UInt32 processID, PS3TMAPI+DebugThreadControlInfo threadCtrlInfo, System.UInt32& maxEntries)
+  METHOD private static PS3TMAPI+SNRESULT ThreadExceptionCleanX86(System.Int32 target, System.UInt32 processId, System.UInt64 threadId)
+  METHOD private static PS3TMAPI+SNRESULT ThreadExceptionCleanX64(System.Int32 target, System.UInt32 processId, System.UInt64 threadId)
+  METHOD public static PS3TMAPI+SNRESULT ThreadExceptionClean(System.Int32 target, System.UInt32 processID, System.UInt64 threadID)
+  METHOD private static PS3TMAPI+SNRESULT SPUThreadGroupStopX86(System.Int32 target, System.UInt32 processId, System.UInt64 threadGroupId)
+  METHOD private static PS3TMAPI+SNRESULT SPUThreadGroupStopX64(System.Int32 target, System.UInt32 processId, System.UInt64 threadGroupId)
+  METHOD public static PS3TMAPI+SNRESULT SPUThreadGroupStop(System.Int32 target, System.UInt32 processID, System.UInt64 threadGroupID)
+  METHOD private static PS3TMAPI+SNRESULT SPUThreadGroupContinueX86(System.Int32 target, System.UInt32 processId, System.UInt64 threadGroupId)
+  METHOD private static PS3TMAPI+SNRESULT SPUThreadGroupContinueX64(System.Int32 target, System.UInt32 processId, System.UInt64 threadGroupId)
+  METHOD public static PS3TMAPI+SNRESULT SPUThreadGroupContinue(System.Int32 target, System.UInt32 processID, System.UInt64 threadGroupID)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessTreeX86(System.Int32 target, System.UInt32& numProcesses, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetProcessTreeX64(System.Int32 target, System.UInt32& numProcesses, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetProcessTree(System.Int32 target, PS3TMAPI+ProcessTreeBranch[]& processTree)
+  METHOD private static PS3TMAPI+SNRESULT GetSPUThreadGroupInfoX86(System.Int32 target, System.UInt32 processId, System.UInt64 threadGroupId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetSPUThreadGroupInfoX64(System.Int32 target, System.UInt32 processId, System.UInt64 threadGroupId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetSPUThreadGroupInfo(System.Int32 target, System.UInt32 processID, System.UInt64 threadGroupID, PS3TMAPI+SPUThreadGroupInfo& threadGroupInfo)
+  METHOD private static PS3TMAPI+SNRESULT ProcessGetMemoryX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address, System.Int32 count, System.Byte[] buffer)
+  METHOD private static PS3TMAPI+SNRESULT ProcessGetMemoryX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address, System.Int32 count, System.Byte[] buffer)
+  METHOD public static PS3TMAPI+SNRESULT ProcessGetMemory(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt64 address, System.Byte[]& buffer)
+  METHOD private static PS3TMAPI+SNRESULT ProcessSetMemoryX86(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address, System.Int32 count, System.Byte[] buffer)
+  METHOD private static PS3TMAPI+SNRESULT ProcessSetMemoryX64(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processId, System.UInt64 threadId, System.UInt64 address, System.Int32 count, System.Byte[] buffer)
+  METHOD public static PS3TMAPI+SNRESULT ProcessSetMemory(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID, System.UInt64 threadID, System.UInt64 address, System.Byte[] buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetMemoryCompressedX86(System.Int32 target, System.UInt32 processId, System.UInt32 compressionLevel, System.UInt32 address, System.UInt32 size, System.Byte[] buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetMemoryCompressedX64(System.Int32 target, System.UInt32 processId, System.UInt32 compressionLevel, System.UInt32 address, System.UInt32 size, System.Byte[] buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetMemoryCompressed(System.Int32 target, System.UInt32 processID, PS3TMAPI+MemoryCompressionLevel compressionLevel, System.UInt32 address, System.Byte[]& buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetMemory64CompressedX86(System.Int32 target, System.UInt32 processId, System.UInt32 compressionLevel, System.UInt64 address, System.UInt32 size, System.Byte[] buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetMemory64CompressedX64(System.Int32 target, System.UInt32 processId, System.UInt32 compressionLevel, System.UInt64 address, System.UInt32 size, System.Byte[] buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetMemory64Compressed(System.Int32 target, System.UInt32 processID, PS3TMAPI+MemoryCompressionLevel compressionLevel, System.UInt64 address, System.Byte[]& buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetVirtualMemoryInfoX86(System.Int32 target, System.UInt32 processId, System.Boolean bStatsOnly, System.UInt32& areaCount, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetVirtualMemoryInfoX64(System.Int32 target, System.UInt32 processId, System.Boolean bStatsOnly, System.UInt32& areaCount, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetVirtualMemoryInfo(System.Int32 target, System.UInt32 processID, System.Boolean bStatsOnly, PS3TMAPI+VirtualMemoryArea[]& vmAreas)
+  METHOD private static PS3TMAPI+SNRESULT GetEventQueueListX86(System.Int32 target, System.UInt32 processId, System.UInt32& numEventQueues, System.UInt32[] eventQueueList)
+  METHOD private static PS3TMAPI+SNRESULT GetEventQueueListX64(System.Int32 target, System.UInt32 processId, System.UInt32& numEventQueues, System.UInt32[] eventQueueList)
+  METHOD public static PS3TMAPI+SNRESULT GetEventQueueList(System.Int32 target, System.UInt32 processID, System.UInt32[]& eventQueueIDs)
+  METHOD private static PS3TMAPI+SNRESULT GetEventQueueInfoX86(System.Int32 target, System.UInt32 processId, System.UInt32 eventQueueId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetEventQueueInfoX64(System.Int32 target, System.UInt32 processId, System.UInt32 eventQueueId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetEventQueueInfo(System.Int32 target, System.UInt32 processID, System.UInt32 eventQueueID, PS3TMAPI+EventQueueInfo& eventQueueInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetEventFlagListX86(System.Int32 target, System.UInt32 processId, System.UInt32& numEventFlags, System.UInt32[] eventFlagList)
+  METHOD private static PS3TMAPI+SNRESULT GetEventFlagListX64(System.Int32 target, System.UInt32 processId, System.UInt32& numEventFlags, System.UInt32[] eventFlagList)
+  METHOD public static PS3TMAPI+SNRESULT GetEventFlagList(System.Int32 target, System.UInt32 processID, System.UInt32[]& eventFlagIDs)
+  METHOD private static PS3TMAPI+SNRESULT GetEventFlagInfoX86(System.Int32 target, System.UInt32 processId, System.UInt32 eventFlagId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD private static PS3TMAPI+SNRESULT GetEventFlagInfoX64(System.Int32 target, System.UInt32 processId, System.UInt32 eventFlagId, System.UInt32& bufferSize, System.IntPtr buffer)
+  METHOD public static PS3TMAPI+SNRESULT GetEventFlagInfo(System.Int32 target, System.UInt32 processID, System.UInt32 eventFlagID, PS3TMAPI+EventFlagInfo& eventFlagInfo)
+  METHOD private static PS3TMAPI+SNRESULT GetUserMemoryStatsX86(System.Int32 target, System.UInt32 processId, PS3TMAPI+UserMemoryStats& memoryStats)
+  METHOD private static PS3TMAPI+SNRESULT GetUserMemoryStatsX64(System.Int32 target, System.UInt32 processId, PS3TMAPI+UserMemoryStats& memoryStats)
+  METHOD public static PS3TMAPI+SNRESULT GetUserMemoryStats(System.Int32 target, System.UInt32 processID, PS3TMAPI+UserMemoryStats& memoryStats)
+  METHOD private static PS3TMAPI+SNRESULT GetGamePortDebugIPAddrDataX86(System.Int32 target, System.String deviceName, PS3TMAPI+GamePortIPAddressData& data)
+  METHOD private static PS3TMAPI+SNRESULT GetGamePortDebugIPAddrDataX64(System.Int32 target, System.String deviceName, PS3TMAPI+GamePortIPAddressData& data)
+  METHOD public static PS3TMAPI+SNRESULT GetGamePortDebugIPAddrData(System.Int32 target, System.String deviceName, PS3TMAPI+GamePortIPAddressData& ipAddressData)
+  METHOD private static PS3TMAPI+SNRESULT SetDABRX86(System.Int32 target, System.UInt32 processId, System.UInt64 address)
+  METHOD private static PS3TMAPI+SNRESULT SetDABRX64(System.Int32 target, System.UInt32 processId, System.UInt64 address)
+  METHOD public static PS3TMAPI+SNRESULT SetDABR(System.Int32 target, System.UInt32 processID, System.UInt64 address)
+  METHOD private static PS3TMAPI+SNRESULT GetDABRX86(System.Int32 target, System.UInt32 processId, System.UInt64& address)
+  METHOD private static PS3TMAPI+SNRESULT GetDABRX64(System.Int32 target, System.UInt32 processId, System.UInt64& address)
+  METHOD public static PS3TMAPI+SNRESULT GetDABR(System.Int32 target, System.UInt32 processID, System.UInt64& address)
+  METHOD private static PS3TMAPI+SNRESULT ProcessAttachX86(System.Int32 target, System.UInt32 unitId, System.UInt32 processId)
+  METHOD private static PS3TMAPI+SNRESULT ProcessAttachX64(System.Int32 target, System.UInt32 unitId, System.UInt32 processId)
+  METHOD public static PS3TMAPI+SNRESULT ProcessAttach(System.Int32 target, PS3TMAPI+UnitType unit, System.UInt32 processID)
+  METHOD private static PS3TMAPI+SNRESULT ProcessScatteredSetMemoryX86(System.Int32 target, System.UInt32 processId, System.UInt32 numWrites, System.UInt32 writeSize, System.IntPtr writeData, System.UInt32& errorCode, System.UInt32& failedAddress)
+  METHOD private static PS3TMAPI+SNRESULT ProcessScatteredSetMemoryX64(System.Int32 target, System.UInt32 processId, System.UInt32 numWrites, System.UInt32 writeSize, System.IntPtr writeData, System.UInt32& errorCode, System.UInt32& failedAddress)
+  METHOD public static PS3TMAPI+SNRESULT ProcessScatteredSetMemory(System.Int32 target, System.UInt32 processID, PS3TMAPI+ScatteredWrite[] writeData, System.UInt32& errorCode, System.UInt32& failedAddress)
+  METHOD private static PS3TMAPI+SNRESULT ProcessGetTestParamX86(System.Int32 target, System.Byte& result, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT ProcessGetTestParamX64(System.Int32 target, System.Byte& result, System.IntPtr data)
+  METHOD public static PS3TMAPI+SNRESULT ProcessGetTestParam(System.Int32 target, System.Byte& result, System.Byte[] data)
+  METHOD private static PS3TMAPI+SNRESULT ProcessSetTestParamX86(System.Int32 target, System.Byte& result, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT ProcessSetTestParamX64(System.Int32 target, System.Byte& result, System.IntPtr data)
+  METHOD public static PS3TMAPI+SNRESULT ProcessSetTestParam(System.Int32 target, System.Byte& result, System.Byte[] data)
+  METHOD private static PS3TMAPI+SNRESULT RegisterPadPlaybackNotificationHandlerX86(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterPadPlaybackNotificationHandlerX64(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterPadPlaybackHandler(System.Int32 target, PS3TMAPI+PadPlaybackCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterPadPlaybackHandlerX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterPadPlaybackHandlerX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT UnregisterPadPlaybackHandler(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT StopPadPlaybackX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT StopPadPlaybackX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT StopPadPlayback(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT RegisterPadCaptureHandlerX86(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterPadCaptureHandlerX64(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterPadCaptureHandler(System.Int32 target, PS3TMAPI+PadCaptureCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterPadCaptureHandlerX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterPadCaptureHandlerX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT UnregisterPadCaptureHandler(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT StopPadCaptureX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT StopPadCaptureX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT StopPadCapture(System.Int32 target)
+  METHOD private static System.Void MarshalPadCaptureEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT res, System.UInt32 length, System.IntPtr data)
+  METHOD private static System.Void MarshalPadPlaybackEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT RegisterCustomProtocolExX86(System.Int32 target, System.UInt32 protocol, System.UInt32 port, System.String lparDesc, System.UInt32 priority, PS3TMAPI+PS3Protocol& ps3Protocol, PS3TMAPI+CustomProtocolCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterCustomProtocolExX64(System.Int32 target, System.UInt32 protocol, System.UInt32 port, System.String lparDesc, System.UInt32 priority, PS3TMAPI+PS3Protocol& ps3Protocol, PS3TMAPI+CustomProtocolCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterCustomProtocol(System.Int32 target, System.UInt32 protocol, System.UInt32 port, System.String lparDesc, System.UInt32 priority, PS3TMAPI+PS3Protocol& ps3Protocol, PS3TMAPI+CustomProtocolCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterCustomProtocolX86(System.Int32 target, PS3TMAPI+PS3Protocol& protocol)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterCustomProtocolX64(System.Int32 target, PS3TMAPI+PS3Protocol& protocol)
+  METHOD public static PS3TMAPI+SNRESULT UnregisterCustomProtocol(System.Int32 target, PS3TMAPI+PS3Protocol ps3Protocol)
+  METHOD private static PS3TMAPI+SNRESULT ForceUnregisterCustomProtocolX86(System.Int32 target, PS3TMAPI+PS3Protocol& protocol)
+  METHOD private static PS3TMAPI+SNRESULT ForceUnregisterCustomProtocolX64(System.Int32 target, PS3TMAPI+PS3Protocol& protocol)
+  METHOD public static PS3TMAPI+SNRESULT ForceUnregisterCustomProtocol(System.Int32 target, PS3TMAPI+PS3Protocol ps3Protocol)
+  METHOD private static PS3TMAPI+SNRESULT SetFileServingEventFlagsX86(System.Int32 target, System.UInt64 eventFlags)
+  METHOD private static PS3TMAPI+SNRESULT SetFileServingEventFlagsX64(System.Int32 target, System.UInt64 eventFlags)
+  METHOD public static PS3TMAPI+SNRESULT SetFileServingEventFlags(System.Int32 target, PS3TMAPI+FileServingEventFlag eventFlags)
+  METHOD private static PS3TMAPI+SNRESULT GetFileServingEventFlagsX86(System.Int32 target, System.UInt64& eventFlags)
+  METHOD private static PS3TMAPI+SNRESULT GetFileServingEventFlagsX64(System.Int32 target, System.UInt64& eventFlags)
+  METHOD public static PS3TMAPI+SNRESULT GetFileServingEventFlags(System.Int32 target, PS3TMAPI+FileServingEventFlag& eventFlags)
+  METHOD private static PS3TMAPI+SNRESULT RegisterFTPEventHandlerX86(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterFTPEventHandlerX64(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterFTPEventHandler(System.Int32 target, PS3TMAPI+FTPEventCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT CancelFTPEventsX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT CancelFTPEventsX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT CancelFTPEvents(System.Int32 target)
+  METHOD private static System.Void MarshalFTPEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT RegisterFileTraceHandlerX86(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterFileTraceHandlerX64(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterFileTraceHandler(System.Int32 target, PS3TMAPI+FileTraceCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterFileTraceHandlerX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT UnregisterFileTraceHandlerX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT UnregisterFileTraceHandler(System.Int32 target)
+  METHOD private static System.Void MarshalFileTraceEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data)
+  METHOD private static PS3TMAPI+SNRESULT StopFileTraceX86(System.Int32 target, System.UInt32 processId)
+  METHOD private static PS3TMAPI+SNRESULT StopFileTraceX64(System.Int32 target, System.UInt32 processId)
+  METHOD public static PS3TMAPI+SNRESULT StopFileTrace(System.Int32 target, System.UInt32 processID)
+  METHOD private static PS3TMAPI+SNRESULT ProcessOfflineFileTraceX86(System.Int32 target, System.IntPtr path)
+  METHOD private static PS3TMAPI+SNRESULT ProcessOfflineFileTraceX64(System.Int32 target, System.IntPtr path)
+  METHOD public static PS3TMAPI+SNRESULT ProcessOfflineFileTrace(System.Int32 target, System.String path)
+  METHOD private static PS3TMAPI+SNRESULT RegisterTargetEventHandlerX86(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT RegisterTargetEventHandlerX64(System.Int32 target, PS3TMAPI+HandleEventCallbackPriv callback, System.IntPtr userData)
+  METHOD public static PS3TMAPI+SNRESULT RegisterTargetEventHandler(System.Int32 target, PS3TMAPI+TargetEventCallback callback, System.Object& userData)
+  METHOD private static PS3TMAPI+SNRESULT CancelTargetEventsX86(System.Int32 target)
+  METHOD private static PS3TMAPI+SNRESULT CancelTargetEventsX64(System.Int32 target)
+  METHOD public static PS3TMAPI+SNRESULT CancelTargetEvents(System.Int32 target)
+  METHOD private static System.Void MarshalTargetEvent(System.Int32 target, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data)
+  METHOD private static PS3TMAPI+TargetSpecificEvent MarshalTargetSpecificEvent(System.UInt32 eventSize, System.IntPtr data)
+  METHOD private static System.Void EventHandlerWrapper(System.Int32 target, PS3TMAPI+EventType type, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data, System.IntPtr userData)
+  METHOD private static PS3TMAPI+SNRESULT StopSearchForTargetsX86()
+  METHOD private static PS3TMAPI+SNRESULT StopSearchForTargetsX64()
+  METHOD public static PS3TMAPI+SNRESULT StopSearchForTargets()
+  FIELD private static PS3TMAPI+HandleEventCallbackPriv ms_eventHandlerWrapper
+  FIELD private static PS3TMAPI+ServerEventCallback ms_serverEventCallback
+  FIELD private static System.Object ms_serverEventUserData
+  FIELD private static System.Collections.Generic.Dictionary`2[[System.Int32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[PS3TMAPI+FtpCallbackAndUserData, PS3TMAPI_NET, Version=470.1.3.7, Culture=neutral, PublicKeyToken=null]] ms_userFtpCallbacks
+  FIELD public static System.UInt32 DefaultProcessPriority
+
+TYPE PS3TMAPI+BootParameter
+  ENUM Default = 0
+  ENUM ReleaseMode = 1
+  ENUM MemSizeConsole = 2
+  ENUM BluRayEmuOff = 4
+  ENUM HDDSpeedBluRayEmu = 8
+  ENUM DebugMode = 16
+  ENUM SystemMode = 17
+  ENUM BluRayEmuUSB = 32
+  ENUM HostFSTarget = 64
+  ENUM DualNIC = 128
+  FIELD public static PS3TMAPI+BootParameter DebugMode
+
+TYPE PS3TMAPI+ConditionVarInfo
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt64[] WaitingThreads
+
+TYPE PS3TMAPI+ConditionVarInfoPriv
+  FIELD public System.UInt32 NumWaitingThreads
+  FIELD public System.UInt32 NumWaitAllThreads
+
+TYPE PS3TMAPI+CoreDumpComplete
+  FIELD public System.String Filename
+
+TYPE PS3TMAPI+CoreDumpFlag
+  ENUM ToDevMS = 1
+  ENUM ToAppHome = 2
+  ENUM ToDevUSB = 4
+  ENUM ToDevHDD0 = 8
+  ENUM EnableKeepRunningHandler = 8192
+  ENUM EnableRestartProcess = 32768
+  ENUM DisableMemoryDump = 3489660928
+  ENUM DisableFootSwitchDetection = 4503599627370496
+  ENUM DisableRSXExceptionDetection = 9007199254740992
+  ENUM DisableSPUExceptionDetection = 18014398509481984
+  ENUM DisablePPUExceptionDetection = 36028797018963968
+  FIELD public static PS3TMAPI+CoreDumpFlag DisablePPUExceptionDetection
+  FIELD public static PS3TMAPI+CoreDumpFlag DisableSPUExceptionDetection
+  FIELD public static PS3TMAPI+CoreDumpFlag DisableRSXExceptionDetection
+  FIELD public static PS3TMAPI+CoreDumpFlag DisableMemoryDump
+  FIELD public static PS3TMAPI+CoreDumpFlag EnableRestartProcess
+
+TYPE PS3TMAPI+DebugThreadControlInfo
+  FIELD public System.UInt64 ControlFlags
+  FIELD public PS3TMAPI+ControlKeywordEntry[] ControlKeywords
+
+TYPE PS3TMAPI+DebugThreadControlInfoPriv
+  FIELD public System.UInt64 ControlFlags
+  FIELD public System.UInt32 NumEntries
+
+TYPE PS3TMAPI+EventFlagAttr
+  FIELD public System.UInt32 Protocol
+  FIELD public System.UInt32 PShared
+  FIELD public System.UInt64 Key
+  FIELD public System.UInt32 Flags
+  FIELD public System.UInt32 Type
+  FIELD public System.String Name
+
+TYPE PS3TMAPI+EventFlagInfo
+  FIELD public System.UInt32 ID
+  FIELD public PS3TMAPI+EventFlagAttr Attribute
+  FIELD public System.UInt64 BitPattern
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public PS3TMAPI+EventFlagWaitThread[] WaitingThreads
+
+TYPE PS3TMAPI+EventFlagWaitThread
+  FIELD public System.UInt64 ID
+  FIELD public System.UInt64 BitPattern
+  FIELD public System.UInt32 Mode
+
+TYPE PS3TMAPI+EventQueueAttr
+  FIELD public System.UInt32 Protocol
+  FIELD public System.UInt32 Type
+  FIELD public System.String Name
+
+TYPE PS3TMAPI+EventQueueInfo
+  FIELD public System.UInt32 ID
+  FIELD public PS3TMAPI+EventQueueAttr Attribute
+  FIELD public System.UInt64 Key
+  FIELD public System.UInt32 Size
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt32 NumReadableAllEvQueue
+  FIELD public System.UInt64[] WaitingThreadIDs
+  FIELD public PS3TMAPI+SystemEvent[] QueueEntries
+
+TYPE PS3TMAPI+EventQueueInfoPriv
+  FIELD public System.UInt32 Id
+  FIELD public PS3TMAPI+EventQueueAttr Attribute
+  FIELD public System.UInt64 Key
+  FIELD public System.UInt32 Size
+  FIELD public System.UInt32 NumWaitingThreads
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt32 NumReadableEvQueue
+  FIELD public System.UInt32 NumReadableAllEvQueue
+  FIELD public System.IntPtr WaitingThreadIds
+  FIELD public System.IntPtr QueueEntries
+
+TYPE PS3TMAPI+EventType
+  ENUM TTY = 100
+  ENUM Target = 101
+  ENUM System = 102
+  ENUM FTP = 103
+  ENUM PadCapture = 104
+  ENUM FileTrace = 105
+  ENUM PadPlayback = 106
+  ENUM Server = 107
+  FIELD public System.Int32 value__
+  FIELD public static PS3TMAPI+EventType TTY
+  FIELD public static PS3TMAPI+EventType Target
+  FIELD public static PS3TMAPI+EventType System
+  FIELD public static PS3TMAPI+EventType FTP
+  FIELD public static PS3TMAPI+EventType PadCapture
+  FIELD public static PS3TMAPI+EventType FileTrace
+  FIELD public static PS3TMAPI+EventType PadPlayback
+  FIELD public static PS3TMAPI+EventType Server
+
+TYPE PS3TMAPI+ExtraLoadFlag
+  ENUM EnableLv2ExceptionHandler = 1
+  ENUM EnableRemotePlay = 2
+  ENUM EnableGCMDebug = 4
+  ENUM LoadLibprofSPRXAutomatically = 8
+  ENUM EnableCoreDump = 16
+  ENUM EnableAccForRemotePlay = 32
+  ENUM EnableHUDRSXTools = 64
+  ENUM EnableMAT = 128
+  ENUM GameAttributeInviteMessage = 256
+  ENUM GameAttributeCustomMessage = 512
+  ENUM LoadingPatch = 4096
+  ENUM EnableMiscSettings = EnableMiscSettings
+  FIELD public static PS3TMAPI+ExtraLoadFlag EnableLv2ExceptionHandler
+  FIELD public static PS3TMAPI+ExtraLoadFlag EnableGCMDebug
+
+TYPE PS3TMAPI+ExtraModuleInfo
+  FIELD public System.UInt32[] PPUGUIDs
+
+TYPE PS3TMAPI+ExtraProcessInfo
+  FIELD public System.UInt32[] PPUGUIDs
+
+TYPE PS3TMAPI+FileServingEventFlag
+  ENUM Create = 1
+  ENUM Close = 4
+  ENUM Read = 8
+  ENUM Write = 16
+  ENUM Seek = 32
+  ENUM Delete = 64
+  ENUM Rename = 128
+  ENUM SetAttr = 256
+  ENUM GetAttr = 512
+  ENUM SetTime = 1024
+  ENUM MKDir = 2048
+  ENUM RMDir = 4096
+  ENUM OpenDir = 8192
+  ENUM CloseDir = 16384
+  ENUM ReadDir = 32768
+  ENUM Truncate = 65536
+  ENUM FGetAttr64 = 131072
+  ENUM GetAttr64 = 262144
+  ENUM All = 524285
+  FIELD public System.UInt64 value__
+  FIELD public static PS3TMAPI+FileServingEventFlag Create
+  FIELD public static PS3TMAPI+FileServingEventFlag Close
+  FIELD public static PS3TMAPI+FileServingEventFlag Read
+  FIELD public static PS3TMAPI+FileServingEventFlag Write
+  FIELD public static PS3TMAPI+FileServingEventFlag Seek
+  FIELD public static PS3TMAPI+FileServingEventFlag Delete
+  FIELD public static PS3TMAPI+FileServingEventFlag Rename
+  FIELD public static PS3TMAPI+FileServingEventFlag SetAttr
+  FIELD public static PS3TMAPI+FileServingEventFlag GetAttr
+  FIELD public static PS3TMAPI+FileServingEventFlag SetTime
+  FIELD public static PS3TMAPI+FileServingEventFlag MKDir
+  FIELD public static PS3TMAPI+FileServingEventFlag RMDir
+  FIELD public static PS3TMAPI+FileServingEventFlag OpenDir
+  FIELD public static PS3TMAPI+FileServingEventFlag CloseDir
+  FIELD public static PS3TMAPI+FileServingEventFlag ReadDir
+  FIELD public static PS3TMAPI+FileServingEventFlag Truncate
+  FIELD public static PS3TMAPI+FileServingEventFlag FGetAttr64
+  FIELD public static PS3TMAPI+FileServingEventFlag GetAttr64
+  FIELD public static PS3TMAPI+FileServingEventFlag All
+
+TYPE PS3TMAPI+FileTraceEvent
+  FIELD public System.UInt64 SerialID
+  FIELD public PS3TMAPI+FileTraceType TraceType
+  FIELD public PS3TMAPI+FileTraceNotificationStatus Status
+  FIELD public System.UInt32 ProcessID
+  FIELD public System.UInt32 ThreadID
+  FIELD public System.UInt64 TimeBaseStartOfTrace
+  FIELD public System.UInt64 TimeBase
+  FIELD public System.Byte[] BackTraceData
+  FIELD public PS3TMAPI+FileTraceLogData LogData
+
+TYPE PS3TMAPI+FileTraceLogType10
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceLogType11
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceLogType12
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceLogType13
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceLogType14
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceLogType8
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceLogType9
+  FIELD public PS3TMAPI+FileTraceProcessInfo ProcessInfo
+
+TYPE PS3TMAPI+FileTraceNotificationStatus
+  ENUM Processed = 0
+  ENUM Received = 1
+  ENUM Waiting = 2
+  ENUM Processing = 3
+  ENUM Suspended = 4
+  ENUM Finished = 5
+  FIELD public static PS3TMAPI+FileTraceNotificationStatus Processed
+  FIELD public static PS3TMAPI+FileTraceNotificationStatus Processing
+
+TYPE PS3TMAPI+FileTraceProcessInfo
+  FIELD public System.UInt64 VFSID
+  FIELD public System.UInt64 FD
+
+TYPE PS3TMAPI+FootswitchData
+  FIELD public System.UInt64 EventSource
+  FIELD public System.UInt64 EventData1
+  FIELD public System.UInt64 EventData2
+  FIELD public System.UInt64 EventData3
+
+TYPE PS3TMAPI+FtpCallbackAndUserData
+  FIELD public PS3TMAPI+FTPEventCallback m_callback
+  FIELD public System.Object m_userData
+
+TYPE PS3TMAPI+FTPEventCallback
+  METHOD public System.Void Invoke(System.Int32 target, PS3TMAPI+SNRESULT res, PS3TMAPI+FTPNotification[] ftpNotifications, System.Object userData)
+  METHOD public System.IAsyncResult BeginInvoke(System.Int32 target, PS3TMAPI+SNRESULT res, PS3TMAPI+FTPNotification[] ftpNotifications, System.Object userData, System.AsyncCallback callback, System.Object object)
+  METHOD public System.Void EndInvoke(System.IAsyncResult result)
+
+TYPE PS3TMAPI+HandleEventCallbackPriv
+  METHOD public System.Void Invoke(System.Int32 target, PS3TMAPI+EventType type, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data, System.IntPtr userData)
+  METHOD public System.IAsyncResult BeginInvoke(System.Int32 target, PS3TMAPI+EventType type, System.UInt32 param, PS3TMAPI+SNRESULT result, System.UInt32 length, System.IntPtr data, System.IntPtr userData, System.AsyncCallback callback, System.Object object)
+  METHOD public System.Void EndInvoke(System.IAsyncResult result)
+
+TYPE PS3TMAPI+LoadFlag
+  ENUM EnableDebugging = 1
+  ENUM UseELFPriority = 256
+  ENUM UseELFStackSize = 512
+  ENUM WaitBDMounted = 8192
+  ENUM PPUNotDebug = 65536
+  ENUM SPUNotDebug = 131072
+  ENUM ParamSFOUseELFDir = 1048576
+  ENUM ParamSFOUseCustomDir = 2097152
+  ENUM IgnoreDefaults = 2147483648
+  FIELD public static PS3TMAPI+LoadFlag EnableDebugging
+  FIELD public static PS3TMAPI+LoadFlag PPUNotDebug
+  FIELD public static PS3TMAPI+LoadFlag SPUNotDebug
+
+TYPE PS3TMAPI+LWConditionVarInfo
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt64[] WaitingThreads
+
+TYPE PS3TMAPI+LwConditionVarInfoPriv
+  FIELD public System.UInt32 NumWaitingThreads
+  FIELD public System.UInt32 NumWaitAllThreads
+
+TYPE PS3TMAPI+LWMutexInfo
+  FIELD public System.UInt64 OwnerThreadID
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt64[] WaitingThreads
+
+TYPE PS3TMAPI+LwMutexInfoPriv
+  FIELD public System.UInt64 OwnerThreadId
+  FIELD public System.UInt32 NumWaitingThreads
+  FIELD public System.UInt32 NumWaitAllThreads
+
+TYPE PS3TMAPI+MemoryCompressionLevel
+  ENUM None = 0
+  ENUM BestSpeed = 1
+  ENUM BestCompression = 9
+  ENUM Default = 4294967295
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+MemoryCompressionLevel None
+  FIELD public static PS3TMAPI+MemoryCompressionLevel BestSpeed
+  FIELD public static PS3TMAPI+MemoryCompressionLevel BestCompression
+  FIELD public static PS3TMAPI+MemoryCompressionLevel Default
+
+TYPE PS3TMAPI+ModuleInfoHdr
+  FIELD public System.UInt32 StopEntry
+
+TYPE PS3TMAPI+ModuleInfoHdrPriv
+  FIELD public System.UInt32 StopEntry
+
+TYPE PS3TMAPI+MutexInfo
+  FIELD public System.UInt64 OwnerThreadID
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt64[] WaitingThreads
+
+TYPE PS3TMAPI+NotifyPRXLoadData
+  FIELD public System.UInt64 PPUThreadID
+
+TYPE PS3TMAPI+NotifyPRXUnloadData
+  FIELD public System.UInt64 PPUThreadID
+
+TYPE PS3TMAPI+PadPlaybackResponse
+  ENUM Ok = 0
+  ENUM InvalidPacket = 2147549186
+  ENUM InsufficientMemory = 2147549188
+  ENUM Busy = 2147549194
+  ENUM NoDev = 2147549229
+  FIELD public static PS3TMAPI+PadPlaybackResponse InsufficientMemory
+
+TYPE PS3TMAPI+PPUAlignmentExceptionData
+  FIELD public System.UInt64 ThreadID
+  FIELD public System.UInt32 HWThreadNumber
+  FIELD public System.UInt64 DSISR
+  FIELD public System.UInt64 DAR
+  FIELD public System.UInt64 PC
+  FIELD public System.UInt64 SP
+
+TYPE PS3TMAPI+PPUDataMatExceptionData
+  FIELD public System.UInt64 ThreadID
+  FIELD public System.UInt32 HWThreadNumber
+  FIELD public System.UInt64 DSISR
+  FIELD public System.UInt64 DAR
+  FIELD public System.UInt64 PC
+  FIELD public System.UInt64 SP
+
+TYPE PS3TMAPI+PPUExceptionData
+  FIELD public System.UInt64 ThreadID
+  FIELD public System.UInt32 HWThreadNumber
+  FIELD public System.UInt64 PC
+  FIELD public System.UInt64 SP
+
+TYPE PS3TMAPI+PPUProcessCreateData
+  FIELD public System.UInt32 ParentProcessID
+  FIELD public System.String Filename
+
+TYPE PS3TMAPI+PPUProcessExitData
+  FIELD public System.UInt64 ExitCode
+
+TYPE PS3TMAPI+PPUThreadCreateData
+  FIELD public System.UInt64 ThreadID
+
+TYPE PS3TMAPI+PPUThreadExitData
+  FIELD public System.UInt64 ThreadID
+
+TYPE PS3TMAPI+PPUThreadInfo
+  FIELD public System.UInt64 ThreadID
+  FIELD public System.UInt32 Priority
+  FIELD public PS3TMAPI+PPUThreadState State
+  FIELD public System.UInt64 StackAddress
+  FIELD public System.UInt64 StackSize
+  FIELD public System.String ThreadName
+
+TYPE PS3TMAPI+PPUThreadInfoEx
+  FIELD public System.UInt64 ThreadID
+  FIELD public System.UInt32 Priority
+  FIELD public System.UInt32 BasePriority
+  FIELD public PS3TMAPI+PPUThreadState State
+  FIELD public System.UInt64 StackAddress
+  FIELD public System.UInt64 StackSize
+  FIELD public System.String ThreadName
+
+TYPE PS3TMAPI+PPUThreadInfoExPriv
+  FIELD public System.UInt64 ThreadId
+  FIELD public System.UInt32 Priority
+  FIELD public System.UInt32 BasePriority
+  FIELD public System.UInt32 State
+  FIELD public System.UInt64 StackAddress
+  FIELD public System.UInt64 StackSize
+  FIELD public System.UInt32 ThreadNameLen
+
+TYPE PS3TMAPI+PPUThreadInfoPriv
+  FIELD public System.UInt64 ThreadID
+  FIELD public System.UInt32 Priority
+  FIELD public System.UInt32 State
+  FIELD public System.UInt64 StackAddress
+  FIELD public System.UInt64 StackSize
+  FIELD public System.UInt32 ThreadNameLen
+
+TYPE PS3TMAPI+PPUThreadState
+  ENUM Idle = 0
+  ENUM Runnable = 1
+  ENUM OnProc = 2
+  ENUM Sleep = 3
+  ENUM Suspended = 4
+  ENUM SleepSuspended = 5
+  ENUM Stop = 6
+  ENUM Zombie = 7
+  ENUM Deleted = 8
+  FIELD public System.Int32 value__
+  FIELD public static PS3TMAPI+PPUThreadState Idle
+  FIELD public static PS3TMAPI+PPUThreadState Runnable
+  FIELD public static PS3TMAPI+PPUThreadState OnProc
+  FIELD public static PS3TMAPI+PPUThreadState Sleep
+  FIELD public static PS3TMAPI+PPUThreadState Suspended
+  FIELD public static PS3TMAPI+PPUThreadState SleepSuspended
+  FIELD public static PS3TMAPI+PPUThreadState Stop
+  FIELD public static PS3TMAPI+PPUThreadState Zombie
+  FIELD public static PS3TMAPI+PPUThreadState Deleted
+
+TYPE PS3TMAPI+PPUThreadStatus
+  FIELD public System.UInt64 ThreadID
+  FIELD public PS3TMAPI+PPUThreadState ThreadState
+
+TYPE PS3TMAPI+ProcessInfo
+  FIELD public PS3TMAPI+ProcessInfoHdr Hdr
+  FIELD public System.UInt64[] ThreadIDs
+
+TYPE PS3TMAPI+ProcessInfoHdr
+  FIELD public PS3TMAPI+ProcessStatus Status
+  FIELD public System.UInt32 NumPPUThreads
+  FIELD public System.UInt32 NumSPUThreads
+  FIELD public System.UInt32 ParentProcessID
+  FIELD public System.UInt64 MaxMemorySize
+  FIELD public System.String ELFPath
+
+TYPE PS3TMAPI+ProcessLoadInfo
+  FIELD public System.UInt32 InfoValid
+  FIELD public System.UInt32 DebugFlags
+  FIELD public PS3TMAPI+ProcessLoadParams LoadInfo
+
+TYPE PS3TMAPI+ProcessLoadParams
+  FIELD public System.UInt64 Version
+  FIELD public System.UInt64[] Data
+
+TYPE PS3TMAPI+ProcessStatus
+  ENUM Creating = 1
+  ENUM Ready = 2
+  ENUM Exited = 3
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+ProcessStatus Creating
+  FIELD public static PS3TMAPI+ProcessStatus Ready
+  FIELD public static PS3TMAPI+ProcessStatus Exited
+
+TYPE PS3TMAPI+ProcessTreeBranch
+  FIELD public System.UInt32 ProcessID
+  FIELD public PS3TMAPI+ProcessStatus ProcessState
+  FIELD public System.UInt16 ProcessFlags
+  FIELD public System.UInt16 RawSPU
+  FIELD public PS3TMAPI+PPUThreadStatus[] PPUThreadStatuses
+  FIELD public PS3TMAPI+SPUThreadGroupStatus[] SPUThreadGroupStatuses
+
+TYPE PS3TMAPI+ProcessTreeBranchPriv
+  FIELD public System.UInt32 ProcessId
+  FIELD public PS3TMAPI+ProcessStatus ProcessState
+  FIELD public System.UInt32 NumPpuThreads
+  FIELD public System.UInt32 NumSpuThreadGroups
+  FIELD public System.UInt16 ProcessFlags
+  FIELD public System.UInt16 RawSPU
+  FIELD public System.IntPtr PpuThreadStatuses
+  FIELD public System.IntPtr SpuThreadGroupStatuses
+
+TYPE PS3TMAPI+RWLockInfo
+  FIELD public System.UInt64 OwnerThreadID
+  FIELD public System.UInt32 NumWaitingReadThreads
+  FIELD public System.UInt32 NumWaitAllReadThreads
+  FIELD public System.UInt32 NumWaitingWriteThreads
+  FIELD public System.UInt32 NumWaitAllWriteThreads
+  FIELD public System.UInt64[] WaitingThreads
+
+TYPE PS3TMAPI+RwLockInfoPriv
+  FIELD public System.UInt64 OwnerThreadId
+  FIELD public System.UInt32 NumWaitingReadThreads
+  FIELD public System.UInt32 NumWaitAllReadThreads
+  FIELD public System.UInt32 NumWaitingWriteThreads
+  FIELD public System.UInt32 NumWaitAllWriteThreads
+
+TYPE PS3TMAPI+SemaphoreInfo
+  FIELD public System.UInt32 NumWaitAllThreads
+  FIELD public System.UInt64[] WaitingThreads
+
+TYPE PS3TMAPI+SemaphoreInfoPriv
+  FIELD public System.UInt32 NumWaitingThreads
+  FIELD public System.UInt32 NumWaitAllThreads
+
+TYPE PS3TMAPI+ServerEventCallback
+  METHOD public System.Void Invoke(System.Int32 target, PS3TMAPI+SNRESULT res, PS3TMAPI+ServerEventType eventType, System.Object userData)
+  METHOD public System.IAsyncResult BeginInvoke(System.Int32 target, PS3TMAPI+SNRESULT res, PS3TMAPI+ServerEventType eventType, System.Object userData, System.AsyncCallback callback, System.Object object)
+  METHOD public System.Void EndInvoke(System.IAsyncResult result)
+
+TYPE PS3TMAPI+ServerEventHeader
+  FIELD public System.UInt32 size
+  FIELD public System.UInt32 targetID
+  FIELD public PS3TMAPI+ServerEventType eventType
+
+TYPE PS3TMAPI+ServerEventType
+  ENUM TargetAdded = 0
+  ENUM TargetDeleted = 1
+  ENUM DefaultTargetChanged = 2
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+ServerEventType TargetAdded
+  FIELD public static PS3TMAPI+ServerEventType TargetDeleted
+  FIELD public static PS3TMAPI+ServerEventType DefaultTargetChanged
+
+TYPE PS3TMAPI+SNRESULT
+  ENUM SN_S_OK = 0
+  ENUM SN_S_PENDING = 1
+  ENUM SN_S_NO_MSG = 3
+  ENUM SN_S_TM_VERSION = 4
+  ENUM SN_S_REPLACED = 5
+  ENUM SN_S_NO_ACTION = 6
+  ENUM SN_S_TARGET_STILL_REGISTERED = 7
+  ENUM SN_E_ERROR = -2147483648
+  ENUM SN_E_COMMS_EVENT_MISMATCHED_ERR = -39
+  ENUM SN_E_CONNECTED = -38
+  ENUM SN_E_PROTOCOL_ALREADY_REGISTERED = -37
+  ENUM SN_E_COMMAND_CANCELLED = -36
+  ENUM SN_E_CONNECT_TO_GAMEPORT_FAILED = -35
+  ENUM SN_E_MODULE_NOT_FOUND = -34
+  ENUM SN_E_CHECK_TARGET_CONFIGURATION = -33
+  ENUM SN_E_LICENSE_ERROR = -32
+  ENUM SN_E_LOAD_MODULE_FAILED = -31
+  ENUM SN_E_NOT_SUPPORTED_IN_SDK_VERSION = -30
+  ENUM SN_E_FILE_ERROR = -29
+  ENUM SN_E_BAD_ALIGN = -28
+  ENUM SN_E_DEPRECATED = -27
+  ENUM SN_E_DATA_TOO_LONG = -26
+  ENUM SN_E_INSUFFICIENT_DATA = -25
+  ENUM SN_E_EXISTING_CALLBACK = -24
+  ENUM SN_E_DECI_ERROR = -23
+  ENUM SN_E_BUSY = -22
+  ENUM SN_E_BAD_PARAM = -21
+  ENUM SN_E_NO_SEL = -20
+  ENUM SN_E_NO_TARGETS = -19
+  ENUM SN_E_BAD_MEMSPACE = -18
+  ENUM SN_E_TARGET_RUNNING = -17
+  ENUM SN_E_DLL_NOT_INITIALISED = -15
+  ENUM SN_E_TM_VERSION = -14
+  ENUM SN_E_NOT_LISTED = -13
+  ENUM SN_E_OUT_OF_MEM = -12
+  ENUM SN_E_BAD_UNIT = -11
+  ENUM SN_E_LOAD_ELF_FAILED = -10
+  ENUM SN_E_TARGET_IN_USE = -9
+  ENUM SN_E_HOST_NOT_FOUND = -8
+  ENUM SN_E_TIMEOUT = -7
+  ENUM SN_E_TM_COMMS_ERR = -6
+  ENUM SN_E_COMMS_ERR = -5
+  ENUM SN_E_NOT_CONNECTED = -4
+  ENUM SN_E_BAD_TARGET = -3
+  ENUM SN_E_TM_NOT_RUNNING = -2
+  ENUM SN_E_NOT_IMPL = -1
+  FIELD public static PS3TMAPI+SNRESULT SN_S_TARGET_STILL_REGISTERED
+  FIELD public static PS3TMAPI+SNRESULT SN_E_PROTOCOL_ALREADY_REGISTERED
+  FIELD public static PS3TMAPI+SNRESULT SN_E_COMMS_EVENT_MISMATCHED_ERR
+
+TYPE PS3TMAPI+SPUThreadGroupDestroyData
+  FIELD public System.UInt32 ThreadGroupID
+
+TYPE PS3TMAPI+SPUThreadGroupInfo
+  FIELD public System.UInt32 ThreadGroupID
+  FIELD public PS3TMAPI+SPUThreadGroupState State
+  FIELD public System.UInt32 Priority
+  FIELD public System.String GroupName
+  FIELD public System.UInt32[] ThreadIDs
+
+TYPE PS3TMAPI+SpuThreadGroupInfoPriv
+  FIELD public System.UInt32 ThreadGroupId
+  FIELD public System.UInt32 State
+  FIELD public System.UInt32 Priority
+  FIELD public System.UInt32 NumThreads
+  FIELD public System.UInt32 ThreadGroupNameLen
+
+TYPE PS3TMAPI+SPUThreadGroupState
+  ENUM NotConfigured = 0
+  ENUM Configured = 1
+  ENUM Ready = 2
+  ENUM Waiting = 3
+  ENUM Suspended = 4
+  ENUM WaitingSuspended = 5
+  ENUM Running = 6
+  ENUM Stopped = 7
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+SPUThreadGroupState NotConfigured
+  FIELD public static PS3TMAPI+SPUThreadGroupState Configured
+  FIELD public static PS3TMAPI+SPUThreadGroupState Ready
+  FIELD public static PS3TMAPI+SPUThreadGroupState Waiting
+  FIELD public static PS3TMAPI+SPUThreadGroupState Suspended
+  FIELD public static PS3TMAPI+SPUThreadGroupState WaitingSuspended
+  FIELD public static PS3TMAPI+SPUThreadGroupState Running
+  FIELD public static PS3TMAPI+SPUThreadGroupState Stopped
+
+TYPE PS3TMAPI+SPUThreadGroupStatus
+  FIELD public System.UInt32 ThreadGroupID
+  FIELD public PS3TMAPI+SPUThreadGroupState ThreadGroupState
+
+TYPE PS3TMAPI+SPUThreadInfo
+  FIELD public System.UInt32 ThreadGroupID
+  FIELD public System.UInt32 ThreadID
+  FIELD public System.String Filename
+  FIELD public System.String ThreadName
+
+TYPE PS3TMAPI+SpuThreadInfoPriv
+  FIELD public System.UInt32 ThreadGroupId
+  FIELD public System.UInt32 ThreadId
+  FIELD public System.UInt32 FilenameLen
+  FIELD public System.UInt32 ThreadNameLen
+
+TYPE PS3TMAPI+SPUThreadStartData
+  FIELD public System.UInt32 ThreadGroupID
+  FIELD public System.UInt32 ThreadID
+  FIELD public System.String ElfFilename
+
+TYPE PS3TMAPI+SPUThreadStopData
+  FIELD public System.UInt32 ThreadGroupID
+  FIELD public System.UInt32 ThreadID
+  FIELD public System.UInt32 PC
+  FIELD public PS3TMAPI+SPUThreadStopReason Reason
+  FIELD public System.UInt32 SP
+
+TYPE PS3TMAPI+SPUThreadStopExData
+  FIELD public System.UInt32 ThreadGroupID
+  FIELD public System.UInt32 ThreadID
+  FIELD public System.UInt32 PC
+  FIELD public PS3TMAPI+SPUThreadStopReason Reason
+  FIELD public System.UInt32 SP
+  FIELD public System.UInt64 MFCDSISR
+  FIELD public System.UInt64 MFCDSIPR
+  FIELD public System.UInt64 MFCDAR
+
+TYPE PS3TMAPI+SPUThreadStopReason
+  ENUM NoException = 0
+  ENUM DMAAlignment = 1
+  ENUM DMACommand = 2
+  ENUM Error = 4
+  ENUM MFCFIR = 8
+  ENUM MFCSegment = 16
+  ENUM MFCStorage = 32
+  ENUM NoValue = 64
+  ENUM StopCall = 256
+  ENUM StopDCall = 512
+  ENUM Halt = 1024
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+SPUThreadStopReason NoException
+  FIELD public static PS3TMAPI+SPUThreadStopReason DMAAlignment
+  FIELD public static PS3TMAPI+SPUThreadStopReason DMACommand
+  FIELD public static PS3TMAPI+SPUThreadStopReason Error
+  FIELD public static PS3TMAPI+SPUThreadStopReason MFCFIR
+  FIELD public static PS3TMAPI+SPUThreadStopReason MFCSegment
+  FIELD public static PS3TMAPI+SPUThreadStopReason MFCStorage
+  FIELD public static PS3TMAPI+SPUThreadStopReason NoValue
+  FIELD public static PS3TMAPI+SPUThreadStopReason StopCall
+  FIELD public static PS3TMAPI+SPUThreadStopReason StopDCall
+  FIELD public static PS3TMAPI+SPUThreadStopReason Halt
+
+TYPE PS3TMAPI+SyncPrimitiveCounts
+  FIELD public System.UInt32 NumEventQueues
+  FIELD public System.UInt32 NumEventFlag
+
+TYPE PS3TMAPI+SystemEvent
+  FIELD public System.UInt64 Source
+  FIELD public System.UInt64 Data1
+  FIELD public System.UInt64 Data2
+  FIELD public System.UInt64 Data3
+
+TYPE PS3TMAPI+SystemInfo
+  FIELD public System.UInt32 TotalSystemMemory
+  FIELD public System.UInt32 AvailableSystemMemory
+
+TYPE PS3TMAPI+TargetEvent
+  FIELD public System.UInt32 TargetID
+  FIELD public PS3TMAPI+TargetEventType Type
+  FIELD public PS3TMAPI+TargetEventData EventData
+  FIELD public PS3TMAPI+TargetSpecificEvent TargetSpecific
+
+TYPE PS3TMAPI+TargetEventCallback
+  METHOD public System.Void Invoke(System.Int32 target, PS3TMAPI+SNRESULT res, PS3TMAPI+TargetEvent[] targetEventList, System.Object userData)
+  METHOD public System.IAsyncResult BeginInvoke(System.Int32 target, PS3TMAPI+SNRESULT res, PS3TMAPI+TargetEvent[] targetEventList, System.Object userData, System.AsyncCallback callback, System.Object object)
+  METHOD public System.Void EndInvoke(System.IAsyncResult result)
+
+TYPE PS3TMAPI+TargetEventData
+  FIELD public PS3TMAPI+TGTEventUnitStatusChangeData UnitStatusChangeData
+  FIELD public PS3TMAPI+TGTEventDetailsData DetailsData
+  FIELD public PS3TMAPI+TGTEventModuleEventData ModuleEventData
+  FIELD public PS3TMAPI+TGTEventBDData BdData
+
+TYPE PS3TMAPI+TargetEventHdrPriv
+  FIELD public System.UInt32 Size
+  FIELD public System.UInt32 TargetID
+  FIELD public System.UInt32 EventType
+
+TYPE PS3TMAPI+TargetEventType
+  ENUM UnitStatusChange = 0
+  ENUM ResetStarted = 1
+  ENUM ResetEnd = 2
+  ENUM Details = 4
+  ENUM ModuleLoad = 5
+  ENUM ModuleRunning = 6
+  ENUM ModuleDoneRemove = 7
+  ENUM ModuleDoneResident = 8
+  ENUM ModuleStopped = 9
+  ENUM ModuleStoppedRemove = 10
+  ENUM PowerStatusChange = 11
+  ENUM TTYStreamAdded = 12
+  ENUM TTYStreamDeleted = 13
+  ENUM BDIsotransferStarted = 16
+  ENUM BDIsotransferFinished = 17
+  ENUM BDFormatStarted = 18
+  ENUM BDFormatFinished = 19
+  ENUM BDMountStarted = 20
+  ENUM BDMountFinished = 21
+  ENUM BDUnmountStarted = 22
+  ENUM BDUnmountFinished = 23
+  ENUM TargetSpecific = 2147483648
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+TargetEventType UnitStatusChange
+  FIELD public static PS3TMAPI+TargetEventType ResetStarted
+  FIELD public static PS3TMAPI+TargetEventType ResetEnd
+  FIELD public static PS3TMAPI+TargetEventType Details
+  FIELD public static PS3TMAPI+TargetEventType ModuleLoad
+  FIELD public static PS3TMAPI+TargetEventType ModuleRunning
+  FIELD public static PS3TMAPI+TargetEventType ModuleDoneRemove
+  FIELD public static PS3TMAPI+TargetEventType ModuleDoneResident
+  FIELD public static PS3TMAPI+TargetEventType ModuleStopped
+  FIELD public static PS3TMAPI+TargetEventType ModuleStoppedRemove
+  FIELD public static PS3TMAPI+TargetEventType PowerStatusChange
+  FIELD public static PS3TMAPI+TargetEventType TTYStreamAdded
+  FIELD public static PS3TMAPI+TargetEventType TTYStreamDeleted
+  FIELD public static PS3TMAPI+TargetEventType BDIsotransferStarted
+  FIELD public static PS3TMAPI+TargetEventType BDIsotransferFinished
+  FIELD public static PS3TMAPI+TargetEventType BDFormatStarted
+  FIELD public static PS3TMAPI+TargetEventType BDFormatFinished
+  FIELD public static PS3TMAPI+TargetEventType BDMountStarted
+  FIELD public static PS3TMAPI+TargetEventType BDMountFinished
+  FIELD public static PS3TMAPI+TargetEventType BDUnmountStarted
+  FIELD public static PS3TMAPI+TargetEventType BDUnmountFinished
+  FIELD public static PS3TMAPI+TargetEventType TargetSpecific
+
+TYPE PS3TMAPI+TargetSpecificData
+  FIELD public PS3TMAPI+PPUProcessCreateData PPUProcessCreate
+  FIELD public PS3TMAPI+PPUProcessExitData PPUProcessExit
+  FIELD public PS3TMAPI+PPUExceptionData PPUException
+  FIELD public PS3TMAPI+PPUAlignmentExceptionData PPUAlignmentException
+  FIELD public PS3TMAPI+PPUDataMatExceptionData PPUDataMatException
+  FIELD public PS3TMAPI+PPUThreadCreateData PPUThreadCreate
+  FIELD public PS3TMAPI+PPUThreadExitData PPUThreadExit
+  FIELD public PS3TMAPI+SPUThreadStartData SPUThreadStart
+  FIELD public PS3TMAPI+SPUThreadStopData SPUThreadStop
+  FIELD public PS3TMAPI+SPUThreadStopExData SPUThreadStopEx
+  FIELD public PS3TMAPI+SPUThreadGroupDestroyData SPUThreadGroupDestroyData
+  FIELD public PS3TMAPI+CoreDumpComplete CoreDumpComplete
+
+TYPE PS3TMAPI+TargetSpecificEvent
+  FIELD public System.UInt32 CommandID
+  FIELD public System.UInt32 RequestID
+  FIELD public System.UInt32 ProcessID
+  FIELD public System.UInt32 Result
+  FIELD public PS3TMAPI+TargetSpecificData Data
+
+TYPE PS3TMAPI+TargetSpecificEventType
+  ENUM ProcessCreate = 0
+  ENUM ProcessExit = 1
+  ENUM ProcessKill = 2
+  ENUM ProcessExitSpawn = 3
+  ENUM PPUExcTrap = 16
+  ENUM PPUExcPrevInt = 17
+  ENUM PPUExcAlignment = 18
+  ENUM PPUExcIllInst = 19
+  ENUM PPUExcTextHtabMiss = 20
+  ENUM PPUExcTextSlbMiss = 21
+  ENUM PPUExcDataHtabMiss = 22
+  ENUM PPUExcFloat = 23
+  ENUM PPUExcDataSlbMiss = 24
+  ENUM PPUExcDabrMatch = 25
+  ENUM PPUExcStop = 26
+  ENUM PPUExcStopInit = 27
+  ENUM PPUExcDataMAT = 28
+  ENUM PPUThreadCreate = 32
+  ENUM PPUThreadExit = 33
+  ENUM SPUThreadStart = 48
+  ENUM SPUThreadStop = 49
+  ENUM SPUThreadStopInit = 50
+  ENUM SPUThreadGroupDestroy = 51
+  ENUM SPUThreadStopEx = 52
+  ENUM PRXLoad = 64
+  ENUM PRXUnload = 65
+  ENUM DAInitialised = 96
+  ENUM Footswitch = 112
+  ENUM InstallPackageProgress = 128
+  ENUM InstallPackagePath = 129
+  ENUM CoreDumpComplete = 256
+  ENUM CoreDumpStart = 257
+  ENUM RawNotify = 4026531855
+  FIELD public System.UInt32 value__
+  FIELD public static PS3TMAPI+TargetSpecificEventType ProcessCreate
+  FIELD public static PS3TMAPI+TargetSpecificEventType ProcessExit
+  FIELD public static PS3TMAPI+TargetSpecificEventType ProcessKill
+  FIELD public static PS3TMAPI+TargetSpecificEventType ProcessExitSpawn
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcTrap
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcPrevInt
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcAlignment
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcIllInst
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcTextHtabMiss
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcTextSlbMiss
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcDataHtabMiss
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcFloat
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcDataSlbMiss
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcDabrMatch
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcStop
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcStopInit
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUExcDataMAT
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUThreadCreate
+  FIELD public static PS3TMAPI+TargetSpecificEventType PPUThreadExit
+  FIELD public static PS3TMAPI+TargetSpecificEventType SPUThreadStart
+  FIELD public static PS3TMAPI+TargetSpecificEventType SPUThreadStop
+  FIELD public static PS3TMAPI+TargetSpecificEventType SPUThreadStopInit
+  FIELD public static PS3TMAPI+TargetSpecificEventType SPUThreadGroupDestroy
+  FIELD public static PS3TMAPI+TargetSpecificEventType SPUThreadStopEx
+  FIELD public static PS3TMAPI+TargetSpecificEventType RawNotify
+  FIELD public static PS3TMAPI+TargetSpecificEventType PRXLoad
+  FIELD public static PS3TMAPI+TargetSpecificEventType PRXUnload
+  FIELD public static PS3TMAPI+TargetSpecificEventType DAInitialised
+  FIELD public static PS3TMAPI+TargetSpecificEventType Footswitch
+  FIELD public static PS3TMAPI+TargetSpecificEventType InstallPackageProgress
+  FIELD public static PS3TMAPI+TargetSpecificEventType InstallPackagePath
+  FIELD public static PS3TMAPI+TargetSpecificEventType CoreDumpStart
+  FIELD public static PS3TMAPI+TargetSpecificEventType CoreDumpComplete
+
+TYPE PS3TMAPI+TCPIPConnectProperties
+  FIELD public System.String IPAddress
+  FIELD public System.UInt32 Port
+
+TYPE PS3TMAPI+TGTEventBDData
+  FIELD public System.UInt32 Result
+  FIELD public System.String Source
+  FIELD public System.String Destination
+
+TYPE PS3TMAPI+TGTEventBDDataPriv
+  FIELD public System.UInt32 Result
+  FIELD public System.Byte[] Source
+  FIELD public System.Byte[] Destination
+
+TYPE PS3TMAPI+TGTEventDetailsData
+  FIELD public System.UInt32 Flags
+
+TYPE PS3TMAPI+TGTEventModuleEventData
+  FIELD public System.UInt32 Unit
+  FIELD public System.UInt32 ModuleID
+
+TYPE PS3TMAPI+TGTEventUnitStatusChangeData
+  FIELD public PS3TMAPI+UnitType Unit
+  FIELD public PS3TMAPI+UnitStatus Status
+
+TYPE PS3TMAPI+TGTEventUnitStatusChangeDataPriv
+  FIELD public System.Int32 Unit
+  FIELD public System.UInt32 Status
+
+TYPE PS3TMAPI+UnitStatus
+  ENUM Unknown = 0
+  ENUM Running = 1
+  ENUM Stopped = 2
+  ENUM Signalled = 3
+  ENUM Resetting = 4
+  ENUM Missing = 5
+  ENUM Reset = 6
+  ENUM NotConnected = 7
+  ENUM Connected = 8
+  ENUM StatusChange = 9
+  FIELD public static PS3TMAPI+UnitStatus Stopped
+
+TYPE PS3TMAPI+UnitType
+  ENUM PPU = 0
+  ENUM SPU = 1
+  ENUM SPURAW = 2
+  FIELD public static PS3TMAPI+UnitType PPU
+
+TYPE PS3TMAPI+UserMemoryStats
+  FIELD public System.UInt32 CreatedSharedMemorySize
+  FIELD public System.UInt32 AttachedSharedMemorySize
+  FIELD public System.UInt32 ProcessLocalMemorySize
+  FIELD public System.UInt32 ProcessLocalTextSize
+  FIELD public System.UInt32 PRXTextSize
+  FIELD public System.UInt32 PRXDataSize
+  FIELD public System.UInt32 MiscMemorySize
+
+TYPE PS3TMAPI+VirtualMemoryArea
+  FIELD public System.UInt64 Address
+  FIELD public System.UInt64 Flags
+  FIELD public System.UInt64 VSize
+  FIELD public System.UInt64 Options
+  FIELD public System.UInt64 PageFaultPPU
+  FIELD public System.UInt64 PageFaultSPU
+  FIELD public System.UInt64 PageIn
+  FIELD public System.UInt64 PageOut
+  FIELD public System.UInt64 PMemTotal
+  FIELD public System.UInt64 PMemUsed
+  FIELD public System.UInt64 Time
+  FIELD public System.UInt64[] Pages
+
