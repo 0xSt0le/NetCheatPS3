@@ -178,6 +178,7 @@ namespace TMAPI_NCAPI
             private bool reportedDebugThreadControlInfo;
             private bool reportedPollingThreadCount;
             private string lastPollingListError;
+            private string lastProcessTreeError;
             private ulong lastStoppedThreadId;
             private bool isRunning;
             private bool registeredEvents;
@@ -265,6 +266,7 @@ namespace TMAPI_NCAPI
 
                 object userData = null;
                 result = tmapi.RegisterTargetEventHandler(targetEventCallback, ref userData);
+                PublishDiagnostic("RegisterTargetEventHandler: " + result.ToString());
                 if (!PS3TMAPI.SUCCEEDED(result))
                     throw new InvalidOperationException("TMAPI RegisterTargetEventHandler failed: " + result.ToString());
 
@@ -311,23 +313,17 @@ namespace TMAPI_NCAPI
 
             private void HandleTargetEvents(
                 int target,
-                PS3TMAPI.EventType callbackType,
-                uint callbackParam,
                 PS3TMAPI.SNRESULT result,
-                uint rawLength,
-                byte[] rawData,
                 PS3TMAPI.TargetEvent[] targetEventList,
                 object userData)
             {
                 if (!IsRunning)
                     return;
 
-                PublishDiagnostic("TMAPI callback: target=" + target.ToString() +
-                    " event=" + callbackType.ToString() +
-                    " param=0x" + callbackParam.ToString("X8") +
+                int eventCount = targetEventList == null ? 0 : targetEventList.Length;
+                PublishDiagnostic("Target event received: target=" + target.ToString() +
                     " result=" + result.ToString() +
-                    " length=" + rawLength.ToString() +
-                    " raw=" + BytesToHex(rawData, 128));
+                    " events=" + eventCount.ToString("N0") + ".");
 
                 bool handledDabrMatch = false;
                 if (targetEventList != null)
@@ -347,7 +343,7 @@ namespace TMAPI_NCAPI
                 }
 
                 if (!handledDabrMatch)
-                    RecoverLogAndResumeFromRawCallback();
+                    RecoverLogAndResumeFromTargetCallback();
             }
 
             private void HandleDabrMatch(PS3TMAPI.TargetSpecificEvent specific)
@@ -383,6 +379,8 @@ namespace TMAPI_NCAPI
                     lastStoppedThreadId = hit.ThreadId;
                     hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
                     PublishHit(hit);
+                    PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
+                        " PC=0x" + hit.ProgramCounter.ToString("X8") + ".");
 
                     ResumeAfterHit(hit.ThreadId);
                 }
@@ -395,24 +393,27 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            private void RecoverLogAndResumeFromRawCallback()
+            private void RecoverLogAndResumeFromTargetCallback()
             {
                 StoppedThreadInfo stoppedThread;
                 string recoverError;
                 if (TryRecoverStoppedThread(out stoppedThread, out recoverError))
                 {
-                    ProcessStoppedThreadCandidate(stoppedThread, "raw target callback fallback");
+                    ProcessStoppedThreadCandidate(stoppedThread, "target event fallback");
                     return;
                 }
 
-                PublishError("TMAPI callback was received, but DABR event data could not be parsed. " + recoverError);
-                ResumeProcessFallback("No stopped PPU thread was recovered from raw callback.");
+                PublishError("TMAPI callback was received, but DABR event data did not include a DABR hit. " + recoverError);
+                ResumeProcessFallback("No stopped PPU thread was recovered from target callback.");
             }
 
             private bool TryRecoverStoppedThread(out StoppedThreadInfo stoppedThread, out string error)
             {
                 stoppedThread = new StoppedThreadInfo();
                 error = "";
+
+                if (TryRecoverStoppedThreadFromProcessTree(out stoppedThread, out error))
+                    return true;
 
                 try
                 {
@@ -456,6 +457,50 @@ namespace TMAPI_NCAPI
                 }
             }
 
+            private bool TryRecoverStoppedThreadFromProcessTree(out StoppedThreadInfo stoppedThread, out string error)
+            {
+                stoppedThread = new StoppedThreadInfo();
+                error = "";
+
+                try
+                {
+                    PS3TMAPI.ProcessTreeBranch[] processTree;
+                    PS3TMAPI.SNRESULT treeResult = tmapi.GetProcessTree(TMAPI.Target, out processTree);
+                    if (!PS3TMAPI.SUCCEEDED(treeResult))
+                    {
+                        error = "GetProcessTree failed: " + treeResult.ToString();
+                        return false;
+                    }
+
+                    uint processId = tmapi.SCE.ProcessID();
+                    if (processTree != null)
+                    {
+                        foreach (PS3TMAPI.ProcessTreeBranch branch in processTree)
+                        {
+                            if (branch.ProcessID != processId || branch.PPUThreadStatuses == null)
+                                continue;
+
+                            foreach (PS3TMAPI.PPUThreadStatus threadStatus in branch.PPUThreadStatuses)
+                            {
+                                if (threadStatus.ThreadState == PS3TMAPI.PPUThreadState.Stop)
+                                {
+                                    stoppedThread.ThreadId = threadStatus.ThreadID;
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    error = "No stopped PPU thread found in process tree.";
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    error = "Process tree recovery failed: " + ex.Message;
+                    return false;
+                }
+            }
+
             private void StartPollingWorker()
             {
                 stoppedThreadPoller = new Thread(PollStoppedThreads);
@@ -495,6 +540,12 @@ namespace TMAPI_NCAPI
                         else
                         {
                             lastStoppedThreadId = 0;
+                            if (error.StartsWith("GetProcessTree failed:", StringComparison.Ordinal) && error != lastProcessTreeError)
+                            {
+                                lastProcessTreeError = error;
+                                PublishError("Process-tree fallback: " + error);
+                            }
+
                             if (error.StartsWith("GetThreadList failed:", StringComparison.Ordinal) && error != lastPollingListError)
                             {
                                 lastPollingListError = error;
@@ -652,23 +703,6 @@ namespace TMAPI_NCAPI
                 catch
                 {
                 }
-            }
-
-            private static string BytesToHex(byte[] bytes, int maxBytes)
-            {
-                if (bytes == null || bytes.Length == 0 || maxBytes <= 0)
-                    return "";
-
-                int count = Math.Min(bytes.Length, maxBytes);
-                char[] chars = new char[count * 2];
-                const string hex = "0123456789ABCDEF";
-                for (int index = 0; index < count; index++)
-                {
-                    chars[index * 2] = hex[bytes[index] >> 4];
-                    chars[index * 2 + 1] = hex[bytes[index] & 0xF];
-                }
-
-                return new string(chars);
             }
 
             private struct StoppedThreadInfo

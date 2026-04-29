@@ -179,6 +179,12 @@ namespace TMAPI_NCAPI
             return PS3TMAPI.GetPPUThreadInfo(target, processID, threadID, out threadInfo);
         }
 
+        /// <summary>Get target process tree.</summary>
+        public PS3TMAPI.SNRESULT GetProcessTree(int target, out PS3TMAPI.ProcessTreeBranch[] processTree)
+        {
+            return PS3TMAPI.GetProcessTree(target, out processTree);
+        }
+
         /// <summary>Power on selected target.</summary>
         public void PowerOn(int numTarget = 0)
         {

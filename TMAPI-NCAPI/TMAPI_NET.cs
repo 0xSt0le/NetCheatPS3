@@ -97,32 +97,103 @@ namespace TMAPI_NCAPI
             Server = 107
         }
 
+        public enum UnitStatus
+        {
+            Unknown = 0,
+            Running = 1,
+            Stopped = 2,
+            Signalled = 3,
+            Resetting = 4,
+            Missing = 5,
+            Reset = 6,
+            NotConnected = 7,
+            Connected = 8,
+            StatusChange = 9
+        }
+
         public enum TargetEventType : uint
         {
+            UnitStatusChange = 0,
+            ResetStarted = 1,
+            ResetEnd = 2,
+            Details = 4,
+            ModuleLoad = 5,
+            ModuleRunning = 6,
+            ModuleDoneRemove = 7,
+            ModuleDoneResident = 8,
+            ModuleStopped = 9,
+            ModuleStoppedRemove = 10,
+            PowerStatusChange = 11,
+            TTYStreamAdded = 12,
+            TTYStreamDeleted = 13,
+            BDIsotransferStarted = 16,
+            BDIsotransferFinished = 17,
+            BDFormatStarted = 18,
+            BDFormatFinished = 19,
+            BDMountStarted = 20,
+            BDMountFinished = 21,
+            BDUnmountStarted = 22,
+            BDUnmountFinished = 23,
             TargetSpecific = 0x80000000
         }
 
         public enum TargetSpecificEventType : uint
         {
-            PPUExcDabrMatch = 25
+            ProcessCreate = 0,
+            ProcessExit = 1,
+            ProcessKill = 2,
+            ProcessExitSpawn = 3,
+            PPUExcTrap = 16,
+            PPUExcPrevInt = 17,
+            PPUExcAlignment = 18,
+            PPUExcIllInst = 19,
+            PPUExcTextHtabMiss = 20,
+            PPUExcTextSlbMiss = 21,
+            PPUExcDataHtabMiss = 22,
+            PPUExcFloat = 23,
+            PPUExcDataSlbMiss = 24,
+            PPUExcDabrMatch = 25,
+            PPUExcStop = 26,
+            PPUExcStopInit = 27,
+            PPUExcDataMAT = 28,
+            PPUThreadCreate = 32,
+            PPUThreadExit = 33,
+            SPUThreadStart = 48,
+            SPUThreadStop = 49,
+            SPUThreadStopInit = 50,
+            SPUThreadGroupDestroy = 51,
+            SPUThreadStopEx = 52,
+            PRXLoad = 64,
+            PRXUnload = 65,
+            DAInitialised = 96,
+            Footswitch = 112,
+            InstallPackageProgress = 128,
+            InstallPackagePath = 129,
+            CoreDumpComplete = 256,
+            CoreDumpStart = 257,
+            RawNotify = 0xF000000F
         }
 
-        public delegate void TargetEventCallback(
-            int target,
-            EventType callbackType,
-            uint callbackParam,
-            SNRESULT res,
-            uint rawLength,
-            byte[] rawData,
-            TargetEvent[] targetEventList,
-            object userData);
+        public delegate void TargetEventCallback(int target, SNRESULT res, TargetEvent[] targetEventList, object userData);
 
         private delegate void HandleEventCallbackPriv(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData);
+
+        public struct TargetEventData
+        {
+            public TGTEventUnitStatusChangeData UnitStatusChangeData;
+        }
+
+        public struct TGTEventUnitStatusChangeData
+        {
+            public UnitType Unit;
+            public UnitStatus Status;
+        }
 
         public struct TargetEvent
         {
             public uint TargetID;
             public TargetEventType Type;
+            public TargetEventData EventData;
             public TargetSpecificEvent TargetSpecific;
         }
 
@@ -139,6 +210,7 @@ namespace TMAPI_NCAPI
         {
             public TargetSpecificEventType Type;
             public PPUExceptionData PPUException;
+            public PPUAlignmentExceptionData PPUAlignmentException;
             public PPUDataMatExceptionData PPUDataMatException;
         }
 
@@ -151,6 +223,16 @@ namespace TMAPI_NCAPI
         }
 
         public struct PPUDataMatExceptionData
+        {
+            public ulong ThreadID;
+            public uint HWThreadNumber;
+            public ulong DSISR;
+            public ulong DAR;
+            public ulong PC;
+            public ulong SP;
+        }
+
+        public struct PPUAlignmentExceptionData
         {
             public ulong ThreadID;
             public uint HWThreadNumber;
@@ -272,6 +354,17 @@ namespace TMAPI_NCAPI
             public string ThreadName;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct PPUThreadInfoPriv
+        {
+            public ulong ThreadID;
+            public uint Priority;
+            public uint State;
+            public ulong StackAddress;
+            public ulong StackSize;
+            public uint ThreadNameLen;
+        }
+
         [Flags]
         public enum PPUThreadState : uint
         {
@@ -284,6 +377,60 @@ namespace TMAPI_NCAPI
             Stop = 0x00000006,
             Zombie = 0x00000007,
             Deleted = 0x00000008
+        }
+
+        public enum ProcessStatus : uint
+        {
+            Creating = 1,
+            Ready = 2,
+            Exited = 3
+        }
+
+        public enum SPUThreadGroupState : uint
+        {
+            NotConfigured = 0,
+            Configured = 1,
+            Ready = 2,
+            Waiting = 3,
+            Suspended = 4,
+            WaitingSuspended = 5,
+            Running = 6,
+            Stopped = 7
+        }
+
+        public struct PPUThreadStatus
+        {
+            public ulong ThreadID;
+            public PPUThreadState ThreadState;
+        }
+
+        public struct SPUThreadGroupStatus
+        {
+            public uint ThreadGroupID;
+            public SPUThreadGroupState ThreadGroupState;
+        }
+
+        public struct ProcessTreeBranch
+        {
+            public uint ProcessID;
+            public ProcessStatus ProcessState;
+            public ushort ProcessFlags;
+            public ushort RawSPU;
+            public PPUThreadStatus[] PPUThreadStatuses;
+            public SPUThreadGroupStatus[] SPUThreadGroupStatuses;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        private struct ProcessTreeBranchPriv
+        {
+            public uint ProcessId;
+            public ProcessStatus ProcessState;
+            public uint NumPpuThreads;
+            public uint NumSpuThreadGroups;
+            public ushort ProcessFlags;
+            public ushort RawSPU;
+            public IntPtr PpuThreadStatuses;
+            public IntPtr SpuThreadGroupStatuses;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -375,10 +522,10 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT ThreadGetRegistersX64(int target, UnitType unit, uint processId, ulong threadId, uint numRegisters, uint[] registerNums, ulong[] registerValues);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadGetRegisters", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT ThreadGetRegistersX86(int target, UnitType unit, uint processId, ulong threadId, uint numRegisters, uint[] registerNums, ulong[] registerValues);
-        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3PPUThreadInfoEx", CallingConvention = CallingConvention.Cdecl)]
-        private static extern SNRESULT PPUThreadInfoX64(int target, uint processID, ulong threadID, uint[] bufferSize, byte[] buffer);
-        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3PPUThreadInfoEx", CallingConvention = CallingConvention.Cdecl)]
-        private static extern SNRESULT PPUThreadInfoX86(int target, uint processID, ulong threadID, uint[] bufferSize, byte[] buffer);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadInfo", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT GetThreadInfoX64(int target, UnitType unit, uint processID, ulong threadID, ref uint bufferSize, IntPtr buffer);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadInfo", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT GetThreadInfoX86(int target, UnitType unit, uint processID, ulong threadID, ref uint bufferSize, IntPtr buffer);
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3GetProcessInfo", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT GetProcessInfoX64(int target, uint processID, out ProcessInfo pInfo);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3GetProcessInfo", CallingConvention = CallingConvention.Cdecl)]
@@ -399,10 +546,27 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT CancelTargetEventsX64(int target);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3CancelTargetEvents", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT CancelTargetEventsX86(int target);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3GetProcessTree", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT GetProcessTreeX64(int target, ref uint numProcesses, IntPtr buffer);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3GetProcessTree", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT GetProcessTreeX86(int target, ref uint numProcesses, IntPtr buffer);
 
-        private static readonly HandleEventCallbackPriv targetEventCallbackWrapper = MarshalTargetEvent;
-        private static TargetEventCallback targetEventCallback;
-        private static object targetEventUserData;
+        private static readonly HandleEventCallbackPriv ms_eventHandlerWrapper = EventHandlerWrapper;
+        private static readonly Dictionary<int, TargetCallbackAndUserData> ms_userTargetCallbacks = new Dictionary<int, TargetCallbackAndUserData>();
+
+        private class TargetCallbackAndUserData
+        {
+            public TargetEventCallback m_callback;
+            public object m_userData;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct TargetEventHdrPriv
+        {
+            public uint Size;
+            public uint TargetID;
+            public uint EventType;
+        }
 
         private static bool Is32Bit()
         {
@@ -658,21 +822,36 @@ namespace TMAPI_NCAPI
 
         public static SNRESULT RegisterTargetEventHandler(int target, TargetEventCallback callback, ref object userData)
         {
-            targetEventCallback = callback;
-            targetEventUserData = userData;
+            SNRESULT result = !Is32Bit()
+                ? RegisterTargetEventHandlerX64(target, ms_eventHandlerWrapper, IntPtr.Zero)
+                : RegisterTargetEventHandlerX86(target, ms_eventHandlerWrapper, IntPtr.Zero);
 
-            if (!Is32Bit())
+            if (SUCCEEDED(result))
             {
-                return RegisterTargetEventHandlerX64(target, targetEventCallbackWrapper, IntPtr.Zero);
+                lock (ms_userTargetCallbacks)
+                {
+                    ms_userTargetCallbacks[target] = new TargetCallbackAndUserData
+                    {
+                        m_callback = callback,
+                        m_userData = userData
+                    };
+                }
             }
-            return RegisterTargetEventHandlerX86(target, targetEventCallbackWrapper, IntPtr.Zero);
+
+            return result;
         }
 
         public static SNRESULT CancelTargetEvents(int target)
         {
             SNRESULT result = !Is32Bit() ? CancelTargetEventsX64(target) : CancelTargetEventsX86(target);
-            targetEventCallback = null;
-            targetEventUserData = null;
+            if (SUCCEEDED(result))
+            {
+                lock (ms_userTargetCallbacks)
+                {
+                    ms_userTargetCallbacks.Remove(target);
+                }
+            }
+
             return result;
         }
 
@@ -714,59 +893,133 @@ namespace TMAPI_NCAPI
 
         public static SNRESULT GetPPUThreadInfo(int target, uint processID, ulong threadID, out PPUThreadInfo threadInfo)
         {
-            byte[] buffer = new byte[1024];
-            uint[] bSize = new uint[] { 1024 };
-            SNRESULT ret;
-
-            if (!Is32Bit())
-            {
-                ret = PPUThreadInfoX64(target, processID, threadID, bSize, buffer);
-            }
-            else
-            {
-                ret = PPUThreadInfoX86(target, processID, threadID, bSize, buffer);
-            }
-
             threadInfo = new PPUThreadInfo();
-            threadInfo.ThreadID = BitConverter.ToUInt64(buffer, 0);
-            threadInfo.Priority = BitConverter.ToUInt32(buffer, 8);
-            threadInfo.State = (PPUThreadState)BitConverter.ToUInt32(buffer, 0x10);
-            threadInfo.StackAddress = BitConverter.ToUInt64(buffer, 0x14);
-            threadInfo.StackSize = BitConverter.ToUInt64(buffer, 0x1C);
-            threadInfo.ThreadName = TMAPI.ByteArrayToString(buffer, 0x28, 0);
+            uint bufferSize = 0;
+            SNRESULT result = !Is32Bit()
+                ? GetThreadInfoX64(target, UnitType.PPU, processID, threadID, ref bufferSize, IntPtr.Zero)
+                : GetThreadInfoX86(target, UnitType.PPU, processID, threadID, ref bufferSize, IntPtr.Zero);
 
-            return ret;
-        }
+            if (FAILED(result) && result != SNRESULT.SN_E_INSUFFICIENT_DATA)
+                return result;
 
-        private static void MarshalTargetEvent(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData)
-        {
-            TargetEventCallback callback = targetEventCallback;
-            if (callback == null)
-                return;
+            int headerSize = Marshal.SizeOf(typeof(PPUThreadInfoPriv));
+            if (bufferSize < headerSize)
+                bufferSize = (uint)headerSize;
 
-            byte[] rawData = CopyRawEventData(length, data);
-            TargetEvent[] events;
+            IntPtr buffer = Marshal.AllocHGlobal((int)bufferSize);
             try
             {
-                events = ParseTargetEvents(length, data);
+                result = !Is32Bit()
+                    ? GetThreadInfoX64(target, UnitType.PPU, processID, threadID, ref bufferSize, buffer)
+                    : GetThreadInfoX86(target, UnitType.PPU, processID, threadID, ref bufferSize, buffer);
+
+                if (FAILED(result))
+                    return result;
+
+                PPUThreadInfoPriv threadInfoPriv = (PPUThreadInfoPriv)Marshal.PtrToStructure(buffer, typeof(PPUThreadInfoPriv));
+                threadInfo.ThreadID = threadInfoPriv.ThreadID;
+                threadInfo.Priority = threadInfoPriv.Priority;
+                threadInfo.State = (PPUThreadState)threadInfoPriv.State;
+                threadInfo.StackAddress = threadInfoPriv.StackAddress;
+                threadInfo.StackSize = threadInfoPriv.StackSize;
+                threadInfo.ThreadName = "";
+
+                if (threadInfoPriv.ThreadNameLen > 0 && bufferSize > headerSize)
+                    threadInfo.ThreadName = Utf8ToString(new IntPtr(buffer.ToInt64() + headerSize), threadInfoPriv.ThreadNameLen);
             }
-            catch
+            finally
             {
-                events = new TargetEvent[0];
+                Marshal.FreeHGlobal(buffer);
             }
 
-            callback(target, type, param, result, length, rawData, events, targetEventUserData);
+            return result;
         }
 
-        private static byte[] CopyRawEventData(uint length, IntPtr data)
+        public static SNRESULT GetProcessTree(int target, out ProcessTreeBranch[] processTree)
         {
-            if (data == IntPtr.Zero || length == 0)
-                return new byte[0];
+            processTree = new ProcessTreeBranch[0];
+            uint numProcesses = 0;
+            SNRESULT result = !Is32Bit()
+                ? GetProcessTreeX64(target, ref numProcesses, IntPtr.Zero)
+                : GetProcessTreeX86(target, ref numProcesses, IntPtr.Zero);
 
-            int byteCount = length > 256 ? 256 : (int)length;
-            byte[] rawData = new byte[byteCount];
-            Marshal.Copy(data, rawData, 0, byteCount);
-            return rawData;
+            if (FAILED(result) && result != SNRESULT.SN_E_INSUFFICIENT_DATA)
+                return result;
+
+            if (numProcesses == 0)
+                return result;
+
+            int branchSize = Marshal.SizeOf(typeof(ProcessTreeBranchPriv));
+            IntPtr buffer = Marshal.AllocHGlobal((int)(branchSize * numProcesses));
+            try
+            {
+                result = !Is32Bit()
+                    ? GetProcessTreeX64(target, ref numProcesses, buffer)
+                    : GetProcessTreeX86(target, ref numProcesses, buffer);
+
+                if (FAILED(result))
+                    return result;
+
+                processTree = new ProcessTreeBranch[numProcesses];
+                for (int index = 0; index < numProcesses; index++)
+                {
+                    IntPtr branchPtr = new IntPtr(buffer.ToInt64() + branchSize * index);
+                    ProcessTreeBranchPriv branchPriv = (ProcessTreeBranchPriv)Marshal.PtrToStructure(branchPtr, typeof(ProcessTreeBranchPriv));
+                    processTree[index] = MarshalProcessTreeBranch(branchPriv);
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+
+            return result;
+        }
+
+        private static ProcessTreeBranch MarshalProcessTreeBranch(ProcessTreeBranchPriv branchPriv)
+        {
+            ProcessTreeBranch branch = new ProcessTreeBranch();
+            branch.ProcessID = branchPriv.ProcessId;
+            branch.ProcessState = branchPriv.ProcessState;
+            branch.ProcessFlags = branchPriv.ProcessFlags;
+            branch.RawSPU = branchPriv.RawSPU;
+            branch.PPUThreadStatuses = new PPUThreadStatus[branchPriv.NumPpuThreads];
+            branch.SPUThreadGroupStatuses = new SPUThreadGroupStatus[branchPriv.NumSpuThreadGroups];
+
+            int ppuStatusSize = Marshal.SizeOf(typeof(PPUThreadStatus));
+            for (int index = 0; branchPriv.PpuThreadStatuses != IntPtr.Zero && index < branch.PPUThreadStatuses.Length; index++)
+            {
+                IntPtr statusPtr = new IntPtr(branchPriv.PpuThreadStatuses.ToInt64() + ppuStatusSize * index);
+                branch.PPUThreadStatuses[index] = (PPUThreadStatus)Marshal.PtrToStructure(statusPtr, typeof(PPUThreadStatus));
+            }
+
+            int spuStatusSize = Marshal.SizeOf(typeof(SPUThreadGroupStatus));
+            for (int index = 0; branchPriv.SpuThreadGroupStatuses != IntPtr.Zero && index < branch.SPUThreadGroupStatuses.Length; index++)
+            {
+                IntPtr statusPtr = new IntPtr(branchPriv.SpuThreadGroupStatuses.ToInt64() + spuStatusSize * index);
+                branch.SPUThreadGroupStatuses[index] = (SPUThreadGroupStatus)Marshal.PtrToStructure(statusPtr, typeof(SPUThreadGroupStatus));
+            }
+
+            return branch;
+        }
+
+        private static void EventHandlerWrapper(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData)
+        {
+            if (type == EventType.Target)
+                MarshalTargetEvent(target, param, result, length, data);
+        }
+
+        private static void MarshalTargetEvent(int target, uint param, SNRESULT result, uint length, IntPtr data)
+        {
+            TargetCallbackAndUserData callbackAndUserData;
+            lock (ms_userTargetCallbacks)
+            {
+                if (!ms_userTargetCallbacks.TryGetValue(target, out callbackAndUserData))
+                    return;
+            }
+
+            TargetEvent[] events = ParseTargetEvents(length, data);
+            callbackAndUserData.m_callback(target, result, events, callbackAndUserData.m_userData);
         }
 
         private static TargetEvent[] ParseTargetEvents(uint length, IntPtr data)
@@ -777,97 +1030,123 @@ namespace TMAPI_NCAPI
             List<TargetEvent> events = new List<TargetEvent>();
             int offset = 0;
             int totalLength = length > Int32.MaxValue ? Int32.MaxValue : (int)length;
+            int headerSize = Marshal.SizeOf(typeof(TargetEventHdrPriv));
 
-            while (offset + 12 <= totalLength)
+            while (offset + headerSize <= totalLength)
             {
-                uint size = (uint)Marshal.ReadInt32(data, offset);
-                uint targetId = (uint)Marshal.ReadInt32(data, offset + 4);
-                TargetEventType eventType = (TargetEventType)(uint)Marshal.ReadInt32(data, offset + 8);
+                TargetEventHdrPriv eventHeader = (TargetEventHdrPriv)Marshal.PtrToStructure(new IntPtr(data.ToInt64() + offset), typeof(TargetEventHdrPriv));
 
-                if (size < 12 || offset + size > totalLength)
+                if (eventHeader.Size < headerSize || offset + eventHeader.Size > totalLength)
                     break;
 
                 TargetEvent targetEvent = new TargetEvent();
-                targetEvent.TargetID = targetId;
-                targetEvent.Type = eventType;
+                targetEvent.TargetID = eventHeader.TargetID;
+                targetEvent.Type = (TargetEventType)eventHeader.EventType;
 
-                if (eventType == TargetEventType.TargetSpecific)
-                    targetEvent.TargetSpecific = ReadTargetSpecificEvent(data, offset + 12, totalLength - (offset + 12));
+                IntPtr eventData = new IntPtr(data.ToInt64() + offset + headerSize);
+                uint eventDataSize = eventHeader.Size - (uint)headerSize;
+                if (targetEvent.Type == TargetEventType.TargetSpecific)
+                    targetEvent.TargetSpecific = MarshalTargetSpecificEvent(eventDataSize, eventData);
+                else if (targetEvent.Type == TargetEventType.UnitStatusChange)
+                    targetEvent.EventData.UnitStatusChangeData = MarshalUnitStatusChangeEvent(eventDataSize, eventData);
 
                 events.Add(targetEvent);
-                offset += (int)size;
-            }
-
-            if (events.Count == 0)
-            {
-                TargetEvent targetEvent = TryReadDirectTargetEvent(data, totalLength);
-                if (targetEvent.Type == TargetEventType.TargetSpecific)
-                    events.Add(targetEvent);
+                offset += (int)eventHeader.Size;
             }
 
             return events.ToArray();
         }
 
-        private static TargetEvent TryReadDirectTargetEvent(IntPtr data, int totalLength)
+        private static TGTEventUnitStatusChangeData MarshalUnitStatusChangeEvent(uint eventSize, IntPtr data)
         {
-            TargetEvent targetEvent = new TargetEvent();
+            TGTEventUnitStatusChangeData unitStatusChangeData = new TGTEventUnitStatusChangeData();
+            if (eventSize < 8)
+                return unitStatusChangeData;
 
-            if (totalLength < 60)
-                return targetEvent;
-
-            targetEvent.TargetID = (uint)Marshal.ReadInt32(data, 0);
-            targetEvent.Type = (TargetEventType)(uint)Marshal.ReadInt32(data, 4);
-            if (targetEvent.Type == TargetEventType.TargetSpecific)
-                targetEvent.TargetSpecific = ReadTargetSpecificEvent(data, 56, totalLength - 56);
-
-            return targetEvent;
+            unitStatusChangeData.Unit = (UnitType)Marshal.ReadInt32(data, 0);
+            unitStatusChangeData.Status = (UnitStatus)(uint)Marshal.ReadInt32(data, 4);
+            return unitStatusChangeData;
         }
 
-        private static TargetSpecificEvent ReadTargetSpecificEvent(IntPtr data, int offset, int available)
+        private static TargetSpecificEvent MarshalTargetSpecificEvent(uint eventSize, IntPtr data)
         {
             TargetSpecificEvent targetSpecific = new TargetSpecificEvent();
-            if (available < 64)
+            if (data == IntPtr.Zero || eventSize < 24)
                 return targetSpecific;
 
-            targetSpecific.CommandID = (uint)Marshal.ReadInt32(data, offset);
-            targetSpecific.RequestID = (uint)Marshal.ReadInt32(data, offset + 4);
-            targetSpecific.ProcessID = (uint)Marshal.ReadInt32(data, offset + 8);
-            targetSpecific.Result = (uint)Marshal.ReadInt32(data, offset + 12);
+            targetSpecific.CommandID = (uint)Marshal.ReadInt32(data, 0);
+            targetSpecific.RequestID = (uint)Marshal.ReadInt32(data, 4);
+            targetSpecific.ProcessID = (uint)Marshal.ReadInt32(data, 12);
+            targetSpecific.Result = (uint)Marshal.ReadInt32(data, 16);
+            targetSpecific.Data.Type = (TargetSpecificEventType)(uint)Marshal.ReadInt32(data, 20);
 
-            int dataOffset = offset + 16;
-            targetSpecific.Data.Type = (TargetSpecificEventType)(uint)Marshal.ReadInt32(data, dataOffset);
-            targetSpecific.Data.PPUException = ReadPPUExceptionData(data, dataOffset + 32, available - 48);
-            if (available >= 160)
-                targetSpecific.Data.PPUDataMatException = ReadPPUDataMatExceptionData(data, dataOffset + 112, available - 128);
+            IntPtr payload = new IntPtr(data.ToInt64() + 24);
+            uint payloadSize = eventSize - 24;
+            switch (targetSpecific.Data.Type)
+            {
+                case TargetSpecificEventType.PPUExcAlignment:
+                    targetSpecific.Data.PPUAlignmentException = ReadPPUAlignmentExceptionData(payload, payloadSize);
+                    break;
+
+                case TargetSpecificEventType.PPUExcDataMAT:
+                    targetSpecific.Data.PPUDataMatException = ReadPPUDataMatExceptionData(payload, payloadSize);
+                    break;
+
+                default:
+                    if (IsPPUExceptionEvent(targetSpecific.Data.Type))
+                        targetSpecific.Data.PPUException = ReadPPUExceptionData(payload, payloadSize);
+                    break;
+            }
 
             return targetSpecific;
         }
 
-        private static PPUExceptionData ReadPPUExceptionData(IntPtr data, int offset, int available)
+        private static bool IsPPUExceptionEvent(TargetSpecificEventType eventType)
+        {
+            return eventType >= TargetSpecificEventType.PPUExcTrap &&
+                eventType <= TargetSpecificEventType.PPUExcStopInit;
+        }
+
+        private static PPUExceptionData ReadPPUExceptionData(IntPtr data, uint available)
         {
             PPUExceptionData exceptionData = new PPUExceptionData();
             if (available < 32)
                 return exceptionData;
 
-            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, offset);
-            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, offset + 8);
-            exceptionData.PC = (ulong)Marshal.ReadInt64(data, offset + 16);
-            exceptionData.SP = (ulong)Marshal.ReadInt64(data, offset + 24);
+            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, 0);
+            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, 8);
+            exceptionData.PC = (ulong)Marshal.ReadInt64(data, 16);
+            exceptionData.SP = (ulong)Marshal.ReadInt64(data, 24);
             return exceptionData;
         }
 
-        private static PPUDataMatExceptionData ReadPPUDataMatExceptionData(IntPtr data, int offset, int available)
+        private static PPUAlignmentExceptionData ReadPPUAlignmentExceptionData(IntPtr data, uint available)
+        {
+            PPUAlignmentExceptionData exceptionData = new PPUAlignmentExceptionData();
+            if (available < 48)
+                return exceptionData;
+
+            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, 0);
+            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, 8);
+            exceptionData.DSISR = (ulong)Marshal.ReadInt64(data, 16);
+            exceptionData.DAR = (ulong)Marshal.ReadInt64(data, 24);
+            exceptionData.PC = (ulong)Marshal.ReadInt64(data, 32);
+            exceptionData.SP = (ulong)Marshal.ReadInt64(data, 40);
+            return exceptionData;
+        }
+
+        private static PPUDataMatExceptionData ReadPPUDataMatExceptionData(IntPtr data, uint available)
         {
             PPUDataMatExceptionData exceptionData = new PPUDataMatExceptionData();
             if (available < 48)
                 return exceptionData;
 
-            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, offset);
-            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, offset + 8);
-            exceptionData.DSISR = (ulong)Marshal.ReadInt64(data, offset + 16);
-            exceptionData.DAR = (ulong)Marshal.ReadInt64(data, offset + 24);
-            exceptionData.PC = (ulong)Marshal.ReadInt64(data, offset + 32);
-            exceptionData.SP = (ulong)Marshal.ReadInt64(data, offset + 40);
+            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, 0);
+            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, 8);
+            exceptionData.DSISR = (ulong)Marshal.ReadInt64(data, 16);
+            exceptionData.DAR = (ulong)Marshal.ReadInt64(data, 24);
+            exceptionData.PC = (ulong)Marshal.ReadInt64(data, 32);
+            exceptionData.SP = (ulong)Marshal.ReadInt64(data, 40);
             return exceptionData;
         }
 
