@@ -173,10 +173,14 @@ namespace TMAPI_NCAPI
             private readonly Action<AddressAccessHit> hitCallback;
             private readonly object sync = new object();
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
+            private readonly HashSet<ulong> baselineStoppedThreads = new HashSet<ulong>();
+            private readonly HashSet<ulong> reportedBaselineIgnoredThreads = new HashSet<ulong>();
+            private readonly HashSet<ulong> reportedStoppedThreadCandidates = new HashSet<ulong>();
             private Thread stoppedThreadPoller;
             private bool isProcessingStop;
             private bool reportedDebugThreadControlInfo;
             private bool reportedPollingThreadCount;
+            private bool baselineOnlyProcessContinueUsed;
             private string lastPollingListError;
             private string lastProcessTreeError;
             private ulong lastStoppedThreadId;
@@ -293,6 +297,8 @@ namespace TMAPI_NCAPI
                     throw new InvalidOperationException("TMAPI SetDABR failed: " + result.ToString());
                 }
 
+                CollectBaselineStoppedThreads();
+
                 lock (sync)
                 {
                     isRunning = true;
@@ -385,7 +391,7 @@ namespace TMAPI_NCAPI
                     PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
                         " PC=0x" + hit.ProgramCounter.ToString("X8") + ".");
 
-                    ResumeAfterHit(hit.ThreadId);
+                    ResumeAfterHit(hit.ThreadId, ResumeSource.EventCallback);
                 }
                 finally
                 {
@@ -415,13 +421,15 @@ namespace TMAPI_NCAPI
                 stoppedThread = new StoppedThreadInfo();
                 error = "";
 
-                if (TryRecoverStoppedThreadFromProcessTree(out stoppedThread, out error))
+                bool onlyBaselineStoppedThread;
+                if (TryRecoverStoppedThreadFromProcessTree(out stoppedThread, out error, out onlyBaselineStoppedThread))
                     return true;
 
                 try
                 {
                     ulong[] ppuThreadIDs;
                     ulong[] spuThreadIDs;
+                    bool sawBaselineStoppedThread = onlyBaselineStoppedThread;
                     PS3TMAPI.SNRESULT listResult = tmapi.GetThreadList(TMAPI.Target, tmapi.SCE.ProcessID(), out ppuThreadIDs, out spuThreadIDs);
                     if (!PS3TMAPI.SUCCEEDED(listResult))
                     {
@@ -445,12 +453,20 @@ namespace TMAPI_NCAPI
 
                         if (threadInfo.State == PS3TMAPI.PPUThreadState.Stop)
                         {
+                            if (IsBaselineStoppedThread(candidateThreadId, "thread info"))
+                            {
+                                sawBaselineStoppedThread = true;
+                                continue;
+                            }
+
                             stoppedThread.ThreadId = candidateThreadId;
+                            stoppedThread.Source = "thread info";
+                            PublishStoppedThreadFound(stoppedThread);
                             return true;
                         }
                     }
 
-                    error = "No stopped PPU thread found.";
+                    error = sawBaselineStoppedThread ? "Only baseline stopped threads found." : "No stopped PPU thread found.";
                     return false;
                 }
                 catch (Exception ex)
@@ -460,10 +476,11 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            private bool TryRecoverStoppedThreadFromProcessTree(out StoppedThreadInfo stoppedThread, out string error)
+            private bool TryRecoverStoppedThreadFromProcessTree(out StoppedThreadInfo stoppedThread, out string error, out bool onlyBaselineStoppedThread)
             {
                 stoppedThread = new StoppedThreadInfo();
                 error = "";
+                onlyBaselineStoppedThread = false;
 
                 try
                 {
@@ -487,7 +504,15 @@ namespace TMAPI_NCAPI
                             {
                                 if (threadStatus.ThreadState == PS3TMAPI.PPUThreadState.Stop)
                                 {
+                                    if (IsBaselineStoppedThread(threadStatus.ThreadID, "process tree"))
+                                    {
+                                        onlyBaselineStoppedThread = true;
+                                        continue;
+                                    }
+
                                     stoppedThread.ThreadId = threadStatus.ThreadID;
+                                    stoppedThread.Source = "process tree";
+                                    PublishStoppedThreadFound(stoppedThread);
                                     return true;
                                 }
                             }
@@ -544,6 +569,12 @@ namespace TMAPI_NCAPI
                         else
                         {
                             lastStoppedThreadId = 0;
+                            if (error == "Only baseline stopped threads found." && !baselineOnlyProcessContinueUsed)
+                            {
+                                baselineOnlyProcessContinueUsed = true;
+                                ResumeProcessFallback("Only baseline stopped threads found; ProcessContinue fallback used.");
+                            }
+
                             if (error.StartsWith("GetProcessTree failed:", StringComparison.Ordinal) && error != lastProcessTreeError)
                             {
                                 lastProcessTreeError = error;
@@ -564,6 +595,94 @@ namespace TMAPI_NCAPI
 
                     Thread.Sleep(35);
                 }
+            }
+
+            private void CollectBaselineStoppedThreads()
+            {
+                baselineStoppedThreads.Clear();
+                reportedBaselineIgnoredThreads.Clear();
+                reportedStoppedThreadCandidates.Clear();
+
+                AddBaselineStoppedThreadsFromProcessTree();
+                AddBaselineStoppedThreadsFromThreadInfo();
+
+                PublishDiagnostic("Baseline stopped PPU threads: " + baselineStoppedThreads.Count.ToString("N0") + ".");
+            }
+
+            private void AddBaselineStoppedThreadsFromProcessTree()
+            {
+                try
+                {
+                    PS3TMAPI.ProcessTreeBranch[] processTree;
+                    PS3TMAPI.SNRESULT treeResult = tmapi.GetProcessTree(TMAPI.Target, out processTree);
+                    if (!PS3TMAPI.SUCCEEDED(treeResult) || processTree == null)
+                        return;
+
+                    uint processId = tmapi.SCE.ProcessID();
+                    foreach (PS3TMAPI.ProcessTreeBranch branch in processTree)
+                    {
+                        if (branch.ProcessID != processId || branch.PPUThreadStatuses == null)
+                            continue;
+
+                        foreach (PS3TMAPI.PPUThreadStatus threadStatus in branch.PPUThreadStatuses)
+                        {
+                            if (threadStatus.ThreadState == PS3TMAPI.PPUThreadState.Stop)
+                                baselineStoppedThreads.Add(threadStatus.ThreadID);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    PublishError("Baseline process-tree scan failed: " + ex.Message);
+                }
+            }
+
+            private void AddBaselineStoppedThreadsFromThreadInfo()
+            {
+                try
+                {
+                    ulong[] ppuThreadIDs;
+                    ulong[] spuThreadIDs;
+                    PS3TMAPI.SNRESULT listResult = tmapi.GetThreadList(TMAPI.Target, tmapi.SCE.ProcessID(), out ppuThreadIDs, out spuThreadIDs);
+                    if (!PS3TMAPI.SUCCEEDED(listResult) || ppuThreadIDs == null)
+                        return;
+
+                    foreach (ulong threadId in ppuThreadIDs)
+                    {
+                        PS3TMAPI.PPUThreadInfo threadInfo;
+                        PS3TMAPI.SNRESULT infoResult = tmapi.GetPPUThreadInfo(TMAPI.Target, tmapi.SCE.ProcessID(), threadId, out threadInfo);
+                        if (PS3TMAPI.SUCCEEDED(infoResult) && threadInfo.State == PS3TMAPI.PPUThreadState.Stop)
+                            baselineStoppedThreads.Add(threadId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    PublishError("Baseline thread-info scan failed: " + ex.Message);
+                }
+            }
+
+            private bool IsBaselineStoppedThread(ulong threadId, string source)
+            {
+                if (!baselineStoppedThreads.Contains(threadId))
+                    return false;
+
+                if (reportedBaselineIgnoredThreads.Add(threadId))
+                {
+                    PublishDiagnostic("Stopped thread ignored because it was baseline: 0x" +
+                        threadId.ToString("X16") + " source=" + source + ".");
+                }
+
+                return true;
+            }
+
+            private void PublishStoppedThreadFound(StoppedThreadInfo stoppedThread)
+            {
+                if (!reportedStoppedThreadCandidates.Add(stoppedThread.ThreadId))
+                    return;
+
+                PublishDiagnostic("Stopped thread candidate: 0x" +
+                    stoppedThread.ThreadId.ToString("X16") +
+                    " source=" + stoppedThread.Source + ".");
             }
 
             private void PublishInitialThreadListProbe()
@@ -610,7 +729,8 @@ namespace TMAPI_NCAPI
 
                 try
                 {
-                    PublishDiagnostic("Stopped thread detected by " + source + ": 0x" + stoppedThread.ThreadId.ToString("X16") + ".");
+                    PublishDiagnostic("Stopped thread detected by " + source + ": 0x" + stoppedThread.ThreadId.ToString("X16") +
+                        " source=" + stoppedThread.Source + ".");
 
                     AddressAccessHit hit = new AddressAccessHit();
                     hit.WatchedAddress = Address;
@@ -627,7 +747,7 @@ namespace TMAPI_NCAPI
                     if (hit.ProgramCounter != 0)
                         PublishDiagnostic("Hit logged at PC " + hit.ProgramCounter.ToString("X8") + ".");
 
-                    ResumeAfterHit(stoppedThread.ThreadId);
+                    ResumeAfterHit(stoppedThread.ThreadId, ResumeSource.PollingFallback);
                 }
                 finally
                 {
@@ -638,7 +758,7 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            private void ResumeAfterHit(ulong threadId)
+            private void ResumeAfterHit(ulong threadId, ResumeSource resumeSource)
             {
                 if (threadId != 0)
                 {
@@ -647,16 +767,19 @@ namespace TMAPI_NCAPI
                         PublishError("ThreadExceptionClean failed for 0x" + threadId.ToString("X16") + ": " + cleanResult.ToString());
 
                     PS3TMAPI.SNRESULT continueResult = tmapi.ThreadContinue(threadId);
+                    PublishDiagnostic("ThreadContinue returned " + continueResult.ToString() + " for 0x" + threadId.ToString("X16") + ".");
+
                     if (PS3TMAPI.SUCCEEDED(continueResult))
                     {
-                        PublishDiagnostic("Resumed PPU thread 0x" + threadId.ToString("X16") + ".");
-                        return;
+                        if (resumeSource == ResumeSource.EventCallback)
+                            return;
                     }
-
-                    PublishError("ThreadContinue failed for 0x" + threadId.ToString("X16") + ": " + continueResult.ToString());
                 }
 
-                ResumeProcessFallback("Thread resume unavailable or failed.");
+                if (resumeSource == ResumeSource.PollingFallback)
+                    ResumeProcessFallback("ProcessContinue after polling fallback");
+                else
+                    ResumeProcessFallback("Thread resume unavailable or failed.");
             }
 
             private void ResumeProcessFallback(string reason)
@@ -665,9 +788,9 @@ namespace TMAPI_NCAPI
                 {
                     PS3TMAPI.SNRESULT continueResult = tmapi.ProcessContinue();
                     if (PS3TMAPI.SUCCEEDED(continueResult))
-                        PublishDiagnostic("ProcessContinue fallback used. " + reason);
+                        PublishDiagnostic(reason + ": " + continueResult.ToString() + ". Process resumed.");
                     else
-                        PublishError("ProcessContinue fallback failed: " + continueResult.ToString() + ". " + reason);
+                        PublishError(reason + ": " + continueResult.ToString() + ".");
                 }
                 catch (Exception ex)
                 {
@@ -734,6 +857,13 @@ namespace TMAPI_NCAPI
             private struct StoppedThreadInfo
             {
                 public ulong ThreadId;
+                public string Source;
+            }
+
+            private enum ResumeSource
+            {
+                EventCallback,
+                PollingFallback
             }
         }
 
