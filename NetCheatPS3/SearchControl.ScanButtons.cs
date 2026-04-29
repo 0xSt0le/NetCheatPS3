@@ -33,7 +33,7 @@ namespace NetCheatPS3
                 if (pausedForScan)
                     Form1.PauseProcess();
 
-                SetProgBar(0);
+                ResetScanProgress("Initial Scan starting...");
                 isInitialScan = true;
 
                 SearchControl.ncSearcher searcher = (SearchControl.ncSearcher)args[0];
@@ -56,8 +56,6 @@ namespace NetCheatPS3
 
                 stopped = _shouldStopSearch;
 
-                SetProgBar(0);
-
                 if (pausedForScan)
                     Form1.ContinueProcess();
 
@@ -67,12 +65,14 @@ namespace NetCheatPS3
                     {
                         searchMemory.Text = "Initial Scan";
                         Form1.Instance.statusLabel1.Text = "Scan stopped";
+                        ResetScanProgress("Scan stopped");
                         isInitialScan = true;
                     }
                     else
                     {
                         searchMemory.Text = "New Scan";
                         Form1.Instance.statusLabel1.Text = "Scan took " + ((float)stopw.ElapsedMilliseconds / 1000f).ToString("0.00") + " seconds";
+                        CompleteScanProgress("Initial Scan complete | Results: " + searchListView1.TotalCount.ToString("N0"));
                         isInitialScan = false;
                     }
                 });
@@ -86,6 +86,7 @@ namespace NetCheatPS3
                     searchMemory.Text = "Initial Scan";
                     nextSearchMem.Text = "Next Scan";
                     Form1.Instance.statusLabel1.Text = "Initial scan crashed. See NetCheatPS3_crash.log";
+                    FailScanProgress("Initial scan crashed. See NetCheatPS3_crash.log");
                     isInitialScan = true;
                 });
             }

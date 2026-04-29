@@ -56,23 +56,23 @@ namespace NetCheatPS3
             List<SearchListView.SearchListViewItem> pending = new List<SearchListView.SearchListViewItem>(1024);
             long matchCount = 0;
 
-            SetProgBar(0);
-
             ulong span = stop > start ? stop - start : 0;
             int blockCount = span == 0 ? 1 : (int)((span + (ulong)blockSize - 1UL) / (ulong)blockSize);
             if (blockCount <= 0)
                 blockCount = 1;
 
-            SetProgBarMax(blockCount);
+            BeginScanProgress("Initial Scan", blockCount, "blocks");
 
             byte[] fullBlock = new byte[blockSize];
             EndianMode endian = activeScanLittleEndian ? EndianMode.Little : EndianMode.Big;
 
-            for (ulong blockStart = start; blockStart < stop; blockStart += (ulong)blockSize)
+            int blockIndex = 0;
+            for (ulong blockStart = start; blockStart < stop; blockStart += (ulong)blockSize, blockIndex++)
             {
                 if (_shouldStopSearch)
                 {
                     reader.PublishStats("Fuzzy Value scan stopped by user");
+                    ResetScanProgress("Scan stopped");
                     return true;
                 }
 
@@ -100,7 +100,7 @@ namespace NetCheatPS3
                     pending = new List<SearchListView.SearchListViewItem>(1024);
                 }
 
-                IncProgBar(1);
+                UpdateScanProgress(blockIndex + 1, matchCount);
             }
 
             if (pending.Count > 0)
@@ -108,8 +108,8 @@ namespace NetCheatPS3
 
             reader.PublishStats("Fuzzy Value scan completed");
 
-            SetProgBarText(
-                "Fuzzy: " + matchCount.ToString("N0") +
+            CompleteScanProgress(
+                "Initial Scan complete | Fuzzy: " + matchCount.ToString("N0") +
                 " | " + min.ToString("0.###", CultureInfo.InvariantCulture) +
                 "-" + max.ToString("0.###", CultureInfo.InvariantCulture) +
                 " | OK " + reader.Stats.ReadSuccesses.ToString("N0") +

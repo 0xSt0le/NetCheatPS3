@@ -33,7 +33,7 @@ namespace NetCheatPS3
                 realDif = (int)(stopAddr - startAddr);
             else
                 realDif = (int)GetRealDif(startAddr, stopAddr, (ulong)size);
-            SetProgBarMax(realDif - 1);
+            BeginScanProgress("Initial Scan", realDif, "blocks");
 
             byte[] cmpArray = type.ToByteArray((string)args[0]);
             int resCnt = 0;
@@ -104,16 +104,13 @@ namespace NetCheatPS3
 
                     if (gotRes)
                     {
-                        SetStatusLabel("Results: " + resCnt.ToString("N0"));
                         AddResultRange(itemsToAdd);
                         itemsToAdd.Clear();
                     }
 
                 }
 
-                //Thread.Sleep(100);
-                //if (!updateCont)
-                    IncProgBar(1);
+                UpdateScanProgress(addr >= stopAddr ? realDif : (long)Math.Min(realDif, GetRealDif(startAddr, addr + (ulong)size, (ulong)size)), resCnt);
             }
 
             Invoke((MethodInvoker)delegate
@@ -279,8 +276,7 @@ namespace NetCheatPS3
             if (totalBlocks <= 0)
                 totalBlocks = 1;
 
-            SetProgBarMax(totalBlocks - 1);
-            SetProgBar(0);
+            BeginScanProgress("Initial Scan", totalBlocks, "blocks");
 
             MemoryReader reader = new MemoryReader();
             ExactScanRequest request = new ExactScanRequest();
@@ -305,11 +301,7 @@ namespace NetCheatPS3
                 delegate () { return _shouldStopSearch; },
                 delegate (int blockIndex)
                 {
-                    if ((blockIndex & 0x0F) == 0)
-                    {
-                        SetProgBar(blockIndex);
-                        SetStatusLabel("Results: " + resCnt.ToString("N0"));
-                    }
+                    UpdateScanProgress(blockIndex + 1, resCnt);
                 },
                 delegate (ulong addr, byte[] displayBytes)
                 {
@@ -337,8 +329,7 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(totalBlocks - 1);
-            SetStatusLabel("Results: " + resCnt.ToString("N0"));
+            CompleteScanProgress("Initial Scan complete | Results: " + resCnt.ToString("N0"));
         }
 
         private byte[] NewScanner_ValueBytesToRaw(byte[] valueBytes, int byteSize)
@@ -1246,8 +1237,7 @@ namespace NetCheatPS3
             if (totalBlocks <= 0)
                 totalBlocks = 1;
 
-            SetProgBarMax(totalBlocks - 1);
-            SetProgBar(0);
+            BeginScanProgress("Initial Scan", totalBlocks, "blocks");
 
             MemoryReader reader = new MemoryReader();
             byte[] fullBlock = new byte[blockSize];
@@ -1299,11 +1289,7 @@ namespace NetCheatPS3
                     }
                 }
 
-                if ((blockIndex & 0x0F) == 0)
-                {
-                    SetProgBar(blockIndex);
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
-                }
+                UpdateScanProgress(blockIndex + 1, resCnt);
             }
 
             if (batch.Count > 0)
@@ -1317,9 +1303,8 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(totalBlocks - 1);
-            SetStatusLabel(
-                "Results: " + resCnt.ToString("N0") +
+            CompleteScanProgress(
+                "Initial Scan complete | Results: " + resCnt.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
         }
@@ -1471,8 +1456,7 @@ namespace NetCheatPS3
             if (MessageBox.Show(msg, "Unknown Value Snapshot", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.No)
                 return;
 
-            SetProgBarMax(totalBlocks - 1);
-            SetProgBar(0);
+            BeginScanProgress("Initial Scan", totalBlocks, "blocks");
 
             string snapshotPath = CreateSnapshotPath();
             MemoryReader reader = new MemoryReader();
@@ -1530,11 +1514,7 @@ namespace NetCheatPS3
                         }
                     }
 
-                    if ((blockIndex & 0x0F) == 0)
-                    {
-                        SetProgBar(blockIndex);
-                        SetStatusLabel("Snapshot records: " + totalCount.ToString("N0") + " | Visible: " + visibleCount.ToString("N0"));
-                    }
+                    UpdateScanProgress(blockIndex + 1, totalCount);
                 }
             }
 
@@ -1552,9 +1532,8 @@ namespace NetCheatPS3
                 searchListView1.AddItemsFromList();
             });
 
-            SetProgBar(totalBlocks - 1);
-            SetStatusLabel(
-                "Snapshot records: " + totalCount.ToString("N0") +
+            CompleteScanProgress(
+                "Initial Scan complete | Snapshot records: " + totalCount.ToString("N0") +
                 " | Visible: " + visibleCount.ToString("N0") +
                 " | Reads OK: " + reader.Stats.ReadSuccesses.ToString("N0") +
                 " | Failed: " + reader.Stats.ReadFailures.ToString("N0"));
@@ -1825,7 +1804,7 @@ namespace NetCheatPS3
                 realDif = (int)(stopAddr - startAddr);
             else
                 realDif = (int)GetRealDif(startAddr, stopAddr, (ulong)size);
-            SetProgBarMax(realDif - 1);
+            BeginScanProgress("Initial Scan", realDif, "blocks");
 
             byte[] cmpArrayMin = type.ToByteArray((string)args[0]);
             byte[] cmpArrayMax = type.ToByteArray((string)args[1]);
@@ -1876,7 +1855,6 @@ namespace NetCheatPS3
 
                     if (gotRes)
                     {
-                        SetStatusLabel("Results: " + resCnt.ToString("N0"));
                         AddResultRange(resItems);
                         resItems.Clear();
                     }
@@ -1887,9 +1865,7 @@ namespace NetCheatPS3
                 {
                     searchListView1.AddItemsFromList();
                 });
-                //Thread.Sleep(100);
-                //if (!updateCont)
-                    IncProgBar(1);
+                UpdateScanProgress(addr >= stopAddr ? realDif : (long)Math.Min(realDif, GetRealDif(startAddr, addr + (ulong)size, (ulong)size)), resCnt);
             }
         }
 
@@ -1914,7 +1890,7 @@ namespace NetCheatPS3
                 realDif = (int)(stopAddr - startAddr);
             else
                 realDif = (int)GetRealDif(startAddr, stopAddr, (ulong)size);
-            SetProgBarMax(realDif - 1);
+            BeginScanProgress("Initial Scan", realDif, "blocks");
 
             byte[] cmpArrayMin = type.ToByteArray((val - 0x7FFF).ToString("X8"));
             byte[] cmpArrayMax = type.ToByteArray((val + 0x7FFF).ToString("X8"));
@@ -1966,7 +1942,6 @@ namespace NetCheatPS3
 
                     if (gotRes)
                     {
-                        SetStatusLabel("Results: " + resCnt.ToString("N0"));
                         AddResultRange(resItems);
                         resItems.Clear();
                     }
@@ -1977,9 +1952,7 @@ namespace NetCheatPS3
                 {
                     searchListView1.AddItemsFromList();
                 });
-                //Thread.Sleep(100);
-                //if (!updateCont)
-                IncProgBar(1);
+                UpdateScanProgress(addr >= stopAddr ? realDif : (long)Math.Min(realDif, GetRealDif(startAddr, addr + (ulong)size, (ulong)size)), resCnt);
             }
         }
 
@@ -2009,7 +1982,7 @@ namespace NetCheatPS3
                 searchListView1.Enabled = false;
             });
 
-            SetProgBarMax(realDif - 1);
+            BeginScanProgress("Initial Scan", realDif, "blocks");
 
             int resCnt = 0;
             int incSize = type.ByteSize;
@@ -2040,15 +2013,12 @@ namespace NetCheatPS3
                         //if (updateCont)
                         //    IncProgBar(incSize);
                     }
-                    SetStatusLabel("Results: " + resCnt.ToString("N0"));
                     AddResultRange(itemsToAdd);
                     itemsToAdd.Clear();
 
                 }
 
-                //Thread.Sleep(100);
-                //if (!updateCont)
-                IncProgBar(1);
+                UpdateScanProgress(addr >= stopAddr ? realDif : (long)Math.Min(realDif, GetRealDif(startAddr, addr + (ulong)size, (ulong)size)), resCnt);
             }
 
             Invoke((MethodInvoker)delegate
@@ -2080,7 +2050,7 @@ namespace NetCheatPS3
                 realDif = (int)(stopAddr - startAddr);
             else
                 realDif = (int)GetRealDif(startAddr, stopAddr, (ulong)size);
-            SetProgBarMax(realDif - 1);
+            BeginScanProgress("Initial Scan", realDif, "blocks");
 
             int resCnt = 0;
             int incSize = type.ByteSize;
@@ -2143,16 +2113,13 @@ namespace NetCheatPS3
 
                     if (gotRes)
                     {
-                        SetStatusLabel("Results: " + resCnt.ToString("N0"));
                         AddResultRange(itemsToAdd);
                         itemsToAdd.Clear();
                     }
 
                 }
 
-                //Thread.Sleep(100);
-                //if (!updateCont)
-                IncProgBar(1);
+                UpdateScanProgress(addr >= stopAddr ? realDif : (long)Math.Min(realDif, GetRealDif(startAddr, addr + (ulong)size, (ulong)size)), resCnt);
             }
 
             Invoke((MethodInvoker)delegate
