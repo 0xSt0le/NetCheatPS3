@@ -322,6 +322,12 @@ namespace TMAPI_NCAPI
             return PS3TMAPI.CancelTargetEvents(Target);
         }
 
+        public PS3TMAPI.SNRESULT EnableAutoStatusUpdate(bool enabled, out bool previousState)
+        {
+            EnsureTargetCommsInitialized();
+            return PS3TMAPI.EnableAutoStatusUpdate(Target, enabled, out previousState);
+        }
+
         public PS3TMAPI.SNRESULT ThreadExceptionClean(ulong threadID)
         {
             EnsureTargetCommsInitialized();

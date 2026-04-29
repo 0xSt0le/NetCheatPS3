@@ -176,6 +176,8 @@ namespace TMAPI_NCAPI
 
         public delegate void TargetEventCallback(int target, SNRESULT res, TargetEvent[] targetEventList, object userData);
 
+        public static Action<string> NativeEventDiagnosticSink;
+
         private delegate void HandleEventCallbackPriv(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData);
 
         public struct TargetEventData
@@ -506,6 +508,10 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT DisconnectX64(int target);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3Disconnect", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT DisconnectX86(int target);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3EnableAutoStatusUpdate", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT EnableAutoStatusUpdateX64(int target, uint enabled, out uint previousState);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3EnableAutoStatusUpdate", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT EnableAutoStatusUpdateX86(int target, uint enabled, out uint previousState);
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ThreadList", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT ThreadListX64(int target, uint processID, ref uint numPPUThreads, ulong[] ppuThreadIDs, ref uint numSPUThreadGroups, ulong[] spuThreadIDs);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ThreadList", CallingConvention = CallingConvention.Cdecl)]
@@ -864,6 +870,17 @@ namespace TMAPI_NCAPI
             return DisconnectX86(target);
         }
 
+        public static SNRESULT EnableAutoStatusUpdate(int target, bool enabled, out bool previousState)
+        {
+            uint previousStateValue;
+            SNRESULT result = !Is32Bit()
+                ? EnableAutoStatusUpdateX64(target, enabled ? 1U : 0U, out previousStateValue)
+                : EnableAutoStatusUpdateX86(target, enabled ? 1U : 0U, out previousStateValue);
+
+            previousState = previousStateValue != 0;
+            return result;
+        }
+
         public static SNRESULT GetThreadList(int target, uint processID, out ulong[] ppuThreadIDs, out ulong[] spuThreadIDs)
         {
             ppuThreadIDs = new ulong[0];
@@ -999,8 +1016,29 @@ namespace TMAPI_NCAPI
 
         private static void EventHandlerWrapper(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData)
         {
+            PublishNativeEventDiagnostic(target, type, param, result, length);
+
             if (type == EventType.Target)
                 MarshalTargetEvent(target, param, result, length, data);
+        }
+
+        private static void PublishNativeEventDiagnostic(int target, EventType type, uint param, SNRESULT result, uint length)
+        {
+            Action<string> sink = NativeEventDiagnosticSink;
+            if (sink == null)
+                return;
+
+            try
+            {
+                sink("Native TMAPI callback: target=" + target.ToString() +
+                    " type=" + type.ToString() +
+                    " param=0x" + param.ToString("X8") +
+                    " result=" + result.ToString() +
+                    " length=" + length.ToString("N0") + ".");
+            }
+            catch
+            {
+            }
         }
 
         private static void MarshalTargetEvent(int target, uint param, SNRESULT result, uint length, IntPtr data)

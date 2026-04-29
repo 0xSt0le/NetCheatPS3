@@ -172,14 +172,20 @@ namespace TMAPI_NCAPI
             private readonly Action<AddressAccessHit> hitCallback;
             private readonly object sync = new object();
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
+            private readonly Action<string> nativeEventDiagnosticSink;
             private Thread stoppedThreadPoller;
             private bool isProcessingStop;
             private bool reportedDebugThreadControlInfo;
+            private bool receivedNativeCallback;
             private bool isRunning;
             private bool registeredEvents;
             private bool savedOldDabr;
+            private bool savedAutoStatusUpdate;
+            private bool previousAutoStatusUpdate;
             private ulong oldDabr;
             private ulong rawDabr;
+            private string lastNativeEventDiagnostic;
+            private DateTime lastNativeEventDiagnosticTime;
 
             public AddressAccessLoggerSession(API owner, TMAPI tmapi, ulong address, AddressAccessMode mode, Action<AddressAccessHit> hitCallback)
             {
@@ -189,6 +195,7 @@ namespace TMAPI_NCAPI
                 Address = address;
                 Mode = mode;
                 targetEventCallback = HandleTargetEvents;
+                nativeEventDiagnosticSink = PublishNativeEventDiagnostic;
 
                 Start();
             }
@@ -221,6 +228,13 @@ namespace TMAPI_NCAPI
                     return;
 
                 StopPollingWorker();
+                if (!receivedNativeCallback)
+                    PublishDiagnostic("No TMAPI native callback was received during this logger session.");
+
+                if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
+                    PS3TMAPI.NativeEventDiagnosticSink = null;
+
+                RestoreAutoStatusUpdate();
 
                 try
                 {
@@ -259,6 +273,16 @@ namespace TMAPI_NCAPI
                 PS3TMAPI.SNRESULT initResult = tmapi.EnsureTargetCommsInitialized();
                 PublishDiagnostic("InitTargetComms: " + initResult.ToString());
 
+                bool previousAutoStatus;
+                PS3TMAPI.SNRESULT autoStatusResult = tmapi.EnableAutoStatusUpdate(true, out previousAutoStatus);
+                PublishDiagnostic("EnableAutoStatusUpdate: " + autoStatusResult.ToString() +
+                    ", previous=" + previousAutoStatus.ToString() + ".");
+                savedAutoStatusUpdate = PS3TMAPI.SUCCEEDED(autoStatusResult);
+                previousAutoStatusUpdate = previousAutoStatus;
+
+                PS3TMAPI.NativeEventDiagnosticSink = nativeEventDiagnosticSink;
+                PublishDiagnostic("No TMAPI native callback has been received yet.");
+
                 PS3TMAPI.SNRESULT result = tmapi.GetDABR(out oldDabr);
                 savedOldDabr = PS3TMAPI.SUCCEEDED(result);
 
@@ -266,7 +290,13 @@ namespace TMAPI_NCAPI
                 result = tmapi.RegisterTargetEventHandler(targetEventCallback, ref userData);
                 PublishDiagnostic("RegisterTargetEventHandler: " + result.ToString());
                 if (!PS3TMAPI.SUCCEEDED(result))
+                {
+                    RestoreAutoStatusUpdate();
+                    if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
+                        PS3TMAPI.NativeEventDiagnosticSink = null;
+
                     throw new InvalidOperationException("TMAPI RegisterTargetEventHandler failed: " + result.ToString());
+                }
 
                 registeredEvents = true;
 
@@ -284,6 +314,9 @@ namespace TMAPI_NCAPI
                     }
 
                     registeredEvents = false;
+                    RestoreAutoStatusUpdate();
+                    if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
+                        PS3TMAPI.NativeEventDiagnosticSink = null;
 
                     throw new InvalidOperationException("TMAPI SetDABR failed: " + result.ToString());
                 }
@@ -296,6 +329,25 @@ namespace TMAPI_NCAPI
                 StartPollingWorker();
                 PublishDiagnostic("Experimental TMAPI DABR logger: auto-resume is disabled unless TMAPI delivers a real DABR event.");
                 PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
+            }
+
+            private void RestoreAutoStatusUpdate()
+            {
+                if (!savedAutoStatusUpdate)
+                    return;
+
+                savedAutoStatusUpdate = false;
+                try
+                {
+                    bool ignoredPreviousState;
+                    PS3TMAPI.SNRESULT result = tmapi.EnableAutoStatusUpdate(previousAutoStatusUpdate, out ignoredPreviousState);
+                    PublishDiagnostic("Restore EnableAutoStatusUpdate: " + result.ToString() +
+                        ", restored=" + previousAutoStatusUpdate.ToString() + ".");
+                }
+                catch (Exception ex)
+                {
+                    PublishError("Failed to restore TMAPI auto status update: " + ex.Message);
+                }
             }
 
             private static ulong BuildRawDabr(ulong address, AddressAccessMode mode)
@@ -458,6 +510,28 @@ namespace TMAPI_NCAPI
 
                 reportedDebugThreadControlInfo = true;
                 PublishDiagnostic(tmapi.GetDebugThreadControlInfoDiagnostic());
+            }
+
+            private void PublishNativeEventDiagnostic(string diagnostic)
+            {
+                lock (sync)
+                {
+                    if (!isRunning)
+                        return;
+
+                    DateTime now = DateTime.UtcNow;
+                    if (diagnostic == lastNativeEventDiagnostic &&
+                        (now - lastNativeEventDiagnosticTime).TotalMilliseconds < 1000)
+                    {
+                        return;
+                    }
+
+                    lastNativeEventDiagnostic = diagnostic;
+                    lastNativeEventDiagnosticTime = now;
+                    receivedNativeCallback = true;
+                }
+
+                PublishDiagnostic(diagnostic);
             }
 
             private void ResumeAfterHit(ulong threadId)
