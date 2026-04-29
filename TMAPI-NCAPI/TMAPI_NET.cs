@@ -107,7 +107,15 @@ namespace TMAPI_NCAPI
             PPUExcDabrMatch = 25
         }
 
-        public delegate void TargetEventCallback(int target, SNRESULT res, TargetEvent[] targetEventList, object userData);
+        public delegate void TargetEventCallback(
+            int target,
+            EventType callbackType,
+            uint callbackParam,
+            SNRESULT res,
+            uint rawLength,
+            byte[] rawData,
+            TargetEvent[] targetEventList,
+            object userData);
 
         private delegate void HandleEventCallbackPriv(int target, EventType type, uint param, SNRESULT result, uint length, IntPtr data, IntPtr userData);
 
@@ -726,8 +734,29 @@ namespace TMAPI_NCAPI
             if (callback == null)
                 return;
 
-            TargetEvent[] events = ParseTargetEvents(length, data);
-            callback(target, result, events, targetEventUserData);
+            byte[] rawData = CopyRawEventData(length, data);
+            TargetEvent[] events;
+            try
+            {
+                events = ParseTargetEvents(length, data);
+            }
+            catch
+            {
+                events = new TargetEvent[0];
+            }
+
+            callback(target, type, param, result, length, rawData, events, targetEventUserData);
+        }
+
+        private static byte[] CopyRawEventData(uint length, IntPtr data)
+        {
+            if (data == IntPtr.Zero || length == 0)
+                return new byte[0];
+
+            int byteCount = length > 256 ? 256 : (int)length;
+            byte[] rawData = new byte[byteCount];
+            Marshal.Copy(data, rawData, 0, byteCount);
+            return rawData;
         }
 
         private static TargetEvent[] ParseTargetEvents(uint length, IntPtr data)

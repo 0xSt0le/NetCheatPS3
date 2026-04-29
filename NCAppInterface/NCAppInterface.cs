@@ -22,6 +22,7 @@ namespace NCAppInterface
         public byte[] InstructionBytes { get; set; }
         public DateTime Timestamp { get; set; }
         public string Error { get; set; }
+        public string Diagnostic { get; set; }
     }
 
     public interface IAddressAccessLoggerApi

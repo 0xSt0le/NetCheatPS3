@@ -235,6 +235,11 @@ namespace TMAPI_NCAPI
             PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
         }
 
+        public PS3TMAPI.SNRESULT ProcessContinue()
+        {
+            return PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
+        }
+
         public PS3TMAPI.SNRESULT SetDABR(ulong address)
         {
             return PS3TMAPI.SetDABR(Target, Parameters.ProcessID, address);
@@ -399,7 +404,6 @@ namespace TMAPI_NCAPI
         internal static Assembly LoadApi;
         private static bool _ps3TmApiResolverRegistered = false;
         private static bool _ps3TmApiResolverErrorShown = false;
-        private static bool _assemblyResolverRegistered = false;
         private static bool _assemblyResolverErrorShown = false;
         private static readonly object _assemblyResolverLock = new object();
         ///<summary>Load the PS3 API for use with your Application .NET.</summary>

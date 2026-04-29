@@ -126,44 +126,35 @@ namespace PS2RD_NCAPI
             if (endAddr < 0x00080000 || endAddr >= 0x02000000)
                 return false;
 
-            if (true)
+            ulong dSize = endAddr - address;
+            if (dSize < 0x1000)
             {
-                ulong dSize = endAddr - address;
+                endAddr = address + 0x1000;
+            }
+
+            string arg = "ntpbclient.exe -D " + address.ToString("X8") + " " + endAddr.ToString("X8") + " temp.bin -ip " + ipAddr;
+            CallCommand(arg);
+
+            if (System.IO.File.Exists(curPath + "\\temp.bin"))
+            {
                 if (dSize < 0x1000)
                 {
-                    endAddr = address + 0x1000;
-                }
+                    System.IO.FileStream fs = System.IO.File.OpenRead(curPath + "\\temp.bin");
 
-                string arg = "ntpbclient.exe -D " + address.ToString("X8") + " " + endAddr.ToString("X8") + " temp.bin -ip " + ipAddr;
-                CallCommand(arg);
-
-                if (System.IO.File.Exists(curPath + "\\temp.bin"))
-                {
-                    if (dSize < 0x1000)
+                    for (ulong x = 0; x < dSize; x++)
                     {
-                        System.IO.FileStream fs = System.IO.File.OpenRead(curPath + "\\temp.bin");
-
-                        for (ulong x = 0; x < dSize; x++)
-                        {
-                            bytes[x] = (byte)fs.ReadByte();
-                        }
-
-                        fs.Close();
+                        bytes[x] = (byte)fs.ReadByte();
                     }
-                    else
-                        bytes = System.IO.File.ReadAllBytes(curPath + "\\temp.bin");
-                    System.IO.File.Delete(curPath + "\\temp.bin");
 
-                    return true;
+                    fs.Close();
                 }
                 else
-                    return false;
-            }
-            else
-            {
-                bytes = ntpb.DumpRAM((uint)address, (uint)endAddr);
-                if (bytes != null)
-                    return true;
+                {
+                    bytes = System.IO.File.ReadAllBytes(curPath + "\\temp.bin");
+                }
+
+                System.IO.File.Delete(curPath + "\\temp.bin");
+                return true;
             }
 
             return false;

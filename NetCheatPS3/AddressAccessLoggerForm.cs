@@ -13,6 +13,7 @@ namespace NetCheatPS3
         private readonly ListView hitList = new ListView();
         private readonly Button extraInfoButton = new Button();
         private readonly Button stopButton = new Button();
+        private readonly Label statusLabel = new Label();
 
         public AddressAccessLoggerForm(IAddressAccessLoggerApi loggerApi, ulong address, AddressAccessMode mode)
         {
@@ -36,22 +37,30 @@ namespace NetCheatPS3
 
             Panel buttonPanel = new Panel();
             buttonPanel.Dock = DockStyle.Bottom;
-            buttonPanel.Height = 42;
+            buttonPanel.Height = 66;
+
+            statusLabel.Left = 8;
+            statusLabel.Top = 6;
+            statusLabel.Width = 580;
+            statusLabel.Height = 18;
+            statusLabel.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
+            statusLabel.Text = "Starting logger...";
 
             extraInfoButton.Text = "Extra Info";
             extraInfoButton.Width = 100;
             extraInfoButton.Left = 8;
-            extraInfoButton.Top = 8;
+            extraInfoButton.Top = 32;
             extraInfoButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
             extraInfoButton.Click += extraInfoButton_Click;
 
             stopButton.Text = "Stop";
             stopButton.Width = 100;
             stopButton.Left = 116;
-            stopButton.Top = 8;
+            stopButton.Top = 32;
             stopButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
             stopButton.Click += stopButton_Click;
 
+            buttonPanel.Controls.Add(statusLabel);
             buttonPanel.Controls.Add(extraInfoButton);
             buttonPanel.Controls.Add(stopButton);
 
@@ -83,11 +92,19 @@ namespace NetCheatPS3
             if (hit == null)
                 return;
 
+            if (!String.IsNullOrEmpty(hit.Diagnostic))
+            {
+                AddDiagnosticHit(hit.Diagnostic);
+                return;
+            }
+
             if (!String.IsNullOrEmpty(hit.Error))
             {
                 AddErrorHit(hit);
                 return;
             }
+
+            statusLabel.Text = "Hit logged at PC " + hit.ProgramCounter.ToString("X8") + ".";
 
             string instruction = FormatInstruction(hit);
             string key = hit.ProgramCounter.ToString("X16") + ":" + BytesToHex(hit.InstructionBytes);
@@ -112,9 +129,20 @@ namespace NetCheatPS3
 
         private void AddErrorHit(AddressAccessHit hit)
         {
+            statusLabel.Text = hit.Error;
             ListViewItem item = new ListViewItem("");
             item.SubItems.Add("Error - " + hit.Error);
             item.ForeColor = Color.DarkRed;
+            hitList.Items.Add(item);
+        }
+
+        private void AddDiagnosticHit(string diagnostic)
+        {
+            statusLabel.Text = diagnostic;
+
+            ListViewItem item = new ListViewItem("");
+            item.SubItems.Add("Status - " + diagnostic);
+            item.ForeColor = Color.DimGray;
             hitList.Items.Add(item);
         }
 

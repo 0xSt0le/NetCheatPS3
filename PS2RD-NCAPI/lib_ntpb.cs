@@ -16,7 +16,6 @@ namespace PS2RD_NCAPI
         static System.Net.Sockets.TcpClient tcpClient;
 
         static int ClientConnected = 0;
-        static int haltState = 0;
         static int remote_cmd;
 
         // NTPB header magic
@@ -91,7 +90,7 @@ namespace PS2RD_NCAPI
         long SendReceiveThread(NTPB_IO cmdInfo) // retrieving datas sent by server
         {
 	        uint dump_size = 0, dump_wpos = 0;
-	        int rcvSize = 0, sndSize = 0, packetSize = 0, ntpbpktSize = 0, ntpbCmd = 0, ln = 0, recv_size = 0;
+	        int rcvSize = 0, packetSize = 0, ntpbpktSize = 0, ntpbCmd = 0, recv_size = 0;
 	        byte[] pbuf;
 	        int endTransmit = 0;
             //tcpClient.GetStream().ReadTimeout = 5000;

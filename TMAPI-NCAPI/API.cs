@@ -265,14 +265,16 @@ namespace TMAPI_NCAPI
                 result = tmapi.SetDABR(rawDabr);
                 if (!PS3TMAPI.SUCCEEDED(result))
                 {
-                    registeredEvents = false;
                     try
                     {
                         tmapi.CancelTargetEvents();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        PublishError("Failed to cancel TMAPI target events after SetDABR failure: " + ex.Message);
                     }
+
+                    registeredEvents = false;
 
                     throw new InvalidOperationException("TMAPI SetDABR failed: " + result.ToString());
                 }
@@ -281,6 +283,8 @@ namespace TMAPI_NCAPI
                 {
                     isRunning = true;
                 }
+
+                PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
             }
 
             private static ulong BuildRawDabr(ulong address, AddressAccessMode mode)
@@ -295,22 +299,45 @@ namespace TMAPI_NCAPI
                 return aligned | 0x4UL | 0x1UL;
             }
 
-            private void HandleTargetEvents(int target, PS3TMAPI.SNRESULT result, PS3TMAPI.TargetEvent[] targetEventList, object userData)
+            private void HandleTargetEvents(
+                int target,
+                PS3TMAPI.EventType callbackType,
+                uint callbackParam,
+                PS3TMAPI.SNRESULT result,
+                uint rawLength,
+                byte[] rawData,
+                PS3TMAPI.TargetEvent[] targetEventList,
+                object userData)
             {
-                if (!IsRunning || targetEventList == null)
+                if (!IsRunning)
                     return;
 
-                foreach (PS3TMAPI.TargetEvent targetEvent in targetEventList)
+                PublishDiagnostic("TMAPI callback: target=" + target.ToString() +
+                    " event=" + callbackType.ToString() +
+                    " param=0x" + callbackParam.ToString("X8") +
+                    " result=" + result.ToString() +
+                    " length=" + rawLength.ToString() +
+                    " raw=" + BytesToHex(rawData, 128));
+
+                bool handledDabrMatch = false;
+                if (targetEventList != null)
                 {
-                    if (targetEvent.Type != PS3TMAPI.TargetEventType.TargetSpecific)
-                        continue;
+                    foreach (PS3TMAPI.TargetEvent targetEvent in targetEventList)
+                    {
+                        if (targetEvent.Type != PS3TMAPI.TargetEventType.TargetSpecific)
+                            continue;
 
-                    PS3TMAPI.TargetSpecificEvent specific = targetEvent.TargetSpecific;
-                    if (specific.Data.Type != PS3TMAPI.TargetSpecificEventType.PPUExcDabrMatch)
-                        continue;
+                        PS3TMAPI.TargetSpecificEvent specific = targetEvent.TargetSpecific;
+                        if (specific.Data.Type != PS3TMAPI.TargetSpecificEventType.PPUExcDabrMatch)
+                            continue;
 
-                    HandleDabrMatch(specific);
+                        handledDabrMatch = true;
+                        HandleDabrMatch(specific);
+                    }
                 }
+
+                if (!handledDabrMatch)
+                    RecoverLogAndResumeFromRawCallback();
             }
 
             private void HandleDabrMatch(PS3TMAPI.TargetSpecificEvent specific)
@@ -336,15 +363,107 @@ namespace TMAPI_NCAPI
                 hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
                 PublishHit(hit);
 
-                if (hit.ThreadId != 0)
-                {
-                    PS3TMAPI.SNRESULT cleanResult = tmapi.ThreadExceptionClean(hit.ThreadId);
-                    if (!PS3TMAPI.SUCCEEDED(cleanResult))
-                        PublishError("ThreadExceptionClean failed: " + cleanResult.ToString());
+                ResumeAfterHit(hit.ThreadId);
+            }
 
-                    PS3TMAPI.SNRESULT continueResult = tmapi.ThreadContinue(hit.ThreadId);
-                    if (!PS3TMAPI.SUCCEEDED(continueResult))
-                        PublishError("ThreadContinue failed: " + continueResult.ToString());
+            private void RecoverLogAndResumeFromRawCallback()
+            {
+                AddressAccessHit hit = new AddressAccessHit();
+                hit.WatchedAddress = Address;
+                hit.Mode = Mode;
+                hit.RawDabr = rawDabr;
+                hit.Timestamp = DateTime.Now;
+
+                ulong recoveredThreadId;
+                string recoverError;
+                if (TryRecoverStoppedThread(out recoveredThreadId, out recoverError))
+                {
+                    hit.ThreadId = recoveredThreadId;
+                    hit.InstructionBytes = new byte[0];
+                    PublishHit(hit);
+                    PublishDiagnostic("Parsed event was not usable; recovered stopped PPU thread 0x" + hit.ThreadId.ToString("X16") + " and logged PC=0.");
+                    ResumeAfterHit(hit.ThreadId);
+                    return;
+                }
+
+                PublishError("TMAPI callback was received, but DABR event data could not be parsed. " + recoverError);
+                ResumeProcessFallback("No stopped PPU thread was recovered from raw callback.");
+            }
+
+            private bool TryRecoverStoppedThread(out ulong threadId, out string error)
+            {
+                threadId = 0;
+                error = "";
+
+                try
+                {
+                    ulong[] ppuThreadIDs;
+                    ulong[] spuThreadIDs;
+                    PS3TMAPI.SNRESULT listResult = tmapi.GetThreadList(TMAPI.Target, tmapi.SCE.ProcessID(), out ppuThreadIDs, out spuThreadIDs);
+                    if (!PS3TMAPI.SUCCEEDED(listResult))
+                    {
+                        error = "GetThreadList failed: " + listResult.ToString();
+                        return false;
+                    }
+
+                    foreach (ulong candidateThreadId in ppuThreadIDs)
+                    {
+                        PS3TMAPI.PPUThreadInfo threadInfo;
+                        PS3TMAPI.SNRESULT infoResult = tmapi.GetPPUThreadInfo(TMAPI.Target, tmapi.SCE.ProcessID(), candidateThreadId, out threadInfo);
+                        if (!PS3TMAPI.SUCCEEDED(infoResult))
+                            continue;
+
+                        if (threadInfo.State == PS3TMAPI.PPUThreadState.Stop)
+                        {
+                            threadId = candidateThreadId;
+                            return true;
+                        }
+                    }
+
+                    error = "No stopped PPU thread found.";
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    error = "Stopped-thread recovery failed: " + ex.Message;
+                    return false;
+                }
+            }
+
+            private void ResumeAfterHit(ulong threadId)
+            {
+                if (threadId != 0)
+                {
+                    PS3TMAPI.SNRESULT cleanResult = tmapi.ThreadExceptionClean(threadId);
+                    if (!PS3TMAPI.SUCCEEDED(cleanResult))
+                        PublishError("ThreadExceptionClean failed for 0x" + threadId.ToString("X16") + ": " + cleanResult.ToString());
+
+                    PS3TMAPI.SNRESULT continueResult = tmapi.ThreadContinue(threadId);
+                    if (PS3TMAPI.SUCCEEDED(continueResult))
+                    {
+                        PublishDiagnostic("Resumed PPU thread 0x" + threadId.ToString("X16") + ".");
+                        return;
+                    }
+
+                    PublishError("ThreadContinue failed for 0x" + threadId.ToString("X16") + ": " + continueResult.ToString());
+                }
+
+                ResumeProcessFallback("Thread resume unavailable or failed.");
+            }
+
+            private void ResumeProcessFallback(string reason)
+            {
+                try
+                {
+                    PS3TMAPI.SNRESULT continueResult = tmapi.ProcessContinue();
+                    if (PS3TMAPI.SUCCEEDED(continueResult))
+                        PublishDiagnostic("ProcessContinue fallback used. " + reason);
+                    else
+                        PublishError("ProcessContinue fallback failed: " + continueResult.ToString() + ". " + reason);
+                }
+                catch (Exception ex)
+                {
+                    PublishError("ProcessContinue fallback threw: " + ex.Message + ". " + reason);
                 }
             }
 
@@ -381,6 +500,17 @@ namespace TMAPI_NCAPI
                 PublishHit(hit);
             }
 
+            private void PublishDiagnostic(string diagnostic)
+            {
+                AddressAccessHit hit = new AddressAccessHit();
+                hit.WatchedAddress = Address;
+                hit.Mode = Mode;
+                hit.RawDabr = rawDabr;
+                hit.Timestamp = DateTime.Now;
+                hit.Diagnostic = diagnostic;
+                PublishHit(hit);
+            }
+
             private void PublishHit(AddressAccessHit hit)
             {
                 try
@@ -391,6 +521,23 @@ namespace TMAPI_NCAPI
                 catch
                 {
                 }
+            }
+
+            private static string BytesToHex(byte[] bytes, int maxBytes)
+            {
+                if (bytes == null || bytes.Length == 0 || maxBytes <= 0)
+                    return "";
+
+                int count = Math.Min(bytes.Length, maxBytes);
+                char[] chars = new char[count * 2];
+                const string hex = "0123456789ABCDEF";
+                for (int index = 0; index < count; index++)
+                {
+                    chars[index * 2] = hex[bytes[index] >> 4];
+                    chars[index * 2 + 1] = hex[bytes[index] & 0xF];
+                }
+
+                return new string(chars);
             }
         }
 
