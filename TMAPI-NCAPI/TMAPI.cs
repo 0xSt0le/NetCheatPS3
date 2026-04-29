@@ -275,6 +275,90 @@ namespace TMAPI_NCAPI
             return PS3TMAPI.ThreadGetRegisters(Target, PS3TMAPI.UnitType.PPU, Parameters.ProcessID, threadID, registerNums, out registerValues);
         }
 
+        public string GetDebugThreadControlInfoDiagnostic()
+        {
+            try
+            {
+                Assembly apiAssembly = PS3TMAPI_NET();
+                if (apiAssembly == null)
+                    return "DebugThreadControlInfo unavailable: ps3tmapi_net.dll could not be loaded.";
+
+                Type apiType = apiAssembly.GetType("PS3TMAPI");
+                if (apiType == null)
+                    return "DebugThreadControlInfo unavailable: PS3TMAPI type was not found.";
+
+                MethodInfo method = apiType.GetMethod("GetDebugThreadControlInfo", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return "DebugThreadControlInfo unavailable: GetDebugThreadControlInfo was not found.";
+
+                object[] args = new object[] { Target, Parameters.ProcessID, null };
+                object result = method.Invoke(null, args);
+                object info = args[2];
+
+                StringBuilder builder = new StringBuilder();
+                builder.Append("GetDebugThreadControlInfo: ");
+                builder.Append(result == null ? "<null result>" : result.ToString());
+
+                if (info == null)
+                    return builder.ToString() + "; no info returned.";
+
+                Type infoType = info.GetType();
+                FieldInfo flagsField = infoType.GetField("ControlFlags");
+                FieldInfo keywordsField = infoType.GetField("ControlKeywords");
+
+                if (flagsField != null)
+                {
+                    ulong flags = Convert.ToUInt64(flagsField.GetValue(info), CultureInfo.InvariantCulture);
+                    builder.Append("; ControlFlags=0x");
+                    builder.Append(flags.ToString("X16", CultureInfo.InvariantCulture));
+                }
+
+                Array keywords = keywordsField == null ? null : keywordsField.GetValue(info) as Array;
+                int keywordCount = keywords == null ? 0 : keywords.Length;
+                builder.Append("; ControlKeywords=");
+                builder.Append(keywordCount.ToString(CultureInfo.InvariantCulture));
+
+                if (keywordCount > 0)
+                {
+                    builder.Append(" [");
+                    int count = Math.Min(keywordCount, 6);
+                    for (int index = 0; index < count; index++)
+                    {
+                        if (index > 0)
+                            builder.Append(", ");
+
+                        object entry = keywords.GetValue(index);
+                        Type entryType = entry.GetType();
+                        FieldInfo matchField = entryType.GetField("MatchConditionFlags");
+                        FieldInfo keywordField = entryType.GetField("Keyword");
+                        uint matchFlags = matchField == null ? 0 : Convert.ToUInt32(matchField.GetValue(entry), CultureInfo.InvariantCulture);
+                        string keyword = keywordField == null ? "" : Convert.ToString(keywordField.GetValue(entry), CultureInfo.InvariantCulture);
+                        builder.Append("0x");
+                        builder.Append(matchFlags.ToString("X8", CultureInfo.InvariantCulture));
+                        builder.Append(":");
+                        builder.Append(keyword);
+                    }
+
+                    if (keywordCount > count)
+                        builder.Append(", ...");
+
+                    builder.Append("]");
+                }
+
+                builder.Append("; no thread id/PC/SP fields are exposed by this structure.");
+                return builder.ToString();
+            }
+            catch (TargetInvocationException ex)
+            {
+                Exception inner = ex.InnerException ?? ex;
+                return "DebugThreadControlInfo read failed: " + inner.Message;
+            }
+            catch (Exception ex)
+            {
+                return "DebugThreadControlInfo read failed: " + ex.Message;
+            }
+        }
+
         /// <summary>Set memory to the target (byte[]).</summary>
         public void SetMemory(uint Address, byte[] Bytes)
         {

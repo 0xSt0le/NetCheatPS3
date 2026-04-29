@@ -1,0 +1,518 @@
+﻿TMAPI Debug Thread Control Reflection
+DLL: C:\FAST_Apps\SN Systems\PS3\bin\ps3tmapi_net.dll
+Generated: 2026-04-29T18:36:46.4450677+02:00
+
+Assembly: PS3TMAPI_NET, Version=470.1.3.7, Culture=neutral, PublicKeyToken=null
+
+TYPE PS3TMAPI+DebugThreadControlInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ControlFlags
+  FIELD Public offset=8 PS3TMAPI+ControlKeywordEntry[] ControlKeywords
+
+TYPE PS3TMAPI+DebugThreadControlInfoPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ControlFlags
+  FIELD Public offset=8 System.UInt32 NumEntries
+
+TYPE PS3TMAPI+ControlKeywordEntry
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 MatchConditionFlags
+  FIELD Public offset=8 System.String Keyword
+
+METHODS CONTAINING DebugThreadControlInfo / ThreadControl / DebugThread
+  METHOD PS3TMAPI.GetDebugThreadControlInfoX86: PS3TMAPI+SNRESULT GetDebugThreadControlInfoX86(System.Int32 target, System.UInt32 processId, ref System.UInt32& bufferSize, System.IntPtr buffer) Attributes=PrivateScope, Private, Static, HideBySig, PinvokeImpl
+  METHOD PS3TMAPI.GetDebugThreadControlInfoX64: PS3TMAPI+SNRESULT GetDebugThreadControlInfoX64(System.Int32 target, System.UInt32 processId, ref System.UInt32& bufferSize, System.IntPtr buffer) Attributes=PrivateScope, Private, Static, HideBySig, PinvokeImpl
+  METHOD PS3TMAPI.GetDebugThreadControlInfo: PS3TMAPI+SNRESULT GetDebugThreadControlInfo(System.Int32 target, System.UInt32 processID, out PS3TMAPI+DebugThreadControlInfo& threadCtrlInfo) Attributes=PrivateScope, Public, Static, HideBySig
+  METHOD PS3TMAPI.SetDebugThreadControlInfoX86: PS3TMAPI+SNRESULT SetDebugThreadControlInfoX86(System.Int32 target, System.UInt32 processId, System.IntPtr threadCtrlInfo, out System.UInt32& maxEntries) Attributes=PrivateScope, Private, Static, HideBySig, PinvokeImpl
+  METHOD PS3TMAPI.SetDebugThreadControlInfoX64: PS3TMAPI+SNRESULT SetDebugThreadControlInfoX64(System.Int32 target, System.UInt32 processId, System.IntPtr threadCtrlInfo, out System.UInt32& maxEntries) Attributes=PrivateScope, Private, Static, HideBySig, PinvokeImpl
+  METHOD PS3TMAPI.SetDebugThreadControlInfo: PS3TMAPI+SNRESULT SetDebugThreadControlInfo(System.Int32 target, System.UInt32 processID, PS3TMAPI+DebugThreadControlInfo threadCtrlInfo, out System.UInt32& maxEntries) Attributes=PrivateScope, Public, Static, HideBySig
+
+RELATED TYPES / MEMBERS MATCHING DABR|Exception|Stop|Thread|PC|SP|Process|Control|NIP|Register
+TYPE PS3TMAPI+ControlKeywordEntry
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 MatchConditionFlags
+  FIELD Public offset=8 System.String Keyword
+
+TYPE PS3TMAPI+CoreDumpComplete
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.String Filename
+
+TYPE PS3TMAPI+CusProtoCallbackAndUserData
+  IsEnum=False IsValueType=False IsClass=True Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+CusProtoCallbackAndUserData' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." PS3TMAPI+CustomProtocolCallback m_callback
+  FIELD Public offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+CusProtoCallbackAndUserData' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.Object m_userData
+
+TYPE PS3TMAPI+DebugThreadControlInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ControlFlags
+  FIELD Public offset=8 PS3TMAPI+ControlKeywordEntry[] ControlKeywords
+
+TYPE PS3TMAPI+DebugThreadControlInfoPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ControlFlags
+  FIELD Public offset=8 System.UInt32 NumEntries
+
+TYPE PS3TMAPI+EventFlagWaitThread
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ID
+  FIELD Public offset=8 System.UInt64 BitPattern
+  FIELD Public offset=16 System.UInt32 Mode
+
+TYPE PS3TMAPI+ExtraProcessInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public, HasFieldMarshal offset=0 System.UInt32[] PPUGUIDs
+
+TYPE PS3TMAPI+FileTraceProcessInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 VFSID
+  FIELD Public offset=8 System.UInt64 FD
+
+TYPE PS3TMAPI+FtpCallbackAndUserData
+  IsEnum=False IsValueType=False IsClass=True Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+FtpCallbackAndUserData' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." PS3TMAPI+FTPEventCallback m_callback
+  FIELD Public offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+FtpCallbackAndUserData' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.Object m_userData
+
+TYPE PS3TMAPI+PadPlaybackResponse
+  IsEnum=True IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, Sealed
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  ENUM Ok = 0 (0x0)
+  ENUM InvalidPacket = 2147549186 (0x80010002)
+  ENUM InsufficientMemory = 2147549188 (0x80010004)
+  ENUM Busy = 2147549194 (0x8001000A)
+  ENUM NoDev = 2147549229 (0x8001002D)
+  FIELD Public, SpecialName, RTSpecialName offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+PadPlaybackResponse' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.UInt32 value__
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PadPlaybackResponse Ok = Ok
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PadPlaybackResponse InvalidPacket = InvalidPacket
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PadPlaybackResponse InsufficientMemory = InsufficientMemory
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PadPlaybackResponse Busy = Busy
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PadPlaybackResponse NoDev = NoDev
+
+TYPE PS3TMAPI+PPUAlignmentExceptionData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 System.UInt32 HWThreadNumber
+  FIELD Public offset=16 System.UInt64 DSISR
+  FIELD Public offset=24 System.UInt64 DAR
+  FIELD Public offset=32 System.UInt64 PC
+  FIELD Public offset=40 System.UInt64 SP
+
+TYPE PS3TMAPI+PPUDataMatExceptionData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 System.UInt32 HWThreadNumber
+  FIELD Public offset=16 System.UInt64 DSISR
+  FIELD Public offset=24 System.UInt64 DAR
+  FIELD Public offset=32 System.UInt64 PC
+  FIELD Public offset=40 System.UInt64 SP
+
+TYPE PS3TMAPI+PPUExceptionData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 System.UInt32 HWThreadNumber
+  FIELD Public offset=16 System.UInt64 PC
+  FIELD Public offset=24 System.UInt64 SP
+
+TYPE PS3TMAPI+PPUProcessCreateData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ParentProcessID
+  FIELD Public offset=8 System.String Filename
+
+TYPE PS3TMAPI+PPUProcessExitData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ExitCode
+
+TYPE PS3TMAPI+PPUThreadCreateData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+
+TYPE PS3TMAPI+PPUThreadExitData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+
+TYPE PS3TMAPI+PPUThreadInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 System.UInt32 Priority
+  FIELD Public offset=12 PS3TMAPI+PPUThreadState State
+  FIELD Public offset=16 System.UInt64 StackAddress
+  FIELD Public offset=24 System.UInt64 StackSize
+  FIELD Public offset=32 System.String ThreadName
+
+TYPE PS3TMAPI+PPUThreadInfoEx
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 System.UInt32 Priority
+  FIELD Public offset=12 System.UInt32 BasePriority
+  FIELD Public offset=16 PS3TMAPI+PPUThreadState State
+  FIELD Public offset=24 System.UInt64 StackAddress
+  FIELD Public offset=32 System.UInt64 StackSize
+  FIELD Public offset=40 System.String ThreadName
+
+TYPE PS3TMAPI+PPUThreadInfoExPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadId
+  FIELD Public offset=8 System.UInt32 Priority
+  FIELD Public offset=12 System.UInt32 BasePriority
+  FIELD Public offset=16 System.UInt32 State
+  FIELD Public offset=20 System.UInt64 StackAddress
+  FIELD Public offset=28 System.UInt64 StackSize
+  FIELD Public offset=36 System.UInt32 ThreadNameLen
+
+TYPE PS3TMAPI+PPUThreadInfoPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 System.UInt32 Priority
+  FIELD Public offset=12 System.UInt32 State
+  FIELD Public offset=16 System.UInt64 StackAddress
+  FIELD Public offset=24 System.UInt64 StackSize
+  FIELD Public offset=32 System.UInt32 ThreadNameLen
+
+TYPE PS3TMAPI+PPUThreadState
+  IsEnum=True IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, Sealed
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  ENUM Idle = 0 (0x0)
+  ENUM Runnable = 1 (0x1)
+  ENUM OnProc = 2 (0x2)
+  ENUM Sleep = 3 (0x3)
+  ENUM Suspended = 4 (0x4)
+  ENUM SleepSuspended = 5 (0x5)
+  ENUM Stop = 6 (0x6)
+  ENUM Zombie = 7 (0x7)
+  ENUM Deleted = 8 (0x8)
+  FIELD Public, SpecialName, RTSpecialName offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+PPUThreadState' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.Int32 value__
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Idle = Idle
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Runnable = Runnable
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState OnProc = OnProc
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Sleep = Sleep
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Suspended = Suspended
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState SleepSuspended = SleepSuspended
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Stop = Stop
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Zombie = Zombie
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+PPUThreadState Deleted = Deleted
+
+TYPE PS3TMAPI+PPUThreadStatus
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 ThreadID
+  FIELD Public offset=8 PS3TMAPI+PPUThreadState ThreadState
+
+TYPE PS3TMAPI+ProcessInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 PS3TMAPI+ProcessInfoHdr Hdr
+  FIELD Public offset=32 System.UInt64[] ThreadIDs
+
+TYPE PS3TMAPI+ProcessInfoHdr
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 PS3TMAPI+ProcessStatus Status
+  FIELD Public offset=4 System.UInt32 NumPPUThreads
+  FIELD Public offset=8 System.UInt32 NumSPUThreads
+  FIELD Public offset=12 System.UInt32 ParentProcessID
+  FIELD Public offset=16 System.UInt64 MaxMemorySize
+  FIELD Public offset=24 System.String ELFPath
+
+TYPE PS3TMAPI+ProcessLoadInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 InfoValid
+  FIELD Public offset=4 System.UInt32 DebugFlags
+  FIELD Public offset=8 PS3TMAPI+ProcessLoadParams LoadInfo
+
+TYPE PS3TMAPI+ProcessLoadParams
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt64 Version
+  FIELD Public, HasFieldMarshal offset=8 System.UInt64[] Data
+
+TYPE PS3TMAPI+ProcessStatus
+  IsEnum=True IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, Sealed
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  ENUM Creating = 1 (0x1)
+  ENUM Ready = 2 (0x2)
+  ENUM Exited = 3 (0x3)
+  FIELD Public, SpecialName, RTSpecialName offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+ProcessStatus' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.UInt32 value__
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+ProcessStatus Creating = Creating
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+ProcessStatus Ready = Ready
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+ProcessStatus Exited = Exited
+
+TYPE PS3TMAPI+ProcessTreeBranch
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ProcessID
+  FIELD Public offset=4 PS3TMAPI+ProcessStatus ProcessState
+  FIELD Public offset=8 System.UInt16 ProcessFlags
+  FIELD Public offset=10 System.UInt16 RawSPU
+  FIELD Public offset=16 PS3TMAPI+PPUThreadStatus[] PPUThreadStatuses
+  FIELD Public offset=24 PS3TMAPI+SPUThreadGroupStatus[] SPUThreadGroupStatuses
+
+TYPE PS3TMAPI+ProcessTreeBranchPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ProcessId
+  FIELD Public offset=4 PS3TMAPI+ProcessStatus ProcessState
+  FIELD Public offset=8 System.UInt32 NumPpuThreads
+  FIELD Public offset=12 System.UInt32 NumSpuThreadGroups
+  FIELD Public offset=16 System.UInt16 ProcessFlags
+  FIELD Public offset=18 System.UInt16 RawSPU
+  FIELD Public offset=20 System.IntPtr PpuThreadStatuses
+  FIELD Public offset=28 System.IntPtr SpuThreadGroupStatuses
+
+TYPE PS3TMAPI+SPUThreadGroupDestroyData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+
+TYPE PS3TMAPI+SPUThreadGroupInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+  FIELD Public offset=4 PS3TMAPI+SPUThreadGroupState State
+  FIELD Public offset=8 System.UInt32 Priority
+  FIELD Public offset=16 System.String GroupName
+  FIELD Public offset=24 System.UInt32[] ThreadIDs
+
+TYPE PS3TMAPI+SpuThreadGroupInfoPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupId
+  FIELD Public offset=4 System.UInt32 State
+  FIELD Public offset=8 System.UInt32 Priority
+  FIELD Public offset=12 System.UInt32 NumThreads
+  FIELD Public offset=16 System.UInt32 ThreadGroupNameLen
+
+TYPE PS3TMAPI+SPUThreadGroupState
+  IsEnum=True IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, Sealed
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  ENUM NotConfigured = 0 (0x0)
+  ENUM Configured = 1 (0x1)
+  ENUM Ready = 2 (0x2)
+  ENUM Waiting = 3 (0x3)
+  ENUM Suspended = 4 (0x4)
+  ENUM WaitingSuspended = 5 (0x5)
+  ENUM Running = 6 (0x6)
+  ENUM Stopped = 7 (0x7)
+  FIELD Public, SpecialName, RTSpecialName offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+SPUThreadGroupState' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.UInt32 value__
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState NotConfigured = NotConfigured
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState Configured = Configured
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState Ready = Ready
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState Waiting = Waiting
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState Suspended = Suspended
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState WaitingSuspended = WaitingSuspended
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState Running = Running
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadGroupState Stopped = Stopped
+
+TYPE PS3TMAPI+SPUThreadGroupStatus
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+  FIELD Public offset=4 PS3TMAPI+SPUThreadGroupState ThreadGroupState
+
+TYPE PS3TMAPI+SPUThreadInfo
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+  FIELD Public offset=4 System.UInt32 ThreadID
+  FIELD Public offset=8 System.String Filename
+  FIELD Public offset=16 System.String ThreadName
+
+TYPE PS3TMAPI+SpuThreadInfoPriv
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPrivate, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupId
+  FIELD Public offset=4 System.UInt32 ThreadId
+  FIELD Public offset=8 System.UInt32 FilenameLen
+  FIELD Public offset=12 System.UInt32 ThreadNameLen
+
+TYPE PS3TMAPI+SPUThreadStartData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+  FIELD Public offset=4 System.UInt32 ThreadID
+  FIELD Public offset=8 System.String ElfFilename
+
+TYPE PS3TMAPI+SPUThreadStopData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+  FIELD Public offset=4 System.UInt32 ThreadID
+  FIELD Public offset=8 System.UInt32 PC
+  FIELD Public offset=12 PS3TMAPI+SPUThreadStopReason Reason
+  FIELD Public offset=16 System.UInt32 SP
+
+TYPE PS3TMAPI+SPUThreadStopExData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 ThreadGroupID
+  FIELD Public offset=4 System.UInt32 ThreadID
+  FIELD Public offset=8 System.UInt32 PC
+  FIELD Public offset=12 PS3TMAPI+SPUThreadStopReason Reason
+  FIELD Public offset=16 System.UInt32 SP
+  FIELD Public offset=24 System.UInt64 MFCDSISR
+  FIELD Public offset=32 System.UInt64 MFCDSIPR
+  FIELD Public offset=40 System.UInt64 MFCDAR
+
+TYPE PS3TMAPI+SPUThreadStopReason
+  IsEnum=True IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, Sealed
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  ENUM NoException = 0 (0x0)
+  ENUM DMAAlignment = 1 (0x1)
+  ENUM DMACommand = 2 (0x2)
+  ENUM Error = 4 (0x4)
+  ENUM MFCFIR = 8 (0x8)
+  ENUM MFCSegment = 16 (0x10)
+  ENUM MFCStorage = 32 (0x20)
+  ENUM NoValue = 64 (0x40)
+  ENUM StopCall = 256 (0x100)
+  ENUM StopDCall = 512 (0x200)
+  ENUM Halt = 1024 (0x400)
+  FIELD Public, SpecialName, RTSpecialName offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+SPUThreadStopReason' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.UInt32 value__
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason NoException = NoException
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason DMAAlignment = DMAAlignment
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason DMACommand = DMACommand
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason Error = Error
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason MFCFIR = MFCFIR
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason MFCSegment = MFCSegment
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason MFCStorage = MFCStorage
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason NoValue = NoValue
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason StopCall = StopCall
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason StopDCall = StopDCall
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+SPUThreadStopReason Halt = Halt
+
+TYPE PS3TMAPI+TargetSpecificData
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 PS3TMAPI+TargetSpecificEventType Type
+  FIELD Public offset=8 PS3TMAPI+PPUProcessCreateData PPUProcessCreate
+  FIELD Public offset=24 PS3TMAPI+PPUProcessExitData PPUProcessExit
+  FIELD Public offset=32 PS3TMAPI+PPUExceptionData PPUException
+  FIELD Public offset=64 PS3TMAPI+PPUAlignmentExceptionData PPUAlignmentException
+  FIELD Public offset=112 PS3TMAPI+PPUDataMatExceptionData PPUDataMatException
+  FIELD Public offset=160 PS3TMAPI+PPUThreadCreateData PPUThreadCreate
+  FIELD Public offset=168 PS3TMAPI+PPUThreadExitData PPUThreadExit
+  FIELD Public offset=176 PS3TMAPI+SPUThreadStartData SPUThreadStart
+  FIELD Public offset=192 PS3TMAPI+SPUThreadStopData SPUThreadStop
+  FIELD Public offset=216 PS3TMAPI+SPUThreadStopExData SPUThreadStopEx
+  FIELD Public offset=264 PS3TMAPI+SPUThreadGroupDestroyData SPUThreadGroupDestroyData
+  FIELD Public offset=272 PS3TMAPI+NotifyPRXLoadData PRXLoad
+  FIELD Public offset=296 PS3TMAPI+NotifyPRXUnloadData PRXUnload
+  FIELD Public offset=320 PS3TMAPI+FootswitchData Footswitch
+  FIELD Public offset=360 PS3TMAPI+InstallPackageProgress InstallPackageProgress
+  FIELD Public offset=368 PS3TMAPI+InstallPackagePath InstallPackagePath
+  FIELD Public offset=376 PS3TMAPI+CoreDumpStart CoreDumpStart
+  FIELD Public offset=384 PS3TMAPI+CoreDumpComplete CoreDumpComplete
+
+TYPE PS3TMAPI+TargetSpecificEvent
+  IsEnum=False IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, Sealed, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public offset=0 System.UInt32 CommandID
+  FIELD Public offset=4 System.UInt32 RequestID
+  FIELD Public offset=8 System.UInt32 ProcessID
+  FIELD Public offset=12 System.UInt32 Result
+  FIELD Public offset=16 PS3TMAPI+TargetSpecificData Data
+
+TYPE PS3TMAPI+TargetSpecificEventType
+  IsEnum=True IsValueType=True IsClass=False Attributes=AutoLayout, AnsiClass, Class, NestedPublic, Sealed
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  ENUM ProcessCreate = 0 (0x0)
+  ENUM ProcessExit = 1 (0x1)
+  ENUM ProcessKill = 2 (0x2)
+  ENUM ProcessExitSpawn = 3 (0x3)
+  ENUM PPUExcTrap = 16 (0x10)
+  ENUM PPUExcPrevInt = 17 (0x11)
+  ENUM PPUExcAlignment = 18 (0x12)
+  ENUM PPUExcIllInst = 19 (0x13)
+  ENUM PPUExcTextHtabMiss = 20 (0x14)
+  ENUM PPUExcTextSlbMiss = 21 (0x15)
+  ENUM PPUExcDataHtabMiss = 22 (0x16)
+  ENUM PPUExcFloat = 23 (0x17)
+  ENUM PPUExcDataSlbMiss = 24 (0x18)
+  ENUM PPUExcDabrMatch = 25 (0x19)
+  ENUM PPUExcStop = 26 (0x1A)
+  ENUM PPUExcStopInit = 27 (0x1B)
+  ENUM PPUExcDataMAT = 28 (0x1C)
+  ENUM PPUThreadCreate = 32 (0x20)
+  ENUM PPUThreadExit = 33 (0x21)
+  ENUM SPUThreadStart = 48 (0x30)
+  ENUM SPUThreadStop = 49 (0x31)
+  ENUM SPUThreadStopInit = 50 (0x32)
+  ENUM SPUThreadGroupDestroy = 51 (0x33)
+  ENUM SPUThreadStopEx = 52 (0x34)
+  ENUM PRXLoad = 64 (0x40)
+  ENUM PRXUnload = 65 (0x41)
+  ENUM DAInitialised = 96 (0x60)
+  ENUM Footswitch = 112 (0x70)
+  ENUM InstallPackageProgress = 128 (0x80)
+  ENUM InstallPackagePath = 129 (0x81)
+  ENUM CoreDumpComplete = 256 (0x100)
+  ENUM CoreDumpStart = 257 (0x101)
+  ENUM RawNotify = 4026531855 (0xF000000F)
+  FIELD Public, SpecialName, RTSpecialName offset=n/a: Exception calling "OffsetOf" with "2" argument(s): "Type 'PS3TMAPI+TargetSpecificEventType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed." System.UInt32 value__
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType ProcessCreate = ProcessCreate
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType ProcessExit = ProcessExit
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType ProcessKill = ProcessKill
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType ProcessExitSpawn = ProcessExitSpawn
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcTrap = PPUExcTrap
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcPrevInt = PPUExcPrevInt
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcAlignment = PPUExcAlignment
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcIllInst = PPUExcIllInst
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcTextHtabMiss = PPUExcTextHtabMiss
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcTextSlbMiss = PPUExcTextSlbMiss
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcDataHtabMiss = PPUExcDataHtabMiss
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcFloat = PPUExcFloat
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcDataSlbMiss = PPUExcDataSlbMiss
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcDabrMatch = PPUExcDabrMatch
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcStop = PPUExcStop
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcStopInit = PPUExcStopInit
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUExcDataMAT = PPUExcDataMAT
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUThreadCreate = PPUThreadCreate
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PPUThreadExit = PPUThreadExit
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType SPUThreadStart = SPUThreadStart
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType SPUThreadStop = SPUThreadStop
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType SPUThreadStopInit = SPUThreadStopInit
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType SPUThreadGroupDestroy = SPUThreadGroupDestroy
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType SPUThreadStopEx = SPUThreadStopEx
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType RawNotify = RawNotify
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PRXLoad = PRXLoad
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType PRXUnload = PRXUnload
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType DAInitialised = DAInitialised
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType Footswitch = Footswitch
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType InstallPackageProgress = InstallPackageProgress
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType InstallPackagePath = InstallPackagePath
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType CoreDumpStart = CoreDumpStart
+  FIELD Public, Static, Literal, HasDefault offset=n/a PS3TMAPI+TargetSpecificEventType CoreDumpComplete = CoreDumpComplete
+
+TYPE PS3TMAPI+TCPIPConnectProperties
+  IsEnum=False IsValueType=False IsClass=True Attributes=AutoLayout, AnsiClass, Class, NestedPublic, SequentialLayout, BeforeFieldInit
+  Marshal.SizeOf error=Exception calling "SizeOf" with "1" argument(s): "Type 'System.RuntimeType' cannot be marshaled as an unmanaged structure; no meaningful size or offset can be computed."
+  FIELD Public, HasFieldMarshal offset=0 System.String IPAddress
+  FIELD Public offset=256 System.UInt32 Port
+
+Summary:
+  DebugThreadControlInfo exposes ControlFlags and ControlKeywords only.
+  ControlKeywordEntry exposes MatchConditionFlags and Keyword only.
+  No reflected DebugThreadControlInfo field contains a stopped thread id, PC, SP, or DABR match reason.
+  DABR_MATCH PC/SP remain available only from PPU exception target-event payloads when TMAPI delivers them.

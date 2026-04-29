@@ -175,6 +175,7 @@ namespace TMAPI_NCAPI
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
             private Thread stoppedThreadPoller;
             private bool isProcessingStop;
+            private bool reportedDebugThreadControlInfo;
             private bool reportedPollingThreadCount;
             private string lastPollingListError;
             private ulong lastStoppedThreadId;
@@ -481,6 +482,8 @@ namespace TMAPI_NCAPI
                 {
                     try
                     {
+                        PublishDebugThreadControlInfoOnce();
+
                         StoppedThreadInfo stoppedThread;
                         string error;
                         if (TryRecoverStoppedThread(out stoppedThread, out error))
@@ -506,6 +509,15 @@ namespace TMAPI_NCAPI
 
                     Thread.Sleep(35);
                 }
+            }
+
+            private void PublishDebugThreadControlInfoOnce()
+            {
+                if (reportedDebugThreadControlInfo)
+                    return;
+
+                reportedDebugThreadControlInfo = true;
+                PublishDiagnostic(tmapi.GetDebugThreadControlInfoDiagnostic());
             }
 
             private void ProcessStoppedThreadCandidate(StoppedThreadInfo stoppedThread, string source)
