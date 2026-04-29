@@ -33,6 +33,9 @@ namespace NetCheatPS3
             if (!attached)
                 return "Not attached. Attach to the process before " + actionName + ".";
 
+            if (curAPI == null || curAPI.Instance == null)
+                return "No API is selected. Select an API before " + actionName + ".";
+
             return null;
         }
 

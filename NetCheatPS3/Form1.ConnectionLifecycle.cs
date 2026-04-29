@@ -134,7 +134,11 @@ namespace NetCheatPS3
         public static void ValidateAttachedMemoryStateAfterAccessFailure()
         {
             if (Instance != null && connected && attached)
-                Instance.TryValidateAttachedMemoryAccess("memory access", true);
+            {
+                string error;
+                if (!Instance.TryValidateTargetStillAlive(0, out error))
+                    Instance.MarkDetached("Process detached/lost. Cleared code backups.");
+            }
         }
 
         private void SetConnectionStatusAndUpdateUi(string statusMessage)
@@ -202,60 +206,140 @@ namespace NetCheatPS3
 
         public bool TryValidateAttachedMemoryAccess(string actionName, bool silent)
         {
-            if (!connected || !attached)
+            return TryValidateReadableMemoryForAction(actionName, 0, 4, true, silent);
+        }
+
+        public bool TryValidateReadableMemoryForAction(string actionName, ulong address, int length, bool markLostIfClearlyGone, bool silent)
+        {
+            string connectionMessage = GetConnectionAttachErrorMessage(actionName);
+            if (connectionMessage != null)
+            {
+                SetMainStatusSafe(connectionMessage);
                 return false;
+            }
 
-            if (curAPI == null || curAPI.Instance == null)
+            string readError;
+            if (address != 0 && TryReadProbeBytes(address, length, out readError))
+                return true;
+
+            string livenessError;
+            if (TryValidateTargetStillAlive(address, out livenessError))
             {
-                MarkDisconnected("Disconnected. Cleared code backups.");
+                string message = actionName + " address/range is not readable. Check the address/range or process attach.";
+                SetMainStatusSafe(message);
                 return false;
             }
 
-            ulong probeAddress;
-            if (!TryGetAttachedMemoryProbeAddress(out probeAddress))
-                probeAddress = 0x00010000;
-
-            try
+            if (markLostIfClearlyGone)
             {
-                byte[] probe = new byte[1];
-                if (curAPI.Instance.GetBytes(probeAddress, ref probe))
-                    return true;
+                MarkDetached("Process detached/lost. Cleared code backups.");
+                if (!silent && !InvokeRequired)
+                {
+                    string message = "The process or target appears unavailable. NetCheatPS3 detached locally and cleared code backups.";
+                    MessageBox.Show(message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
-            catch
+            else
             {
-            }
-
-            MarkDetached("Process detached/lost. Cleared code backups.");
-            if (!silent && !InvokeRequired)
-            {
-                string message = "The process or target appears unavailable. NetCheatPS3 detached locally and cleared code backups.";
-                MessageBox.Show(message, "NetCheatPS3", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                SetMainStatusSafe(actionName + " could not validate attached memory.");
             }
 
             return false;
         }
 
-        private bool TryGetAttachedMemoryProbeAddress(out ulong address)
+        public bool TryValidateTargetStillAlive(ulong preferredAddress, out string error)
         {
-            address = 0;
+            error = null;
 
-            if (TryGetSelectedCodeWritableAddress(out address))
-                return true;
-
-            if (InvokeRequired)
+            string connectionMessage = GetConnectionAttachErrorMessage("memory access");
+            if (connectionMessage != null)
             {
-                address = 0x00010000;
-                return true;
+                error = connectionMessage;
+                return false;
             }
 
-            if (TryGetSearchResultAddress(out address))
-                return true;
+            ulong[] candidates = GetMemoryLivenessProbeCandidates(preferredAddress);
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                string probeError;
+                if (TryReadProbeBytes(candidates[index], 4, out probeError))
+                    return true;
 
+                if (error == null && probeError != null)
+                    error = probeError;
+            }
+
+            if (error == null)
+                error = "No liveness probe succeeded.";
+
+            return false;
+        }
+
+        public bool TryReadProbeBytes(ulong address, int length, out string error)
+        {
+            error = null;
+
+            if (curAPI == null || curAPI.Instance == null)
+            {
+                error = "No API is selected.";
+                return false;
+            }
+
+            if (length < 4)
+                length = 4;
+
+            ulong alignedAddress = AlignProbeAddress(address);
+            byte[] probe = new byte[length];
+
+            try
+            {
+                if (curAPI.Instance.GetBytes(alignedAddress, ref probe))
+                    return true;
+
+                error = "Read failed at 0x" + alignedAddress.ToString("X8") + ".";
+                return false;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+
+        private ulong AlignProbeAddress(ulong address)
+        {
+            return address & ~3UL;
+        }
+
+        private ulong[] GetMemoryLivenessProbeCandidates(ulong preferredAddress)
+        {
+            System.Collections.Generic.List<ulong> candidates = new System.Collections.Generic.List<ulong>();
+
+            AddProbeCandidate(candidates, preferredAddress);
+
+            ulong address;
             if (TryGetFirstScanRangeStart(out address))
-                return true;
+                AddProbeCandidate(candidates, address);
 
-            address = 0x00010000;
-            return true;
+            if (TryGetSelectedCodeWritableAddress(out address))
+                AddProbeCandidate(candidates, address);
+
+            if (TryGetSearchResultAddress(out address))
+                AddProbeCandidate(candidates, address);
+
+            AddProbeCandidate(candidates, 0x00010000);
+
+            return candidates.ToArray();
+        }
+
+        private void AddProbeCandidate(System.Collections.Generic.List<ulong> candidates, ulong address)
+        {
+            if (address == 0)
+                return;
+
+            address = AlignProbeAddress(address);
+            if (!candidates.Contains(address))
+                candidates.Add(address);
         }
 
         private bool TryGetSelectedCodeWritableAddress(out ulong address)
