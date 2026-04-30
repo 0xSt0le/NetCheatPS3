@@ -222,6 +222,8 @@ namespace NetCheatPS3
                     progBar.Value = ClampProgressValue(value, 0, ScanProgressMaximum);
 
                 progBar.printText = text ?? "";
+                progBar.Invalidate();
+                progBar.Update();
             });
         }
 

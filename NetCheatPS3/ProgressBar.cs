@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
-using System.Data;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace NetCheatPS3
@@ -20,7 +15,7 @@ namespace NetCheatPS3
             set
             {
                 _progressColor = value;
-                Refresh();
+                InvalidateProgress();
             }
         }
 
@@ -31,7 +26,7 @@ namespace NetCheatPS3
             set
             {
                 _printText = value;
-                Refresh();
+                InvalidateProgress();
             }
         }
 
@@ -64,7 +59,7 @@ namespace NetCheatPS3
                 }
 
                 _value = value;
-                Refresh();
+                InvalidateProgress();
             }
         }
 
@@ -75,7 +70,7 @@ namespace NetCheatPS3
             set
             {
                 _maximum = value;
-                Refresh();
+                InvalidateProgress();
             }
         }
 
@@ -103,40 +98,43 @@ namespace NetCheatPS3
 
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
-            if (_maximum > 0)
+            if (_maximum <= 0)
+                return;
+
+            float ratio = Math.Max(0.0f, Math.Min(1.0f, (float)Value / (float)Maximum));
+            Rectangle clientRect = pictureBox1.ClientRectangle;
+            if (clientRect.Width <= 0 || clientRect.Height <= 0)
+                return;
+
+            using (Brush fillBrush = new SolidBrush(_progressColor))
             {
-                float ratio = ((float)Value / (float)Maximum);
-
-                //Draw background text
-                Brush brush = new SolidBrush(ForeColor);
-                string text = (ratio * 100f).ToString("0.00") + "%";
-                if (printText != "")
-                    text += " - " + printText;
-
-                SizeF strSize = e.Graphics.MeasureString(text, Font);
-                Rectangle rect = new Rectangle((Width / 2) - (int)(strSize.Width / 2), (Height / 2) - (int)(strSize.Height / 2), Width, Height);
-                e.Graphics.DrawString(text, Font, brush, rect);
-
-                //Draw progress
-                brush = new SolidBrush(ForeColor);
-                rect = new Rectangle(0, 0, (int)(ratio * Width), Height);
-                e.Graphics.FillRectangle(brush, rect);
-
-                //Draw foreground text
-                int dif = (int)((int)(ratio * Width) - strSize.Width);
-                if (dif > 0)
-                {
-                    brush = new SolidBrush(BackColor);
-                    e.Graphics.Clip = new Region(rect);
-                    RectangleF rectf = new RectangleF((Width / 2) - (int)(strSize.Width / 2), (Height / 2) - (int)(strSize.Height / 2), Width, Height);
-                    e.Graphics.DrawString(text, Font, brush, rectf, new StringFormat(StringFormatFlags.NoWrap));
-                }
+                Rectangle fillRect = new Rectangle(0, 0, (int)(ratio * clientRect.Width), clientRect.Height);
+                e.Graphics.FillRectangle(fillBrush, fillRect);
             }
+
+            string text = (ratio * 100f).ToString("0.00") + "%";
+            if (!String.IsNullOrEmpty(printText))
+                text += " - " + printText;
+
+            TextFormatFlags flags =
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter |
+                TextFormatFlags.EndEllipsis |
+                TextFormatFlags.SingleLine;
+
+            TextRenderer.DrawText(e.Graphics, text, Font, new Rectangle(clientRect.X - 1, clientRect.Y, clientRect.Width, clientRect.Height), ForeColor, flags);
+            TextRenderer.DrawText(e.Graphics, text, Font, new Rectangle(clientRect.X + 1, clientRect.Y, clientRect.Width, clientRect.Height), ForeColor, flags);
+            TextRenderer.DrawText(e.Graphics, text, Font, new Rectangle(clientRect.X, clientRect.Y - 1, clientRect.Width, clientRect.Height), ForeColor, flags);
+            TextRenderer.DrawText(e.Graphics, text, Font, new Rectangle(clientRect.X, clientRect.Y + 1, clientRect.Width, clientRect.Height), ForeColor, flags);
+            TextRenderer.DrawText(e.Graphics, text, Font, clientRect, BackColor, flags);
         }
 
-        Color inverseColor(Color col)
+        private void InvalidateProgress()
         {
-            return Color.FromArgb(255 - col.R, 255 - col.B, 255 - col.G);
+            if (pictureBox1 != null)
+                pictureBox1.Invalidate();
+
+            Invalidate();
         }
 
     }
