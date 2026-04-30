@@ -501,6 +501,11 @@ namespace NetCheatPS3
             sb.AppendLine("Fallback segment OK: " + readStats.FallbackSegmentSuccesses.ToString("N0"));
             sb.AppendLine("Fallback segment failed: " + readStats.FallbackSegmentFailures.ToString("N0"));
             sb.AppendLine("Partial blocks recovered: " + readStats.PartialBlocksRecovered.ToString("N0"));
+            sb.AppendLine("Candidate blocks attempted: " + readStats.CandidateBlocksAttempted.ToString("N0"));
+            sb.AppendLine("Candidate block cache hits: " + readStats.CandidateBlockCacheHits.ToString("N0"));
+            sb.AppendLine("Candidate blocks readable: " + readStats.CandidateBlocksWithReadableSegments.ToString("N0"));
+            sb.AppendLine("Candidate blocks unreadable: " + readStats.CandidateBlocksWithoutReadableSegments.ToString("N0"));
+            sb.AppendLine("Candidates skipped unreadable: " + readStats.CandidatesSkippedUnreadable.ToString("N0"));
             sb.AppendLine();
             sb.AppendLine("Snapshot active: " + HasActiveSnapshot());
             sb.AppendLine("Snapshot count: " + activeSnapshotResultCount.ToString("N0"));

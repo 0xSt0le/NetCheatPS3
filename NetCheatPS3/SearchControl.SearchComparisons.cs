@@ -378,45 +378,99 @@ namespace NetCheatPS3
             return true;
         }
 
-        private bool NewScanner_TryReadCurrentRawValue(
-            MemoryReader reader,
-            ulong addr,
-            int byteSize,
-            ref ulong cachedBlockBase,
-            ref byte[] cachedBlock,
-            ref bool cachedBlockValid,
-            out byte[] rawValue)
+        private sealed class CandidateBlockReader
         {
-            rawValue = null;
-
-            if (reader == null)
-                return false;
-
-            int blockSize = ExactScanner.DefaultBlockSize;
-            ulong blockBase = addr - (addr % (ulong)blockSize);
-            int offset = (int)(addr - blockBase);
-
-            if (!cachedBlockValid || cachedBlockBase != blockBase)
+            private struct ReadableSegment
             {
-                cachedBlockBase = blockBase;
-                cachedBlockValid = reader.TryReadBlock(cachedBlockBase, cachedBlock);
+                public int Offset;
+                public int Count;
             }
 
-            if (cachedBlockValid && offset >= 0 && (offset + byteSize) <= cachedBlock.Length)
+            private readonly MemoryReader reader;
+            private readonly int blockSize;
+            private readonly byte[] block;
+            private readonly List<ReadableSegment> readableSegments = new List<ReadableSegment>();
+            private ulong currentBlockBase;
+            private bool hasCurrentBlock;
+
+            public CandidateBlockReader(MemoryReader reader, int blockSize)
             {
+                if (reader == null)
+                    throw new ArgumentNullException("reader");
+
+                if (blockSize <= 0)
+                    blockSize = ExactScanner.DefaultBlockSize;
+
+                this.reader = reader;
+                this.blockSize = blockSize;
+                block = new byte[this.blockSize];
+            }
+
+            public bool TryReadValue(ulong addr, int byteSize, out byte[] rawValue)
+            {
+                rawValue = null;
+
+                if (byteSize <= 0 || byteSize > block.Length)
+                    return false;
+
+                ulong blockBase = addr - (addr % (ulong)blockSize);
+                int offset = (int)(addr - blockBase);
+
+                if (!hasCurrentBlock || currentBlockBase != blockBase)
+                    LoadBlock(blockBase);
+                else
+                    reader.Stats.CandidateBlockCacheHits++;
+
+                if (!IsReadable(offset, byteSize))
+                {
+                    reader.Stats.CandidatesSkippedUnreadable++;
+                    return false;
+                }
+
                 rawValue = new byte[byteSize];
-                Buffer.BlockCopy(cachedBlock, offset, rawValue, 0, byteSize);
+                Buffer.BlockCopy(block, offset, rawValue, 0, byteSize);
                 return true;
             }
 
-            byte[] direct = new byte[byteSize];
-            if (reader.TryReadBlock(addr, direct))
+            private void LoadBlock(ulong blockBase)
             {
-                rawValue = direct;
-                return true;
+                hasCurrentBlock = true;
+                currentBlockBase = blockBase;
+                readableSegments.Clear();
+                Array.Clear(block, 0, block.Length);
+                reader.Stats.CandidateBlocksAttempted++;
+
+                int segments = reader.ReadReadableSegments(
+                    blockBase,
+                    block,
+                    delegate(int offset, int count)
+                    {
+                        ReadableSegment segment = new ReadableSegment();
+                        segment.Offset = offset;
+                        segment.Count = count;
+                        readableSegments.Add(segment);
+                    });
+
+                if (segments > 0)
+                    reader.Stats.CandidateBlocksWithReadableSegments++;
+                else
+                    reader.Stats.CandidateBlocksWithoutReadableSegments++;
             }
 
-            return false;
+            private bool IsReadable(int offset, int byteSize)
+            {
+                if (offset < 0 || (offset + byteSize) > block.Length)
+                    return false;
+
+                for (int index = 0; index < readableSegments.Count; index++)
+                {
+                    ReadableSegment segment = readableSegments[index];
+                    if (offset >= segment.Offset && (offset + byteSize) <= (segment.Offset + segment.Count))
+                        return true;
+                }
+
+                return false;
+            }
         }
 
         private void RunNewBasicNextSearch(SearchListView.SearchListViewItem[] old, string[] args, int nextMode)
@@ -440,9 +494,7 @@ namespace NetCheatPS3
             ClearItems();
 
             MemoryReader reader = new MemoryReader();
-            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
-            ulong cachedBlockBase = 0;
-            bool cachedBlockValid = false;
+            CandidateBlockReader blockReader = new CandidateBlockReader(reader, ExactScanner.DefaultBlockSize);
 
             List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
             int resCnt = 0;
@@ -463,14 +515,7 @@ namespace NetCheatPS3
                     continue;
 
                 byte[] currentRaw;
-                bool readOk = NewScanner_TryReadCurrentRawValue(
-                    reader,
-                    oldItem.addr,
-                    byteSize,
-                    ref cachedBlockBase,
-                    ref cachedBlock,
-                    ref cachedBlockValid,
-                    out currentRaw);
+                bool readOk = blockReader.TryReadValue(oldItem.addr, byteSize, out currentRaw);
 
                 if (!readOk)
                     continue;
@@ -649,9 +694,7 @@ namespace NetCheatPS3
             ClearItems();
 
             MemoryReader reader = new MemoryReader();
-            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
-            ulong cachedBlockBase = 0;
-            bool cachedBlockValid = false;
+            CandidateBlockReader blockReader = new CandidateBlockReader(reader, ExactScanner.DefaultBlockSize);
 
             List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
             int resCnt = 0;
@@ -669,14 +712,7 @@ namespace NetCheatPS3
                     continue;
 
                 byte[] currentRaw;
-                bool readOk = NewScanner_TryReadCurrentRawValue(
-                    reader,
-                    oldItem.addr,
-                    byteSize,
-                    ref cachedBlockBase,
-                    ref cachedBlock,
-                    ref cachedBlockValid,
-                    out currentRaw);
+                bool readOk = blockReader.TryReadValue(oldItem.addr, byteSize, out currentRaw);
 
                 if (!readOk)
                     continue;
@@ -821,9 +857,7 @@ namespace NetCheatPS3
             ClearItems();
 
             MemoryReader reader = new MemoryReader();
-            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
-            ulong cachedBlockBase = 0;
-            bool cachedBlockValid = false;
+            CandidateBlockReader blockReader = new CandidateBlockReader(reader, ExactScanner.DefaultBlockSize);
 
             List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
             int resCnt = 0;
@@ -850,14 +884,7 @@ namespace NetCheatPS3
                 }
 
                 byte[] currentRaw;
-                bool readOk = NewScanner_TryReadCurrentRawValue(
-                    reader,
-                    oldItem.addr,
-                    byteSize,
-                    ref cachedBlockBase,
-                    ref cachedBlock,
-                    ref cachedBlockValid,
-                    out currentRaw);
+                bool readOk = blockReader.TryReadValue(oldItem.addr, byteSize, out currentRaw);
 
                 if (!readOk)
                     continue;
@@ -1304,9 +1331,7 @@ namespace NetCheatPS3
             ClearItems();
 
             MemoryReader reader = new MemoryReader();
-            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
-            ulong cachedBlockBase = 0;
-            bool cachedBlockValid = false;
+            CandidateBlockReader blockReader = new CandidateBlockReader(reader, ExactScanner.DefaultBlockSize);
 
             List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
             int resCnt = 0;
@@ -1335,14 +1360,7 @@ namespace NetCheatPS3
                 }
 
                 byte[] currentRaw;
-                bool readOk = NewScanner_TryReadCurrentRawValue(
-                    reader,
-                    oldItem.addr,
-                    byteSize,
-                    ref cachedBlockBase,
-                    ref cachedBlock,
-                    ref cachedBlockValid,
-                    out currentRaw);
+                bool readOk = blockReader.TryReadValue(oldItem.addr, byteSize, out currentRaw);
 
                 if (!readOk)
                     continue;
@@ -1530,9 +1548,7 @@ namespace NetCheatPS3
             string newSnapshotPath = CreateSnapshotPath();
 
             MemoryReader reader = new MemoryReader();
-            byte[] cachedBlock = new byte[ExactScanner.DefaultBlockSize];
-            ulong cachedBlockBase = 0;
-            bool cachedBlockValid = false;
+            CandidateBlockReader blockReader = new CandidateBlockReader(reader, ExactScanner.DefaultBlockSize);
 
             List<SearchListView.SearchListViewItem> batch = new List<SearchListView.SearchListViewItem>(512);
             int visibleCount = 0;
@@ -1564,14 +1580,7 @@ namespace NetCheatPS3
                         break;
 
                     byte[] currentRaw;
-                    bool readOk = NewScanner_TryReadCurrentRawValue(
-                        reader,
-                        record.Address,
-                        header.ByteSize,
-                        ref cachedBlockBase,
-                        ref cachedBlock,
-                        ref cachedBlockValid,
-                        out currentRaw);
+                    bool readOk = blockReader.TryReadValue(record.Address, header.ByteSize, out currentRaw);
 
                     if (!readOk)
                     {
