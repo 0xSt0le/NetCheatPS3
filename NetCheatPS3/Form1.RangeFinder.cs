@@ -13,23 +13,14 @@ namespace NetCheatPS3
         private volatile bool findRangesCancel = false;
         private System.Threading.Thread findRangesThread = null;
 
-        private const ulong RangeFinderBlockSize = 0x10000;
         private const ulong RangeFinderProbeStep = 0x100000;
+        private const ulong RangeFinderDeepProbeStep = 0x10000;
+        private const int RangeFinderProbeSize = 0x10;
+        private const ulong RangeFinderEdgeRefineStep = 0x10000;
+        private const ulong RangeFinderAddressSpaceEnd = 0x100000000;
+        private const ulong RangeFinderLargeRangeThreshold = 0x1000000;
+        private const ulong RangeFinderLargeRangeSampleStep = 0x400000;
         private const int RangeFinderUiStepProbes = 32;
-
-        private sealed class RangeFinderBand
-        {
-            public ulong Start;
-            public ulong End;
-            public string Name;
-
-            public RangeFinderBand(ulong start, ulong end, string name)
-            {
-                Start = start;
-                End = end;
-                Name = name;
-            }
-        }
 
         private sealed class RangeFinderRange
         {
@@ -43,29 +34,67 @@ namespace NetCheatPS3
             }
         }
 
-        private RangeFinderBand[] GetSmartRangeFinderBands(bool fullScan)
+        private sealed class RangeFinderStats
         {
-            if (fullScan)
+            public long ProbeOk;
+            public long ProbeFailed;
+            public long EdgeRefineProbes;
+            public long SeedsFound;
+            public long RangesMerged;
+            public long MainProbesCompleted;
+            public readonly Stopwatch Elapsed = new Stopwatch();
+
+            public long TotalProbes
             {
-                return new RangeFinderBand[]
-                {
-                    new RangeFinderBand(0x00000000, 0x100000000, "Full 32-bit process space")
-                };
+                get { return ProbeOk + ProbeFailed; }
+            }
+        }
+
+        private sealed class RangeFinderProbeCache
+        {
+            private readonly Form1 owner;
+            private readonly Dictionary<ulong, bool> probes = new Dictionary<ulong, bool>();
+            private readonly byte[] probeBuffer = new byte[RangeFinderProbeSize];
+            private readonly RangeFinderStats stats;
+
+            public RangeFinderProbeCache(Form1 owner, RangeFinderStats stats)
+            {
+                this.owner = owner;
+                this.stats = stats;
             }
 
-            return new RangeFinderBand[]
+            public bool Probe(ulong addr)
             {
-                // Native PS3 titles normally expose the useful process memory in low 32-bit virtual space.
-                // This also includes the traditional 00010000-04000000 NetCheat style ranges.
-                new RangeFinderBand(0x00000000, 0x10000000, "Primary native PS3 process space"),
+                addr = owner.AlignDown(addr, RangeFinderEdgeRefineStep);
+                if (addr >= RangeFinderAddressSpaceEnd)
+                    return false;
 
-                // PS2 Classics / emulator-backed targets often expose EE-style mirrors here.
-                // This includes 0x20000000, where Jak PS2 values commonly show up.
-                new RangeFinderBand(0x10000000, 0x34000000, "High process / PS2 Classics mirror space"),
+                bool cached;
+                if (probes.TryGetValue(addr, out cached))
+                    return cached;
 
-                // PS2 EE scratchpad virtual region. Tiny, but cheap to test.
-                new RangeFinderBand(0x70000000, 0x70010000, "PS2 scratchpad virtual space")
-            };
+                bool ok = false;
+                byte[] read = probeBuffer;
+
+                try
+                {
+                    ok = apiGetMem(addr, ref read);
+                }
+                catch (Exception ex)
+                {
+                    try { CrashLogger.Log("Form1.RangeFinderProbe @0x" + addr.ToString("X8"), ex); } catch { }
+                    ok = false;
+                }
+
+                probes[addr] = ok;
+
+                if (ok)
+                    stats.ProbeOk++;
+                else
+                    stats.ProbeFailed++;
+
+                return ok;
+            }
         }
 
         private ulong AlignDown(ulong value, ulong alignment)
@@ -83,28 +112,6 @@ namespace NetCheatPS3
             if (mod == 0)
                 return value;
             return value + (alignment - mod);
-        }
-
-        private bool TryReadRangeBlock(ulong addr, byte[] block, ref long readOk, ref long readFailed)
-        {
-            bool validRegion = false;
-
-            try
-            {
-                validRegion = apiGetMem(addr, ref block);
-            }
-            catch (Exception ex)
-            {
-                try { CrashLogger.Log("Form1.TryReadRangeBlock.apiGetMem @0x" + addr.ToString("X8"), ex); } catch { }
-                validRegion = false;
-            }
-
-            if (validRegion)
-                readOk++;
-            else
-                readFailed++;
-
-            return validRegion;
         }
 
         private void AddOrMergeRange(List<RangeFinderRange> ranges, ulong start, ulong end)
@@ -161,6 +168,20 @@ namespace NetCheatPS3
             return false;
         }
 
+        private string GetRangeFinderModeText(bool deepScan)
+        {
+            return deepScan ? "Deep adaptive 64 KB map" : "Adaptive 1 MB map";
+        }
+
+        private string FormatRangeFinderStatus(string prefix, RangeFinderStats stats, List<RangeFinderRange> ranges, ulong addr)
+        {
+            return prefix + " @ 0x" + addr.ToString("X8") +
+                " | Seeds: " + stats.SeedsFound.ToString("N0") +
+                " | Ranges: " + ranges.Count.ToString("N0") +
+                " | OK: " + stats.ProbeOk.ToString("N0") +
+                " | Failed: " + stats.ProbeFailed.ToString("N0");
+        }
+
         private void SetFindRangesUiState(bool scanning, int progressValue, int progressMax, string statusText)
         {
             if (InvokeRequired)
@@ -187,13 +208,13 @@ namespace NetCheatPS3
             statusLabel1.Text = statusText;
         }
 
-        private void FinishFindRangesUi(ListViewItem[] ranges, bool cancelled, long readOk, long readFailed, bool fullScan)
+        private void FinishFindRangesUi(ListViewItem[] ranges, bool cancelled, RangeFinderStats stats, bool deepScan)
         {
             if (InvokeRequired)
             {
                 BeginInvoke((MethodInvoker)delegate
                 {
-                    FinishFindRangesUi(ranges, cancelled, readOk, readFailed, fullScan);
+                    FinishFindRangesUi(ranges, cancelled, stats, deepScan);
                 });
                 return;
             }
@@ -211,17 +232,25 @@ namespace NetCheatPS3
             findRanges.Text = "Find Ranges";
             findRangeProgBar.Value = 0;
 
-            string modeText = fullScan ? "Full adaptive" : "Smart adaptive";
+            string modeText = GetRangeFinderModeText(deepScan);
+            double seconds = stats.Elapsed.Elapsed.TotalSeconds;
+            if (seconds <= 0.0)
+                seconds = 0.001;
+            double probesPerSecond = stats.TotalProbes / seconds;
+
             if (cancelled)
             {
-                statusLabel1.Text = "Find Ranges stopped | " + modeText + " | OK: " + readOk.ToString("N0") + " | Failed: " + readFailed.ToString("N0");
+                statusLabel1.Text = "Find Ranges stopped | Mode: " + modeText +
+                                    " | OK: " + stats.ProbeOk.ToString("N0") +
+                                    " | Failed: " + stats.ProbeFailed.ToString("N0");
             }
             else
             {
-                statusLabel1.Text = "Find Ranges completed | " + modeText + " | Ranges: " +
+                statusLabel1.Text = "Find Ranges completed | Mode: " + modeText + " | Ranges: " +
                                     (ranges == null ? 0 : ranges.Length).ToString("N0") +
-                                    " | OK: " + readOk.ToString("N0") +
-                                    " | Failed: " + readFailed.ToString("N0");
+                                    " | OK: " + stats.ProbeOk.ToString("N0") +
+                                    " | Failed: " + stats.ProbeFailed.ToString("N0") +
+                                    " | " + probesPerSecond.ToString("N1") + " probes/sec";
             }
 
             if (!cancelled)
@@ -230,122 +259,209 @@ namespace NetCheatPS3
                     "Find Ranges completed.\r\n\r\n" +
                     "Mode: " + modeText + "\r\n" +
                     "Ranges found: " + (ranges == null ? 0 : ranges.Length).ToString("N0") + "\r\n" +
-                    "Readable probes/blocks: " + readOk.ToString("N0") + "\r\n" +
-                    "Failed probes/blocks: " + readFailed.ToString("N0") + "\r\n\r\n" +
-                    "Smart mode scans likely PS3/PS2 process address bands first and avoids a blind 4 GB sweep.\r\n" +
-                    "Shift-click Find Ranges to force a full adaptive 32-bit scan.",
+                    "Probe step: 0x" + (deepScan ? RangeFinderDeepProbeStep : RangeFinderProbeStep).ToString("X") + "\r\n" +
+                    "Probe size: 0x" + RangeFinderProbeSize.ToString("X") + "\r\n" +
+                    "Edge refine probes: " + stats.EdgeRefineProbes.ToString("N0") + "\r\n" +
+                    "Seeds found: " + stats.SeedsFound.ToString("N0") + "\r\n" +
+                    "Ranges merged: " + stats.RangesMerged.ToString("N0") + "\r\n" +
+                    "Probe OK: " + stats.ProbeOk.ToString("N0") + "\r\n" +
+                    "Probe failed: " + stats.ProbeFailed.ToString("N0") + "\r\n" +
+                    "Elapsed: " + stats.Elapsed.Elapsed.TotalSeconds.ToString("0.000") + " sec\r\n" +
+                    "Probes/sec: " + probesPerSecond.ToString("N1"),
                     "NetCheatPS3",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
         }
 
-        private void RefineReadableRangeAroundProbe(ulong probeAddr, ulong bandStart, ulong bandEnd, byte[] block, List<RangeFinderRange> foundRanges, ref long readOk, ref long readFailed)
+        private ulong RefineRangeStart(ulong failedBoundary, ulong readableBoundary, RangeFinderProbeCache probes, RangeFinderStats stats)
         {
-            ulong start = probeAddr;
-            ulong end = probeAddr + RangeFinderBlockSize;
+            if (readableBoundary == 0)
+                return 0;
 
-            // Walk backward block-by-block until the readable area starts.
-            while (start >= bandStart + RangeFinderBlockSize)
+            ulong start = failedBoundary >= RangeFinderAddressSpaceEnd
+                ? 0
+                : failedBoundary + RangeFinderEdgeRefineStep;
+
+            if (start > readableBoundary)
+                start = readableBoundary;
+
+            for (ulong addr = start; addr <= readableBoundary; addr += RangeFinderEdgeRefineStep)
             {
-                ulong prev = start - RangeFinderBlockSize;
-                if (!TryReadRangeBlock(prev, block, ref readOk, ref readFailed))
+                if (findRangesCancel)
+                    return readableBoundary;
+
+                stats.EdgeRefineProbes++;
+                if (probes.Probe(addr))
+                    return addr;
+
+                if (addr > RangeFinderAddressSpaceEnd - RangeFinderEdgeRefineStep)
                     break;
-                start = prev;
             }
 
-            // Walk forward block-by-block until the readable area ends.
-            ulong cur = probeAddr + RangeFinderBlockSize;
-            while (cur < bandEnd)
+            return readableBoundary;
+        }
+
+        private ulong RefineRangeEnd(ulong readableBoundary, ulong failedBoundary, RangeFinderProbeCache probes, RangeFinderStats stats)
+        {
+            ulong endLimit = failedBoundary > RangeFinderAddressSpaceEnd ? RangeFinderAddressSpaceEnd : failedBoundary;
+            ulong lastReadable = readableBoundary;
+
+            if (readableBoundary > RangeFinderAddressSpaceEnd - RangeFinderEdgeRefineStep)
+                return RangeFinderAddressSpaceEnd;
+
+            for (ulong addr = readableBoundary + RangeFinderEdgeRefineStep; addr < endLimit; addr += RangeFinderEdgeRefineStep)
             {
-                if (IsInsideKnownRange(foundRanges, cur))
+                if (findRangesCancel)
+                    break;
+
+                stats.EdgeRefineProbes++;
+                if (!probes.Probe(addr))
+                    break;
+
+                lastReadable = addr;
+
+                if (addr > RangeFinderAddressSpaceEnd - RangeFinderEdgeRefineStep)
+                    break;
+            }
+
+            ulong end = lastReadable + RangeFinderEdgeRefineStep;
+            return end > RangeFinderAddressSpaceEnd ? RangeFinderAddressSpaceEnd : end;
+        }
+
+        private void DiscoverRangeFromSeed(ulong seed, RangeFinderProbeCache probes, RangeFinderStats stats, List<RangeFinderRange> foundRanges)
+        {
+            ulong roughStart = seed;
+            ulong failedBeforeStart = RangeFinderAddressSpaceEnd;
+
+            while (roughStart >= RangeFinderProbeStep)
+            {
+                if (findRangesCancel)
+                    return;
+
+                ulong prev = roughStart - RangeFinderProbeStep;
+                if (!probes.Probe(prev))
                 {
-                    cur += RangeFinderBlockSize;
+                    failedBeforeStart = prev;
+                    break;
+                }
+
+                roughStart = prev;
+            }
+
+            ulong roughEndReadable = seed;
+            ulong failedAfterEnd = RangeFinderAddressSpaceEnd;
+
+            while (roughEndReadable <= RangeFinderAddressSpaceEnd - RangeFinderProbeStep)
+            {
+                if (findRangesCancel)
+                    return;
+
+                ulong next = roughEndReadable + RangeFinderProbeStep;
+                if (!probes.Probe(next))
+                {
+                    failedAfterEnd = next;
+                    break;
+                }
+
+                roughEndReadable = next;
+            }
+
+            ulong refinedStart = RefineRangeStart(failedBeforeStart, roughStart, probes, stats);
+            ulong refinedEnd = RefineRangeEnd(roughEndReadable, failedAfterEnd, probes, stats);
+            int before = foundRanges.Count;
+            AddOrMergeRange(foundRanges, refinedStart, refinedEnd);
+            if (foundRanges.Count <= before)
+                stats.RangesMerged++;
+        }
+
+        private List<RangeFinderRange> VerifyAndSplitLargeRanges(List<RangeFinderRange> ranges, RangeFinderProbeCache probes)
+        {
+            List<RangeFinderRange> verified = new List<RangeFinderRange>(ranges.Count);
+
+            for (int i = 0; i < ranges.Count; i++)
+            {
+                RangeFinderRange range = ranges[i];
+                if ((range.End - range.Start) <= RangeFinderLargeRangeThreshold)
+                {
+                    verified.Add(range);
                     continue;
                 }
 
-                if (!TryReadRangeBlock(cur, block, ref readOk, ref readFailed))
-                    break;
+                ulong segmentStart = range.Start;
+                int consecutiveFailures = 0;
 
-                end = cur + RangeFinderBlockSize;
-                cur += RangeFinderBlockSize;
-            }
-
-            if (end > bandEnd)
-                end = bandEnd;
-
-            AddOrMergeRange(foundRanges, start, end);
-        }
-
-        private void ScanRangeFinderBand(RangeFinderBand band, byte[] block, List<RangeFinderRange> foundRanges, ref long readOk, ref long readFailed, ref int progress, int progressMax)
-        {
-            ulong bandStart = AlignDown(band.Start, RangeFinderBlockSize);
-            ulong bandEnd = AlignUp(band.End, RangeFinderBlockSize);
-            if (bandEnd <= bandStart)
-                return;
-
-            // Two offsets catch ranges that sit between 1 MB probe boundaries without doing a true 64 KB deep sweep.
-            ulong[] offsets = new ulong[] { 0, RangeFinderProbeStep / 2 };
-
-            for (int pass = 0; pass < offsets.Length; pass++)
-            {
-                ulong addr = bandStart + offsets[pass];
-                if (addr >= bandEnd)
-                    continue;
-
-                addr = AlignDown(addr, RangeFinderBlockSize);
-
-                for (; addr < bandEnd; addr += RangeFinderProbeStep)
+                for (ulong addr = AlignUp(range.Start + RangeFinderLargeRangeSampleStep, RangeFinderLargeRangeSampleStep);
+                    addr < range.End;
+                    addr += RangeFinderLargeRangeSampleStep)
                 {
                     if (findRangesCancel)
-                        return;
+                        break;
 
-                    if (IsInsideKnownRange(foundRanges, addr))
+                    bool ok = probes.Probe(addr);
+                    if (ok)
                     {
-                        progress++;
+                        consecutiveFailures = 0;
                         continue;
                     }
 
-                    bool valid = TryReadRangeBlock(addr, block, ref readOk, ref readFailed);
+                    consecutiveFailures++;
+                    if (consecutiveFailures < 2)
+                        continue;
 
-                    if (valid)
-                    {
-                        RefineReadableRangeAroundProbe(addr, bandStart, bandEnd, block, foundRanges, ref readOk, ref readFailed);
-                    }
+                    ulong splitStart = addr - RangeFinderLargeRangeSampleStep;
+                    if (splitStart > segmentStart)
+                        verified.Add(new RangeFinderRange(segmentStart, splitStart));
 
-                    progress++;
-
-                    if ((progress % RangeFinderUiStepProbes) == 0)
-                    {
-                        SetFindRangesUiState(
-                            true,
-                            progress,
-                            progressMax,
-                            "Smart range scan: " + band.Name + " @ 0x" + addr.ToString("X8") +
-                            " | Ranges: " + foundRanges.Count.ToString("N0") +
-                            " | OK: " + readOk.ToString("N0") +
-                            " | Failed: " + readFailed.ToString("N0"));
-                    }
+                    segmentStart = addr + RangeFinderLargeRangeSampleStep;
+                    consecutiveFailures = 0;
                 }
+
+                if (segmentStart < range.End)
+                    verified.Add(new RangeFinderRange(segmentStart, range.End));
             }
+
+            return verified;
         }
 
-        private int EstimateRangeFinderProgressMax(RangeFinderBand[] bands)
+        private void RunAdaptiveRangeMap(bool deepScan, RangeFinderProbeCache probes, RangeFinderStats stats, List<RangeFinderRange> foundRanges)
         {
-            long total = 0;
+            ulong step = deepScan ? RangeFinderDeepProbeStep : RangeFinderProbeStep;
+            int progressMax = (int)(RangeFinderAddressSpaceEnd / step);
+            int progress = 0;
+            string modeText = GetRangeFinderModeText(deepScan);
 
-            for (int i = 0; i < bands.Length; i++)
+            SetFindRangesUiState(true, 0, progressMax, "Starting " + modeText + "...");
+
+            for (ulong addr = 0; addr < RangeFinderAddressSpaceEnd; addr += step)
             {
-                ulong size = bands[i].End > bands[i].Start ? bands[i].End - bands[i].Start : 0;
-                total += (long)((size + RangeFinderProbeStep - 1) / RangeFinderProbeStep) * 2;
+                if (findRangesCancel)
+                    return;
+
+                if (!IsInsideKnownRange(foundRanges, addr))
+                {
+                    if (probes.Probe(addr))
+                    {
+                        stats.SeedsFound++;
+                        DiscoverRangeFromSeed(addr, probes, stats, foundRanges);
+                    }
+                }
+
+                progress++;
+                stats.MainProbesCompleted = progress;
+
+                if ((progress % RangeFinderUiStepProbes) == 0 || progress == progressMax)
+                {
+                    SetFindRangesUiState(
+                        true,
+                        progress,
+                        progressMax,
+                        FormatRangeFinderStatus(modeText, stats, foundRanges, addr));
+                }
+
+                if (addr > RangeFinderAddressSpaceEnd - step)
+                    break;
             }
-
-            if (total <= 0)
-                total = 1;
-            if (total > Int32.MaxValue)
-                total = Int32.MaxValue;
-
-            return (int)total;
         }
 
         private ListViewItem[] ConvertRangesToListViewItems(List<RangeFinderRange> ranges)
@@ -374,10 +490,9 @@ namespace NetCheatPS3
 
         private void FindRangesWorker(object workerArg)
         {
-            bool fullScan = workerArg is bool && (bool)workerArg;
+            bool deepScan = workerArg is bool && (bool)workerArg;
             bool cancelled = false;
-            long readOk = 0;
-            long readFailed = 0;
+            RangeFinderStats stats = new RangeFinderStats();
 
             List<RangeFinderRange> foundRanges = new List<RangeFinderRange>(32);
 
@@ -399,29 +514,19 @@ namespace NetCheatPS3
                     return;
                 }
 
-                RangeFinderBand[] bands = GetSmartRangeFinderBands(fullScan);
-                int progressMax = EstimateRangeFinderProgressMax(bands);
-                int progress = 0;
-
-                byte[] block = new byte[RangeFinderBlockSize];
-
-                SetFindRangesUiState(true, 0, progressMax, fullScan ? "Starting full adaptive range scan..." : "Starting smart adaptive range scan...");
-
-                for (int i = 0; i < bands.Length; i++)
-                {
-                    if (findRangesCancel)
-                    {
-                        cancelled = true;
-                        break;
-                    }
-
-                    ScanRangeFinderBand(bands[i], block, foundRanges, ref readOk, ref readFailed, ref progress, progressMax);
-                }
+                stats.Elapsed.Start();
+                RangeFinderProbeCache probes = new RangeFinderProbeCache(this, stats);
+                RunAdaptiveRangeMap(deepScan, probes, stats, foundRanges);
 
                 if (findRangesCancel)
                     cancelled = true;
 
-                FinishFindRangesUi(ConvertRangesToListViewItems(foundRanges), cancelled, readOk, readFailed, fullScan);
+                if (!cancelled)
+                    foundRanges = VerifyAndSplitLargeRanges(foundRanges, probes);
+
+                stats.Elapsed.Stop();
+
+                FinishFindRangesUi(ConvertRangesToListViewItems(foundRanges), cancelled, stats, deepScan);
             }
             catch (Exception ex)
             {
@@ -711,18 +816,24 @@ namespace NetCheatPS3
                 return;
             }
 
-            bool fullScan = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+            bool deepScan = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
 
             findRangesCancel = false;
             rangeView.Items.Clear();
             UpdateMemArray();
 
-            SetFindRangesUiState(true, 0, 1, fullScan ? "Starting full adaptive range scan..." : "Starting smart adaptive range scan...");
+            SetFindRangesUiState(true, 0, 1, deepScan ? "Starting deep adaptive 64 KB map..." : "Starting adaptive 1 MB map...");
+            if (deepScan)
+                MessageBox.Show(
+                    "Deep adaptive scans the full 32-bit address space in 64 KB steps using tiny probe reads. This is slower than normal adaptive mapping.",
+                    "Find Ranges",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
 
             findRangesThread = new System.Threading.Thread(new System.Threading.ParameterizedThreadStart(FindRangesWorker));
             findRangesThread.IsBackground = true;
             findRangesThread.Priority = System.Threading.ThreadPriority.BelowNormal;
-            findRangesThread.Start(fullScan);
+            findRangesThread.Start(deepScan);
         }
     }
 }
