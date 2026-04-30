@@ -110,11 +110,7 @@ namespace NetCheatPS3
             {
                 _SelectedIndices = value;
 
-                if (tempTB != null)
-                {
-                    printBox.Controls.Remove(tempTB);
-                    tempTB = null;
-                }
+                RemoveTempTextBox();
 
                 printBox.Refresh();
             }
@@ -320,105 +316,133 @@ namespace NetCheatPS3
         {
             printBox.Refresh();
 
-            if (tempTB != null)
-            {
-                printBox.Controls.Remove(tempTB);
-                tempTB = null;
-            }
+            RemoveTempTextBox();
         }
 
         private void printBox_Click(object sender, EventArgs e)
         {
-            if (isMouse2Down)
-                return;
-
-            Point pos = printBox.PointToClient(Cursor.Position);
-            int index = (int)(pos.Y / ItemHeight) + (vertSBar.Visible ? vertSBar.Value : 0);
-
-            isCtrlDown = (Control.ModifierKeys & Keys.Control) != 0;
-            isShiftDown = (Control.ModifierKeys & Keys.Shift) != 0;
-
-            if (index >= TotalCount)
+            try
             {
-                if (!isCtrlDown && !isShiftDown)
+                printBox.Enabled = true;
+
+                if (isMouse2Down)
+                    return;
+
+                Point pos = printBox.PointToClient(Cursor.Position);
+                int index = (int)(pos.Y / ItemHeight) + (vertSBar.Visible ? vertSBar.Value : 0);
+
+                isCtrlDown = (Control.ModifierKeys & Keys.Control) != 0;
+                isShiftDown = (Control.ModifierKeys & Keys.Shift) != 0;
+
+                if (index < 0 || index >= TotalCount)
                 {
-                    ClearSelectedIndices();
-                }
-            }
-            else
-            {
-                if (isCtrlDown && multiSelect)
-                {
-                    AddSelectedIndex(index);
-                }
-                else if (isShiftDown && multiSelect)
-                {
-                    int oldIndex = SelectedIndices[SelectedIndices.Count - 1];
-                    AddSelectedIndexRange(oldIndex, index);
+                    if (!isCtrlDown && !isShiftDown)
+                        ClearSelectedIndices();
                 }
                 else
                 {
-                    if (index < TotalCount)
+                    if (isCtrlDown && multiSelect)
+                    {
+                        AddSelectedIndex(index);
+                    }
+                    else if (isShiftDown && multiSelect)
+                    {
+                        if (SelectedIndices == null || SelectedIndices.Count == 0)
+                            SetSelectedIndex(index);
+                        else
+                            AddSelectedIndexRange(SelectedIndices.Last(), index);
+                    }
+                    else
+                    {
                         SetSelectedIndex(index);
+                    }
                 }
-            }
 
-            printBox.Focus();
+                printBox.Focus();
+            }
+            finally
+            {
+                printBox.Enabled = true;
+            }
         }
 
         TextBox tempTB;
         bool didPressCtrlC = false;
         private void printBox_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            printBox.Enabled = false;
-            int max = MaxItemsPerPage;
+            try
+            {
+                int max = MaxItemsPerPage;
+                if (max <= 0)
+                    max = 1;
 
-            if (SelectedIndices.Count == 0)
+                if (SelectedIndices == null || SelectedIndices.Count == 0)
+                {
+                    if (e.KeyCode != Keys.C || !e.Control)
+                        didPressCtrlC = false;
+                    return;
+                }
+
+                if (e.KeyCode == Keys.Up)
+                {
+                    if (SelectedIndices[0] > 0)
+                        SetSelectedIndex(SelectedIndices[0] - 1);
+                    if (vertSBar.Value > SelectedIndices[0] || (vertSBar.Value + max) < SelectedIndices[0])
+                        SetVertSBarValueSafe(SelectedIndices[0]);
+                }
+                else if (e.KeyCode == Keys.Down)
+                {
+                    if (SelectedIndices[0] < (TotalCount - 1) && SelectedIndices[0] >= 0)
+                        SetSelectedIndex(SelectedIndices[0] + 1);
+                    if (vertSBar.Value > SelectedIndices[0] || (vertSBar.Value + max - 1) < SelectedIndices[0])
+                        SetVertSBarValueSafe(SelectedIndices[0] - max + 1);
+                }
+                else if (e.KeyCode == Keys.C && e.Control)
+                {
+                    if (!didPressCtrlC)
+                    {
+                        didPressCtrlC = true;
+                        CopySelection();
+                    }
+                }
+                else if (e.KeyCode == Keys.Delete)
+                {
+                    deleteToolStripMenuItem_Click(null, null);
+                }
+                else
+                {
+                    didPressCtrlC = false;
+                }
+
+                isShiftDown = e.Shift;
+                isCtrlDown = e.Control;
+            }
+            finally
+            {
+                printBox.Enabled = true;
+                printBox.Focus();
+                e.IsInputKey = true;
+            }
+        }
+
+        private void SetVertSBarValueSafe(int value)
+        {
+            if (value < vertSBar.Minimum)
+                value = vertSBar.Minimum;
+            if (value > vertSBar.Maximum)
+                value = vertSBar.Maximum;
+
+            vertSBar.Value = value;
+        }
+
+        private void RemoveTempTextBox()
+        {
+            if (tempTB == null)
                 return;
 
-
-            if (e.KeyCode == Keys.Up)
-            {
-                if (SelectedIndices[0] > 0)
-                    SetSelectedIndex(SelectedIndices[0] - 1);
-                if (vertSBar.Value > SelectedIndices[0] || (vertSBar.Value + max) < SelectedIndices[0])
-                    vertSBar.Value = SelectedIndices[0];
-            }
-            else if (e.KeyCode == Keys.Down)
-            {
-                if (SelectedIndices[0] < (TotalCount - 1) && SelectedIndices[0] >= 0)
-                    SetSelectedIndex(SelectedIndices[0] + 1);
-                if (vertSBar.Value > SelectedIndices[0] || (vertSBar.Value + max - 1) < SelectedIndices[0])
-                {
-                    int newValue = SelectedIndices[0] - max + 1;
-                    if (newValue <= vertSBar.Maximum)
-                        vertSBar.Value = newValue;
-                }
-            }
-            else if (e.KeyCode == Keys.C && e.Control)
-            {
-                if (!didPressCtrlC)
-                {
-                    didPressCtrlC = true;
-                    CopySelection();
-                }
-            }
-            else if (e.KeyCode == Keys.Delete)
-            {
-                if (SelectedIndices != null && SelectedIndices.Count > 0)
-                    deleteToolStripMenuItem_Click(null, null);
-            }
-            else
-            {
-                didPressCtrlC = false;
-            }
-
-            isShiftDown = e.Shift;
-            isCtrlDown = e.Control;
-
-            printBox.Enabled = true;
-            printBox.Focus();
-            e.IsInputKey = true;
+            printBox.Controls.Remove(tempTB);
+            tempTB.Dispose();
+            tempTB = null;
         }
 
         void CopySelection()
@@ -525,16 +549,18 @@ namespace NetCheatPS3
 
         public void ClearItems()
         {
-            if (tempTB != null)
-            {
-                printBox.Controls.Remove(tempTB);
-                tempTB = null;
-            }
+            RemoveTempTextBox();
 
             b.Clear();
             a.Clear();
             SelectedIndices.Clear();
+            isMouse2Down = false;
+            isShiftDown = false;
+            isCtrlDown = false;
+            didPressCtrlC = false;
+            printBox.Enabled = true;
             isVertSBarVisible = false;
+            SetVertSBarValueSafe(0);
             printBox.Refresh();
         }
 
