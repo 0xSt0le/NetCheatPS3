@@ -491,15 +491,19 @@ namespace TMAPI_NCAPI
                         hit.StackPointer = specific.Data.PPUDataMatException.SP;
                     }
 
-                    if (hit.ThreadId == 0 || hit.ProgramCounter == 0)
+                    if (!IsSaneDabrHit(hit))
                     {
                         PublishInvalidDabrParse(specific);
-                        PublishError("DABR event parsed with invalid ThreadID/PC; not resuming.");
+                        PublishError("DABR event parsed with invalid or unreasonable ThreadID/PC; not resuming.");
                         return;
                     }
 
                     hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
                     PublishHit(hit);
+                    PublishDiagnostic("DABR payload parsed: thread=0x" + hit.ThreadId.ToString("X16") +
+                        " pc=0x" + hit.ProgramCounter.ToString("X16") +
+                        " sp=0x" + hit.StackPointer.ToString("X16") +
+                        " hwThread=" + exceptionData.HWThreadNumber.ToString() + ".");
                     PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
                         " PC=0x" + hit.ProgramCounter.ToString("X8") + ".");
 
@@ -512,6 +516,20 @@ namespace TMAPI_NCAPI
                         isProcessingStop = false;
                     }
                 }
+            }
+
+            private static bool IsSaneDabrHit(AddressAccessHit hit)
+            {
+                if (hit == null)
+                    return false;
+
+                if (hit.ThreadId == 0 || hit.ProgramCounter == 0)
+                    return false;
+
+                if (hit.ProgramCounter >= 0x100000000UL)
+                    return false;
+
+                return true;
             }
 
             private void PublishInvalidDabrParse(PS3TMAPI.TargetSpecificEvent specific)

@@ -1241,19 +1241,19 @@ namespace TMAPI_NCAPI
             ulong pc;
             ulong sp;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out threadId))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out threadId))
                 return exceptionData;
             exceptionData.ThreadID = threadId;
 
-            if (!ReadUInt32AndAdvance(ref cursor, ref remaining, out hwThreadNumber))
+            if (!ReadUInt32BigEndianAndAdvance(ref cursor, ref remaining, out hwThreadNumber))
                 return exceptionData;
             exceptionData.HWThreadNumber = hwThreadNumber;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out pc))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out pc))
                 return exceptionData;
             exceptionData.PC = pc;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out sp))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out sp))
                 return exceptionData;
             exceptionData.SP = sp;
             return exceptionData;
@@ -1270,27 +1270,27 @@ namespace TMAPI_NCAPI
             ulong value64;
             uint value32;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.ThreadID = value64;
 
-            if (!ReadUInt32AndAdvance(ref cursor, ref remaining, out value32))
+            if (!ReadUInt32BigEndianAndAdvance(ref cursor, ref remaining, out value32))
                 return exceptionData;
             exceptionData.HWThreadNumber = value32;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.DSISR = value64;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.DAR = value64;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.PC = value64;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.SP = value64;
             return exceptionData;
@@ -1307,27 +1307,27 @@ namespace TMAPI_NCAPI
             ulong value64;
             uint value32;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.ThreadID = value64;
 
-            if (!ReadUInt32AndAdvance(ref cursor, ref remaining, out value32))
+            if (!ReadUInt32BigEndianAndAdvance(ref cursor, ref remaining, out value32))
                 return exceptionData;
             exceptionData.HWThreadNumber = value32;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.DSISR = value64;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.DAR = value64;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.PC = value64;
 
-            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+            if (!ReadUInt64BigEndianAndAdvance(ref cursor, ref remaining, out value64))
                 return exceptionData;
             exceptionData.SP = value64;
             return exceptionData;
@@ -1352,6 +1352,42 @@ namespace TMAPI_NCAPI
                 return false;
 
             value = (ulong)Marshal.ReadInt64(cursor);
+            cursor = new IntPtr(cursor.ToInt64() + 8);
+            remaining -= 8;
+            return true;
+        }
+
+        private static bool ReadUInt32BigEndianAndAdvance(ref IntPtr cursor, ref uint remaining, out uint value)
+        {
+            value = 0;
+            if (cursor == IntPtr.Zero || remaining < 4)
+                return false;
+
+            value =
+                ((uint)Marshal.ReadByte(cursor, 0) << 24) |
+                ((uint)Marshal.ReadByte(cursor, 1) << 16) |
+                ((uint)Marshal.ReadByte(cursor, 2) << 8) |
+                Marshal.ReadByte(cursor, 3);
+            cursor = new IntPtr(cursor.ToInt64() + 4);
+            remaining -= 4;
+            return true;
+        }
+
+        private static bool ReadUInt64BigEndianAndAdvance(ref IntPtr cursor, ref uint remaining, out ulong value)
+        {
+            value = 0;
+            if (cursor == IntPtr.Zero || remaining < 8)
+                return false;
+
+            value =
+                ((ulong)Marshal.ReadByte(cursor, 0) << 56) |
+                ((ulong)Marshal.ReadByte(cursor, 1) << 48) |
+                ((ulong)Marshal.ReadByte(cursor, 2) << 40) |
+                ((ulong)Marshal.ReadByte(cursor, 3) << 32) |
+                ((ulong)Marshal.ReadByte(cursor, 4) << 24) |
+                ((ulong)Marshal.ReadByte(cursor, 5) << 16) |
+                ((ulong)Marshal.ReadByte(cursor, 6) << 8) |
+                Marshal.ReadByte(cursor, 7);
             cursor = new IntPtr(cursor.ToInt64() + 8);
             remaining -= 8;
             return true;
