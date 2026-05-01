@@ -191,17 +191,12 @@ namespace TMAPI_NCAPI
             private bool registeredEvents;
             private bool savedOldDabr;
             private bool dabrWasArmed;
-            private bool dabrClearedAfterHit;
-            private bool dabrTemporarilyClearedForResume;
-            private bool pendingRearmAfterResume;
-            private bool rearmStopInProgress;
-            private bool processStoppedForRearm;
             private bool savedAutoStatusUpdate;
             private bool previousAutoStatusUpdate;
+            private bool reportedDroppedDabrHitWhileBusy;
             private ulong oldDabr;
             private ulong rawDabr;
             private AddressAccessHit pendingDabrHit;
-            private DateTime dabrRearmDueUtc;
             private string lastNativeEventDiagnostic;
             private DateTime lastNativeEventDiagnosticTime;
             private bool reportedKickSuccess;
@@ -344,10 +339,43 @@ namespace TMAPI_NCAPI
                     return false;
 
                 rawDabr = BuildRawDabr(Address, Mode);
+
+                result = tmapi.ProcessStop();
+                PublishDiagnostic("ProcessStop before DABR arm: " + result.ToString() + ".");
+                if (!PS3TMAPI.SUCCEEDED(result))
+                {
+                    PublishError("DABR logger startup failed because ProcessStop failed: " + result.ToString() + ".");
+                    return false;
+                }
+
                 result = tmapi.SetDABR(rawDabr);
                 if (!PS3TMAPI.SUCCEEDED(result))
                 {
-                    PublishError("TMAPI SetDABR failed: " + result.ToString());
+                    PS3TMAPI.SNRESULT continueAfterFailedArm = tmapi.ProcessContinue();
+                    PublishDiagnostic("ProcessContinue after failed DABR arm: " + continueAfterFailedArm.ToString() + ".");
+                    PublishError("TMAPI SetDABR failed while stopped: " + result.ToString());
+                    return false;
+                }
+
+                PublishDiagnostic("DABR armed while stopped: " + result.ToString() + ".");
+
+                result = tmapi.ProcessContinue();
+                PublishDiagnostic("ProcessContinue after DABR arm: " + result.ToString() + ".");
+                if (!PS3TMAPI.SUCCEEDED(result))
+                {
+                    try
+                    {
+                        PS3TMAPI.SNRESULT restoreResult = savedOldDabr
+                            ? tmapi.SetDABR(oldDabr)
+                            : tmapi.SetDABR(0);
+                        PublishDiagnostic("Restore/Clear DABR after failed arm continue: " + restoreResult.ToString() + ".");
+                    }
+                    catch (Exception ex)
+                    {
+                        PublishError("Failed to restore/clear DABR after failed arm continue: " + ex.Message);
+                    }
+
+                    PublishError("DABR logger startup failed because ProcessContinue after arm failed: " + result.ToString() + ".");
                     return false;
                 }
 
@@ -382,44 +410,65 @@ namespace TMAPI_NCAPI
                     }
                 }
 
-                if (dabrWasArmed ||
-                    dabrTemporarilyClearedForResume ||
-                    pendingRearmAfterResume ||
-                    rearmStopInProgress ||
-                    processStoppedForRearm)
+                if (dabrWasArmed)
                 {
-                    try
-                    {
-                        PS3TMAPI.SNRESULT result = !dabrClearedAfterHit &&
-                            !dabrTemporarilyClearedForResume &&
-                            !pendingRearmAfterResume &&
-                            savedOldDabr
-                            ? tmapi.SetDABR(oldDabr)
-                            : tmapi.SetDABR(0);
-                        PublishDiagnostic("Restore DABR: " + result.ToString() + ".");
-                    }
-                    catch (Exception ex)
-                    {
-                        PublishError("Failed to restore DABR: " + ex.Message);
-                    }
-                    finally
-                    {
-                        dabrWasArmed = false;
-                        dabrTemporarilyClearedForResume = false;
-                        pendingRearmAfterResume = false;
-                        rearmStopInProgress = false;
-                        hasPendingDabrHit = false;
-                        processingPendingDabrHit = false;
-                        pendingDabrHit = null;
-                    }
+                    RestoreOrClearDabrOnStoppedProcess();
+                    dabrWasArmed = false;
                 }
 
-                ContinueIfStoppedForRearm();
+                hasPendingDabrHit = false;
+                processingPendingDabrHit = false;
+                pendingDabrHit = null;
 
                 RestoreAutoStatusUpdateOnWorkerThread();
 
                 if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
                     PS3TMAPI.NativeEventDiagnosticSink = null;
+            }
+
+            private void RestoreOrClearDabrOnStoppedProcess()
+            {
+                PS3TMAPI.SNRESULT stopResult;
+                try
+                {
+                    stopResult = tmapi.ProcessStop();
+                }
+                catch (Exception ex)
+                {
+                    PublishError("ProcessStop before DABR clear threw: " + ex.Message);
+                    return;
+                }
+
+                PublishDiagnostic("ProcessStop before DABR clear: " + stopResult.ToString() + ".");
+                if (!PS3TMAPI.SUCCEEDED(stopResult))
+                {
+                    PublishError("DABR clear skipped because ProcessStop failed: " + stopResult.ToString() + ".");
+                    return;
+                }
+
+                try
+                {
+                    PS3TMAPI.SNRESULT restoreResult = savedOldDabr
+                        ? tmapi.SetDABR(oldDabr)
+                        : tmapi.SetDABR(0);
+                    PublishDiagnostic("Restore/Clear DABR while stopped: " + restoreResult.ToString() + ".");
+                }
+                catch (Exception ex)
+                {
+                    PublishError("Failed to restore/clear DABR while stopped: " + ex.Message);
+                }
+                finally
+                {
+                    try
+                    {
+                        PS3TMAPI.SNRESULT continueResult = tmapi.ProcessContinue();
+                        PublishDiagnostic("ProcessContinue after DABR clear: " + continueResult.ToString() + ".");
+                    }
+                    catch (Exception ex)
+                    {
+                        PublishError("ProcessContinue after DABR clear threw: " + ex.Message);
+                    }
+                }
             }
 
             private void RestoreAutoStatusUpdateOnWorkerThread()
@@ -568,6 +617,12 @@ namespace TMAPI_NCAPI
                             return false;
                         }
 
+                        if (!reportedDroppedDabrHitWhileBusy)
+                        {
+                            reportedDroppedDabrHitWhileBusy = true;
+                            PublishVerboseDiagnostic("Dropped DABR hit while busy.");
+                        }
+
                         return false;
                     }
 
@@ -602,7 +657,7 @@ namespace TMAPI_NCAPI
                     PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
                         " PC=0x" + hit.ProgramCounter.ToString("X8") + ".");
 
-                    HandleValidDabrHitAutoResume();
+                    ContinueAfterValidDabrHit();
                 }
                 finally
                 {
@@ -613,67 +668,45 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            // Working v1 auto-resume sequence:
+            // Working DABR hit handling:
             //   1. Queue the callback data and return from SNPS3Kick's callback.
-            //   2. Outside the callback, clear DABR with SetDABR(0).
-            //   3. Request process-level resume with ProcessContinue.
-            //   4. After a short delay, stop the process, re-arm DABR while
-            //      stopped, then continue again. TMAPI requires all PPU threads
-            //      stopped before SNPS3SetDABR.
+            //   2. Outside the callback, request process-level resume with
+            //      ProcessContinue. DABR stays armed across hits.
+            //
+            // SNPS3SetDABR requires all PPU threads stopped, so this logger arms
+            // DABR once at startup and restores/clears it once at stop. Re-arming
+            // on every hot hit caused blind windows and target freezes.
             //
             // Do not call ThreadExceptionClean here. TMAPI documentation says it
             // clears the exception state and causes the thread to exit, which
             // killed the DABR-hit thread during runtime testing.
-            private void HandleValidDabrHitAutoResume()
+            private void ContinueAfterValidDabrHit()
             {
-                if (!dabrWasArmed || dabrClearedAfterHit || dabrTemporarilyClearedForResume)
+                if (!dabrWasArmed)
                     return;
 
-                PS3TMAPI.SNRESULT clearResult;
-                try
-                {
-                    clearResult = tmapi.SetDABR(0);
-                }
-                catch (Exception ex)
-                {
-                    PublishError("DABR clear before resume threw: " + ex.Message);
-                    return;
-                }
-
-                PublishDiagnostic("DABR cleared before resume: " + clearResult.ToString() + ".");
-                if (!PS3TMAPI.SUCCEEDED(clearResult))
-                {
-                    PublishError("Hit logged, but DABR clear before resume failed: " + clearResult.ToString() + ". Resume skipped for target safety.");
-                    return;
-                }
-
-                dabrWasArmed = false;
-                dabrTemporarilyClearedForResume = true;
-
-                PS3TMAPI.SNRESULT resumeResult = TryProcessContinueAfterDabrClear();
+                PS3TMAPI.SNRESULT resumeResult = TryProcessContinueAfterDabrHit();
                 if (!PS3TMAPI.SUCCEEDED(resumeResult))
                 {
-                    PublishError("Hit logged. DABR cleared, but ProcessContinue failed: " +
+                    PublishError("Hit logged, but ProcessContinue failed: " +
                         resumeResult.ToString() + ". Use ProDG/NetCheat Continue.");
                     return;
                 }
 
-                pendingRearmAfterResume = true;
-                dabrRearmDueUtc = DateTime.UtcNow.AddMilliseconds(250);
-                PublishVerboseDiagnostic("Hit logged. Process resume requested. DABR re-arm pending.");
+                PublishDiagnostic("Hit logged. Process resumed; DABR remains armed.");
             }
 
-            private PS3TMAPI.SNRESULT TryProcessContinueAfterDabrClear()
+            private PS3TMAPI.SNRESULT TryProcessContinueAfterDabrHit()
             {
                 try
                 {
                     PS3TMAPI.SNRESULT result = tmapi.ProcessContinue();
-                    PublishDiagnostic("ProcessContinue after DABR clear: " + result.ToString() + ".");
+                    PublishDiagnostic("ProcessContinue after DABR hit: " + result.ToString() + ".");
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    PublishError("ProcessContinue after DABR clear threw: " + ex.Message);
+                    PublishError("ProcessContinue after DABR hit threw: " + ex.Message);
                     return PS3TMAPI.SNRESULT.SN_E_COMMS_ERR;
                 }
             }
@@ -744,7 +777,6 @@ namespace TMAPI_NCAPI
                     {
                         PumpOneTargetEventSlice();
                         ProcessPendingDabrHitOutsideCallback();
-                        TryRearmDabrAfterResume();
                         if (VerboseDabrDiagnostics)
                             PublishDebugThreadControlInfoOnce();
                     }
@@ -777,106 +809,6 @@ namespace TMAPI_NCAPI
                     hasLastKickFailure = true;
                     lastKickFailure = kickResult;
                     PublishError("SNPS3Kick failed: " + kickResult.ToString());
-                }
-            }
-
-            private void TryRearmDabrAfterResume()
-            {
-                if (!pendingRearmAfterResume || !IsRunning)
-                    return;
-
-                if (DateTime.UtcNow < dabrRearmDueUtc)
-                    return;
-
-                pendingRearmAfterResume = false;
-                if (!dabrTemporarilyClearedForResume)
-                    return;
-
-                rearmStopInProgress = true;
-                PS3TMAPI.SNRESULT stopResult;
-                try
-                {
-                    stopResult = tmapi.ProcessStop();
-                }
-                catch (Exception ex)
-                {
-                    rearmStopInProgress = false;
-                    PublishError("ProcessStop before DABR re-arm threw: " + ex.Message);
-                    return;
-                }
-
-                PublishDiagnostic("ProcessStop before DABR re-arm: " + stopResult.ToString() + ".");
-                if (!PS3TMAPI.SUCCEEDED(stopResult))
-                {
-                    rearmStopInProgress = false;
-                    PublishError("DABR re-arm skipped because ProcessStop failed: " + stopResult.ToString() + ".");
-                    return;
-                }
-
-                processStoppedForRearm = true;
-                if (!IsRunning)
-                {
-                    ContinueIfStoppedForRearm();
-                    rearmStopInProgress = false;
-                    return;
-                }
-
-                PS3TMAPI.SNRESULT setResult;
-                try
-                {
-                    setResult = tmapi.SetDABR(rawDabr);
-                }
-                catch (Exception ex)
-                {
-                    PublishError("DABR re-arm while stopped threw: " + ex.Message);
-                    PS3TMAPI.SNRESULT continueAfterThrow = ContinueIfStoppedForRearm();
-                    PublishError("DABR re-arm failed. ProcessContinue after failed DABR re-arm: " + continueAfterThrow.ToString() + ".");
-                    rearmStopInProgress = false;
-                    return;
-                }
-
-                PublishDiagnostic("DABR re-armed while stopped: " + setResult.ToString() + ".");
-                if (!PS3TMAPI.SUCCEEDED(setResult))
-                {
-                    PS3TMAPI.SNRESULT continueAfterFailedSet = ContinueIfStoppedForRearm();
-                    PublishDiagnostic("ProcessContinue after failed DABR re-arm: " + continueAfterFailedSet.ToString() + ".");
-                    PublishError("Hit logged and process stopped for DABR re-arm, but SetDABR failed: " + setResult.ToString() + ".");
-                    rearmStopInProgress = false;
-                    return;
-                }
-
-                PS3TMAPI.SNRESULT continueResult = ContinueIfStoppedForRearm();
-                PublishDiagnostic("ProcessContinue after DABR re-arm: " + continueResult.ToString() + ".");
-                if (PS3TMAPI.SUCCEEDED(continueResult))
-                {
-                    dabrWasArmed = true;
-                    dabrTemporarilyClearedForResume = false;
-                    dabrClearedAfterHit = false;
-                    rearmStopInProgress = false;
-                    PublishDiagnostic("Hit logged. DABR re-armed safely.");
-                }
-                else
-                {
-                    rearmStopInProgress = false;
-                    PublishError("DABR was re-armed, but ProcessContinue failed: " + continueResult.ToString() + ". Use ProDG/NetCheat Continue.");
-                }
-            }
-
-            private PS3TMAPI.SNRESULT ContinueIfStoppedForRearm()
-            {
-                if (!processStoppedForRearm)
-                    return PS3TMAPI.SNRESULT.SN_S_OK;
-
-                try
-                {
-                    PS3TMAPI.SNRESULT result = tmapi.ProcessContinue();
-                    processStoppedForRearm = false;
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    PublishError("ProcessContinue after DABR re-arm stop threw: " + ex.Message);
-                    return PS3TMAPI.SNRESULT.SN_E_COMMS_ERR;
                 }
             }
 

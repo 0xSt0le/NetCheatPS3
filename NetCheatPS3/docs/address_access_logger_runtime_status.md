@@ -10,19 +10,32 @@ Runtime evidence:
 - The captured opcode bytes were `93C30058`.
 - Repeated hits at the same PC increment the existing row's `Count`.
 - The target resumes immediately and remains usable.
-- DABR is re-armed after resume and continues logging later writes.
-- Re-arming must stop the process first because TMAPI documentation says `SNPS3SetDABR` requires all PPU threads stopped.
+- DABR remains armed across hits and continues logging later writes.
+- TMAPI documentation says `SNPS3SetDABR` requires all PPU threads stopped, so DABR is only set/cleared at logger start/stop.
 
-The proven working sequence is:
+The current golden sequence is:
+
+Startup:
+
+1. `ProcessStop`.
+2. `SetDABR(rawDabr)` while stopped.
+3. `ProcessContinue`.
+
+Hit:
 
 1. `SNPS3Kick` delivers `PPUExcDabrMatch`.
 2. The callback parses/copies the event data and queues the hit only.
 3. The logger worker returns from the callback.
-4. Outside the callback, the worker clears DABR with `SetDABR(0)`.
-5. The worker calls `ProcessContinue`.
-6. After a 250 ms delay, the worker calls `ProcessStop`.
-7. While stopped, the worker re-arms the original raw DABR value.
-8. The worker calls `ProcessContinue` again.
+4. Outside the callback, the worker logs the hit.
+5. The worker calls `ProcessContinue`; DABR remains armed.
+
+Stop:
+
+1. `ProcessStop`.
+2. `SetDABR(oldDabr)` if saved, otherwise `SetDABR(0)`, while stopped.
+3. `ProcessContinue`.
+
+The previous re-arm-on-every-hit model caused hot-writer blind windows and intermittent freezes because it repeatedly did clear/continue/delay/stop/set/continue while writes were still arriving.
 
 Forbidden approaches:
 
@@ -42,14 +55,7 @@ Thread/process resume from polling was disabled because guessing from stopped PP
 
 Runtime testing later proved that `PPUExcDabrMatch` events can be delivered and parsed correctly when `SNPS3Kick` is pumped on the callback registration thread. The logger can capture the writer PC and opcode bytes, for example `0013CDEC - 93C30058`.
 
-`ThreadExceptionClean` has been removed from the DABR logger resume path. TMAPI documentation says it clears the exception state of a thread and causes it to exit, and runtime testing showed the DABR-hit thread disappearing after this call. The current resume model is:
-
-1. Log the hit.
-2. Clear DABR with `SetDABR(0)`.
-3. Request process-level resume with `ProcessContinue`.
-4. After a 250 ms delay, call `ProcessStop`.
-5. Re-arm the original DABR while the process is stopped.
-6. Request process-level resume with `ProcessContinue`.
+`ThreadExceptionClean` has been removed from the DABR logger resume path. TMAPI documentation says it clears the exception state of a thread and causes it to exit, and runtime testing showed the DABR-hit thread disappearing after this call. The current hit resume model is: log the hit, request process-level resume with `ProcessContinue`, and leave DABR armed.
 
 The logger must not call `ThreadExceptionClean` or `ThreadContinue` for CE-style address-access logging unless a separate, explicitly guarded experiment proves a safe use.
 
