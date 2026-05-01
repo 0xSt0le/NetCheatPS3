@@ -188,6 +188,7 @@ namespace TMAPI_NCAPI
             private bool registeredEvents;
             private bool savedOldDabr;
             private bool dabrWasArmed;
+            private bool dabrClearedAfterHit;
             private bool savedAutoStatusUpdate;
             private bool previousAutoStatusUpdate;
             private ulong oldDabr;
@@ -374,7 +375,7 @@ namespace TMAPI_NCAPI
                 {
                     try
                     {
-                        PS3TMAPI.SNRESULT result = savedOldDabr
+                        PS3TMAPI.SNRESULT result = !dabrClearedAfterHit && savedOldDabr
                             ? tmapi.SetDABR(oldDabr)
                             : tmapi.SetDABR(0);
                         PublishDiagnostic("Restore DABR: " + result.ToString() + ".");
@@ -441,24 +442,31 @@ namespace TMAPI_NCAPI
                     " events=" + eventCount.ToString("N0") + ".");
 
                 bool handledDabrMatch = false;
+                bool ignoredTargetEvent = false;
                 if (targetEventList != null)
                 {
                     foreach (PS3TMAPI.TargetEvent targetEvent in targetEventList)
                     {
                         if (targetEvent.Type != PS3TMAPI.TargetEventType.TargetSpecific)
+                        {
+                            ignoredTargetEvent = true;
                             continue;
+                        }
 
                         PS3TMAPI.TargetSpecificEvent specific = targetEvent.TargetSpecific;
                         if (specific.Data.Type != PS3TMAPI.TargetSpecificEventType.PPUExcDabrMatch)
+                        {
+                            ignoredTargetEvent = true;
                             continue;
+                        }
 
                         handledDabrMatch = true;
                         HandleDabrMatch(specific);
                     }
                 }
 
-                if (!handledDabrMatch)
-                    PublishError("TMAPI callback was received, but DABR event data did not include a DABR hit. No polling resume was attempted.");
+                if (!handledDabrMatch && ignoredTargetEvent)
+                    PublishIgnoredNonDabrEvent();
             }
 
             private void HandleDabrMatch(PS3TMAPI.TargetSpecificEvent specific)
@@ -507,7 +515,7 @@ namespace TMAPI_NCAPI
                     PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
                         " PC=0x" + hit.ProgramCounter.ToString("X8") + ".");
 
-                    ResumeAfterHit(hit.ThreadId);
+                    ClearDabrAfterHit();
                 }
                 finally
                 {
@@ -530,6 +538,46 @@ namespace TMAPI_NCAPI
                     return false;
 
                 return true;
+            }
+
+            private void ClearDabrAfterHit()
+            {
+                if (!dabrWasArmed || dabrClearedAfterHit)
+                    return;
+
+                try
+                {
+                    PS3TMAPI.SNRESULT result = tmapi.SetDABR(0);
+                    dabrClearedAfterHit = PS3TMAPI.SUCCEEDED(result);
+                    if (dabrClearedAfterHit)
+                        dabrWasArmed = false;
+
+                    PublishDiagnostic("DABR cleared after hit: " + result.ToString() + ".");
+                }
+                catch (Exception ex)
+                {
+                    PublishError("DABR clear after hit threw: " + ex.Message);
+                }
+
+                PublishDiagnostic("Hit logged. DABR cleared. Auto-resume disabled; use ProDG or NetCheat Continue.");
+            }
+
+            private void PublishIgnoredNonDabrEvent()
+            {
+                DateTime now = DateTime.UtcNow;
+                lock (sync)
+                {
+                    if (lastNativeEventDiagnostic == "Ignored non-DABR target event." &&
+                        (now - lastNativeEventDiagnosticTime).TotalMilliseconds < 1000)
+                    {
+                        return;
+                    }
+
+                    lastNativeEventDiagnostic = "Ignored non-DABR target event.";
+                    lastNativeEventDiagnosticTime = now;
+                }
+
+                PublishDiagnostic("Ignored non-DABR target event.");
             }
 
             private void PublishInvalidDabrParse(PS3TMAPI.TargetSpecificEvent specific)
@@ -664,41 +712,6 @@ namespace TMAPI_NCAPI
                 }
 
                 PublishDiagnostic(diagnostic);
-            }
-
-            private void ResumeAfterHit(ulong threadId)
-            {
-                if (threadId != 0)
-                {
-                    PS3TMAPI.SNRESULT cleanResult = tmapi.ThreadExceptionClean(threadId);
-                    PublishDiagnostic("ThreadExceptionClean: " + cleanResult.ToString() + " for 0x" + threadId.ToString("X16") + ".");
-                    if (!PS3TMAPI.SUCCEEDED(cleanResult))
-                        return;
-
-                    PS3TMAPI.SNRESULT continueResult = tmapi.ThreadContinue(threadId);
-                    PublishDiagnostic("ThreadContinue: " + continueResult.ToString() + " for 0x" + threadId.ToString("X16") + ".");
-
-                    if (PS3TMAPI.SUCCEEDED(continueResult))
-                        return;
-                }
-
-                ResumeProcessFallback("Thread resume unavailable or failed.");
-            }
-
-            private void ResumeProcessFallback(string reason)
-            {
-                try
-                {
-                    PS3TMAPI.SNRESULT continueResult = tmapi.ProcessContinue();
-                    if (PS3TMAPI.SUCCEEDED(continueResult))
-                        PublishDiagnostic("ProcessContinue fallback: " + continueResult.ToString() + ". " + reason);
-                    else
-                        PublishError("ProcessContinue fallback: " + continueResult.ToString() + ". " + reason);
-                }
-                catch (Exception ex)
-                {
-                    PublishError("ProcessContinue fallback threw: " + ex.Message + ". " + reason);
-                }
             }
 
             private byte[] ReadInstructionBytes(ulong programCounter)
