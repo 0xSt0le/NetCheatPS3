@@ -37,6 +37,15 @@ Stop:
 
 The previous re-arm-on-every-hit model caused hot-writer blind windows and intermittent freezes because it repeatedly did clear/continue/delay/stop/set/continue while writes were still arriving.
 
+Hot writer handling:
+
+- DABR remains armed across hits; the logger no longer clears/re-arms the watchpoint for each hit.
+- The TMAPI callback only parses/copies the event and appends it to a small pending-hit queue.
+- The worker requests `ProcessContinue` before reading opcode bytes or publishing the UI row, keeping the target stopped for the shortest practical time.
+- Instruction bytes are cached by PC so repeated hits at the same writer instruction do not reread code memory.
+- A bounded pending-hit queue reduces missed different writer PCs while the worker is busy. Exact duplicate newest queued hits may be coalesced, and a full queue drops the oldest pending hit.
+- Ultra-hot addresses can still stutter because every access triggers a debug exception. The logger is intended to identify writers, not to run indefinitely on a very hot address; stop it once the relevant writer PCs are captured.
+
 Forbidden approaches:
 
 - Do not call target-control APIs from inside the TMAPI target-event callback.

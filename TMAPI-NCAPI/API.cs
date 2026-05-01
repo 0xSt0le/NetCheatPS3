@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
@@ -175,6 +176,7 @@ namespace TMAPI_NCAPI
         private sealed class AddressAccessLoggerSession : IAddressAccessLoggerSession
         {
             private static readonly bool VerboseDabrDiagnostics = false;
+            private const int MaxPendingDabrHits = 128;
 
             private readonly API owner;
             private readonly TMAPI tmapi;
@@ -182,8 +184,9 @@ namespace TMAPI_NCAPI
             private readonly object sync = new object();
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
             private readonly Action<string> nativeEventDiagnosticSink;
+            private readonly Queue<AddressAccessHit> pendingDabrHits = new Queue<AddressAccessHit>();
+            private readonly Dictionary<ulong, byte[]> instructionBytesByPc = new Dictionary<ulong, byte[]>();
             private Thread eventPumpWorker;
-            private bool hasPendingDabrHit;
             private bool processingPendingDabrHit;
             private bool reportedDebugThreadControlInfo;
             private bool receivedNativeCallback;
@@ -193,12 +196,12 @@ namespace TMAPI_NCAPI
             private bool dabrWasArmed;
             private bool savedAutoStatusUpdate;
             private bool previousAutoStatusUpdate;
-            private bool reportedDroppedDabrHitWhileBusy;
+            private bool reportedDroppedDabrHitQueueFull;
             private ulong oldDabr;
             private ulong rawDabr;
-            private AddressAccessHit pendingDabrHit;
             private string lastNativeEventDiagnostic;
             private DateTime lastNativeEventDiagnosticTime;
+            private DateTime lastHitStatusUtc;
             private bool reportedKickSuccess;
             private bool hasLastKickFailure;
             private PS3TMAPI.SNRESULT lastKickFailure;
@@ -416,9 +419,8 @@ namespace TMAPI_NCAPI
                     dabrWasArmed = false;
                 }
 
-                hasPendingDabrHit = false;
+                pendingDabrHits.Clear();
                 processingPendingDabrHit = false;
-                pendingDabrHit = null;
 
                 RestoreAutoStatusUpdateOnWorkerThread();
 
@@ -607,42 +609,40 @@ namespace TMAPI_NCAPI
                     if (!isRunning)
                         return false;
 
-                    if (hasPendingDabrHit || processingPendingDabrHit)
+                    AddressAccessHit newestHit = pendingDabrHits.Count > 0
+                        ? pendingDabrHits.Last()
+                        : null;
+                    if (newestHit != null &&
+                        newestHit.ThreadId == hit.ThreadId &&
+                        newestHit.ProgramCounter == hit.ProgramCounter)
                     {
-                        AddressAccessHit existing = hasPendingDabrHit ? pendingDabrHit : null;
-                        if (existing == null ||
-                            (existing.ThreadId == hit.ThreadId &&
-                            existing.ProgramCounter == hit.ProgramCounter))
-                        {
-                            return false;
-                        }
-
-                        if (!reportedDroppedDabrHitWhileBusy)
-                        {
-                            reportedDroppedDabrHitWhileBusy = true;
-                            PublishVerboseDiagnostic("Dropped DABR hit while busy.");
-                        }
-
                         return false;
                     }
 
-                    pendingDabrHit = hit;
-                    hasPendingDabrHit = true;
+                    if (pendingDabrHits.Count >= MaxPendingDabrHits)
+                    {
+                        pendingDabrHits.Dequeue();
+                        if (!reportedDroppedDabrHitQueueFull)
+                        {
+                            reportedDroppedDabrHitQueueFull = true;
+                            PublishVerboseDiagnostic("Dropped DABR hit because pending queue is full.");
+                        }
+                    }
+
+                    pendingDabrHits.Enqueue(hit);
                     return true;
                 }
             }
 
-            private void ProcessPendingDabrHitOutsideCallback()
+            private void ProcessPendingDabrHitsOutsideCallback()
             {
                 AddressAccessHit hit;
                 lock (sync)
                 {
-                    if (!isRunning || !hasPendingDabrHit || processingPendingDabrHit)
+                    if (!isRunning || pendingDabrHits.Count == 0 || processingPendingDabrHit)
                         return;
 
-                    hit = pendingDabrHit;
-                    pendingDabrHit = null;
-                    hasPendingDabrHit = false;
+                    hit = pendingDabrHits.Dequeue();
                     processingPendingDabrHit = true;
                 }
 
@@ -651,13 +651,13 @@ namespace TMAPI_NCAPI
                     if (hit == null)
                         return;
 
-                    PublishVerboseDiagnostic("Processing DABR hit outside SNPS3Kick callback.");
-                    hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
+                    PS3TMAPI.SNRESULT resumeResult = ContinueAfterValidDabrHit();
+                    hit.InstructionBytes = GetInstructionBytesForHit(hit.ProgramCounter);
                     PublishHit(hit);
-                    PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
+                    PublishVerboseDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
                         " PC=0x" + hit.ProgramCounter.ToString("X8") + ".");
 
-                    ContinueAfterValidDabrHit();
+                    PublishHitResumeStatus(resumeResult);
                 }
                 finally
                 {
@@ -680,20 +680,12 @@ namespace TMAPI_NCAPI
             // Do not call ThreadExceptionClean here. TMAPI documentation says it
             // clears the exception state and causes the thread to exit, which
             // killed the DABR-hit thread during runtime testing.
-            private void ContinueAfterValidDabrHit()
+            private PS3TMAPI.SNRESULT ContinueAfterValidDabrHit()
             {
                 if (!dabrWasArmed)
-                    return;
+                    return PS3TMAPI.SNRESULT.SN_E_ERROR;
 
-                PS3TMAPI.SNRESULT resumeResult = TryProcessContinueAfterDabrHit();
-                if (!PS3TMAPI.SUCCEEDED(resumeResult))
-                {
-                    PublishError("Hit logged, but ProcessContinue failed: " +
-                        resumeResult.ToString() + ". Use ProDG/NetCheat Continue.");
-                    return;
-                }
-
-                PublishDiagnostic("Hit logged. Process resumed; DABR remains armed.");
+                return TryProcessContinueAfterDabrHit();
             }
 
             private PS3TMAPI.SNRESULT TryProcessContinueAfterDabrHit()
@@ -701,7 +693,7 @@ namespace TMAPI_NCAPI
                 try
                 {
                     PS3TMAPI.SNRESULT result = tmapi.ProcessContinue();
-                    PublishDiagnostic("ProcessContinue after DABR hit: " + result.ToString() + ".");
+                    PublishVerboseDiagnostic("ProcessContinue after DABR hit: " + result.ToString() + ".");
                     return result;
                 }
                 catch (Exception ex)
@@ -709,6 +701,23 @@ namespace TMAPI_NCAPI
                     PublishError("ProcessContinue after DABR hit threw: " + ex.Message);
                     return PS3TMAPI.SNRESULT.SN_E_COMMS_ERR;
                 }
+            }
+
+            private void PublishHitResumeStatus(PS3TMAPI.SNRESULT resumeResult)
+            {
+                if (!PS3TMAPI.SUCCEEDED(resumeResult))
+                {
+                    PublishError("Hit logged, but ProcessContinue failed: " +
+                        resumeResult.ToString() + ". Use ProDG/NetCheat Continue.");
+                    return;
+                }
+
+                DateTime now = DateTime.UtcNow;
+                if ((now - lastHitStatusUtc).TotalMilliseconds < 250)
+                    return;
+
+                lastHitStatusUtc = now;
+                PublishDiagnostic("Hit logged. Process resumed; DABR remains armed.");
             }
 
             private void PublishIgnoredNonDabrEvent()
@@ -776,7 +785,7 @@ namespace TMAPI_NCAPI
                     try
                     {
                         PumpOneTargetEventSlice();
-                        ProcessPendingDabrHitOutsideCallback();
+                        ProcessPendingDabrHitsOutsideCallback();
                         if (VerboseDabrDiagnostics)
                             PublishDebugThreadControlInfoOnce();
                     }
@@ -885,6 +894,20 @@ namespace TMAPI_NCAPI
                 }
 
                 return new byte[0];
+            }
+
+            private byte[] GetInstructionBytesForHit(ulong programCounter)
+            {
+                if (programCounter == 0)
+                    return new byte[0];
+
+                byte[] cachedBytes;
+                if (instructionBytesByPc.TryGetValue(programCounter, out cachedBytes))
+                    return cachedBytes;
+
+                byte[] bytes = ReadInstructionBytes(programCounter);
+                instructionBytesByPc[programCounter] = bytes;
+                return bytes;
             }
 
             private void PublishError(string error)
