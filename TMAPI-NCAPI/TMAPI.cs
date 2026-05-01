@@ -298,6 +298,11 @@ namespace TMAPI_NCAPI
             return PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
         }
 
+        public PS3TMAPI.SNRESULT Kick()
+        {
+            return PS3TMAPI.Kick();
+        }
+
         public PS3TMAPI.SNRESULT SetDABR(ulong address)
         {
             EnsureTargetCommsInitialized();

@@ -95,13 +95,14 @@ namespace NetCheatPS3
             bool hasItems = TotalCount > 0;
             bool hasSelection = SelectedIndices != null && SelectedIndices.Count > 0 && SelectedIndices[0] >= 0 && SelectedIndices[0] < TotalCount;
             bool canUseMemory = hasSelection && Form1.connected && Form1.attached;
+            bool canUseAddressAccessLogger = canUseMemory && GetAddressAccessLoggerApi() != null;
 
             SetContextMenuItemEnabled("copyAddressToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("copyNetCheatCodeToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("setScanToThisRegionToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("editWriteValueToolStripMenuItem", canUseMemory);
-            SetContextMenuItemEnabled("findWritesToolStripMenuItem", hasSelection);
-            SetContextMenuItemEnabled("findReadsToolStripMenuItem", hasSelection);
+            SetContextMenuItemEnabled("findWritesToolStripMenuItem", canUseAddressAccessLogger);
+            SetContextMenuItemEnabled("findReadsToolStripMenuItem", canUseAddressAccessLogger);
             SetContextMenuItemEnabled("deleteToolStripMenuItem", hasSelection);
             SetContextMenuItemEnabled("selectAllToolStripMenuItem", hasItems);
             SetContextMenuItemEnabled("refreshFromPS3ToolStripMenuItem", hasItems && Form1.connected && Form1.attached);
@@ -260,11 +261,33 @@ namespace NetCheatPS3
             if (!TryGetPrimarySelectedItem(out index, out item))
                 return;
 
-            MessageBox.Show(
-                "Address access logging is disabled: TMAPI DABR events are not delivered by the current backend yet.",
-                "NetCheatPS3",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            if (!EnsureConnectedAndAttachedForResultAction(mode == AddressAccessMode.Write ? "Find Writes" : "Find Reads"))
+                return;
+
+            IAddressAccessLoggerApi loggerApi = GetAddressAccessLoggerApi();
+            if (loggerApi == null)
+            {
+                MessageBox.Show(
+                    "The current API does not support address access logging.",
+                    "NetCheatPS3",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                AddressAccessLoggerForm form = new AddressAccessLoggerForm(loggerApi, item.addr, mode);
+                form.Show(Form1.Instance);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Could not start address access logger: " + ex.Message,
+                    "NetCheatPS3",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
 
         private void BeginEditValueAt(int itemIndex, int column)

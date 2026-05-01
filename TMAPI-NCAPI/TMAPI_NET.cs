@@ -450,6 +450,10 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT InitTargetCommsX64();
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3InitTargetComms", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT InitTargetCommsX86();
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3Kick", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT KickX64();
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3Kick", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT KickX86();
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3PowerOn", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT PowerOnX64(int target);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3PowerOn", CallingConvention = CallingConvention.Cdecl)]
@@ -624,6 +628,15 @@ namespace TMAPI_NCAPI
                 return InitTargetCommsX64();
             }
             return InitTargetCommsX86();
+        }
+
+        public static SNRESULT Kick()
+        {
+            if (!Is32Bit())
+            {
+                return KickX64();
+            }
+            return KickX86();
         }
 
         public static SNRESULT Connect(int target, string application)

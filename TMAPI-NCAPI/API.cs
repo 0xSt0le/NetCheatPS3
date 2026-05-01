@@ -173,7 +173,7 @@ namespace TMAPI_NCAPI
             private readonly object sync = new object();
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
             private readonly Action<string> nativeEventDiagnosticSink;
-            private Thread stoppedThreadPoller;
+            private Thread eventPumpWorker;
             private bool isProcessingStop;
             private bool reportedDebugThreadControlInfo;
             private bool receivedNativeCallback;
@@ -186,6 +186,9 @@ namespace TMAPI_NCAPI
             private ulong rawDabr;
             private string lastNativeEventDiagnostic;
             private DateTime lastNativeEventDiagnosticTime;
+            private bool reportedKickSuccess;
+            private bool hasLastKickFailure;
+            private PS3TMAPI.SNRESULT lastKickFailure;
 
             public AddressAccessLoggerSession(API owner, TMAPI tmapi, ulong address, AddressAccessMode mode, Action<AddressAccessHit> hitCallback)
             {
@@ -227,7 +230,7 @@ namespace TMAPI_NCAPI
                 if (!shouldStop)
                     return;
 
-                StopPollingWorker();
+                StopEventPump();
                 if (!receivedNativeCallback)
                     PublishDiagnostic("No TMAPI native callback was received during this logger session.");
 
@@ -326,8 +329,8 @@ namespace TMAPI_NCAPI
                     isRunning = true;
                 }
 
-                StartPollingWorker();
-                PublishDiagnostic("Experimental TMAPI DABR logger: auto-resume is disabled unless TMAPI delivers a real DABR event.");
+                StartEventPump();
+                PublishDiagnostic("TMAPI DABR logger uses SNPS3Kick to pump target events. Polling auto-resume remains disabled for target safety.");
                 PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
             }
 
@@ -443,41 +446,64 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            private void StartPollingWorker()
+            private void StartEventPump()
             {
-                stoppedThreadPoller = new Thread(PollStoppedThreads);
-                stoppedThreadPoller.IsBackground = true;
-                stoppedThreadPoller.Name = "TMAPI DABR diagnostics poller";
-                stoppedThreadPoller.Start();
-                PublishDiagnostic("DABR polling diagnostics active. Polling auto-resume is disabled for target safety.");
+                eventPumpWorker = new Thread(PumpTargetEvents);
+                eventPumpWorker.IsBackground = true;
+                eventPumpWorker.Name = "TMAPI DABR event pump";
+                eventPumpWorker.Start();
                 PublishInitialThreadListProbe();
             }
 
-            private void StopPollingWorker()
+            private void StopEventPump()
             {
-                Thread worker = stoppedThreadPoller;
-                stoppedThreadPoller = null;
+                Thread worker = eventPumpWorker;
+                eventPumpWorker = null;
                 if (worker == null || worker == Thread.CurrentThread)
                     return;
 
                 if (!worker.Join(250))
-                    PublishDiagnostic("DABR diagnostics poller did not exit before timeout.");
+                    PublishDiagnostic("TMAPI DABR event pump did not exit before timeout.");
             }
 
-            private void PollStoppedThreads()
+            private void PumpTargetEvents()
             {
                 while (IsRunning)
                 {
                     try
                     {
+                        PumpOneTargetEventSlice();
                         PublishDebugThreadControlInfoOnce();
                     }
                     catch (Exception ex)
                     {
-                        PublishError("DABR diagnostics poller failed: " + ex.Message);
+                        PublishError("TMAPI event pump failed: " + ex.Message);
                     }
 
-                    Thread.Sleep(250);
+                    Thread.Sleep(15);
+                }
+            }
+
+            private void PumpOneTargetEventSlice()
+            {
+                PS3TMAPI.SNRESULT kickResult = tmapi.Kick();
+                if (PS3TMAPI.SUCCEEDED(kickResult))
+                {
+                    if (!reportedKickSuccess)
+                    {
+                        reportedKickSuccess = true;
+                        PublishDiagnostic("SNPS3Kick event pump active.");
+                    }
+
+                    hasLastKickFailure = false;
+                    return;
+                }
+
+                if (!hasLastKickFailure || lastKickFailure != kickResult)
+                {
+                    hasLastKickFailure = true;
+                    lastKickFailure = kickResult;
+                    PublishError("SNPS3Kick failed: " + kickResult.ToString());
                 }
             }
 
