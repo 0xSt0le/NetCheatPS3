@@ -520,7 +520,7 @@ namespace TMAPI_NCAPI
                     return;
 
                 reportedInvalidDabrParse = true;
-                PublishDiagnostic(
+                string diagnostic =
                     "Invalid DABR parse diagnostic: targetEventSize=" + specific.TargetEventSize.ToString("N0") +
                     " targetEvent=0x" + specific.TargetEventTypeRaw.ToString("X8") +
                     " commandID=0x" + specific.CommandID.ToString("X8") +
@@ -530,7 +530,28 @@ namespace TMAPI_NCAPI
                     " result=0x" + specific.Result.ToString("X8") +
                     " eventType=" + specific.Data.Type.ToString() +
                     " payloadOffset=" + specific.PayloadOffset.ToString("N0") +
-                    " debugData[0..64]=" + (specific.RawDebugDataHex ?? String.Empty) + ".");
+                    " payloadSize=" + specific.PayloadSize.ToString("N0") +
+                    " parseError=" + (specific.ParseError ?? String.Empty) +
+                    " debugData[0..64]=" + (specific.RawDebugDataHex ?? String.Empty) + ".";
+
+                LogDabrDiagnostic(diagnostic);
+                PublishDiagnostic("Invalid DABR parse diagnostic written to NetCheatPS3_dabr_logger.log.");
+            }
+
+            private void LogDabrDiagnostic(string diagnostic)
+            {
+                try
+                {
+                    string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetCheatPS3_dabr_logger.log");
+                    File.AppendAllText(path,
+                        "==================================================" + Environment.NewLine +
+                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + Environment.NewLine +
+                        diagnostic + Environment.NewLine + Environment.NewLine);
+                }
+                catch (Exception ex)
+                {
+                    PublishDiagnostic("Failed to write DABR diagnostic log: " + ex.Message);
+                }
             }
 
             private void PumpTargetEventsOnWorkerThread()

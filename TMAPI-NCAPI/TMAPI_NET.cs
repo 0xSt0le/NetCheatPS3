@@ -210,7 +210,9 @@ namespace TMAPI_NCAPI
             public uint TargetEventSize;
             public uint TargetEventTypeRaw;
             public uint PayloadOffset;
+            public uint PayloadSize;
             public string RawDebugDataHex;
+            public string ParseError;
             public TargetSpecificData Data;
         }
 
@@ -1178,17 +1180,24 @@ namespace TMAPI_NCAPI
             IntPtr payload = new IntPtr(debugData.ToInt64() + 4);
             uint payloadSize = debugDataLength - 4;
             targetSpecific.PayloadOffset = (uint)debugHeaderSize + 4;
+            targetSpecific.PayloadSize = payloadSize;
             switch (targetSpecific.Data.Type)
             {
                 case TargetSpecificEventType.PPUExcAlignment:
+                    if (payloadSize < 44)
+                        targetSpecific.ParseError = "PPU alignment payload is shorter than 44 bytes.";
                     targetSpecific.Data.PPUAlignmentException = ReadPPUAlignmentExceptionData(payload, payloadSize);
                     break;
 
                 case TargetSpecificEventType.PPUExcDataMAT:
+                    if (payloadSize < 44)
+                        targetSpecific.ParseError = "PPU data MAT payload is shorter than 44 bytes.";
                     targetSpecific.Data.PPUDataMatException = ReadPPUDataMatExceptionData(payload, payloadSize);
                     break;
 
                 default:
+                    if (IsPPUExceptionEvent(targetSpecific.Data.Type) && payloadSize < 28)
+                        targetSpecific.ParseError = "PPU exception payload is shorter than 28 bytes.";
                     if (IsPPUExceptionEvent(targetSpecific.Data.Type))
                         targetSpecific.Data.PPUException = ReadPPUExceptionData(payload, payloadSize);
                     break;
@@ -1222,44 +1231,130 @@ namespace TMAPI_NCAPI
         private static PPUExceptionData ReadPPUExceptionData(IntPtr data, uint available)
         {
             PPUExceptionData exceptionData = new PPUExceptionData();
-            if (available < 32)
+            if (data == IntPtr.Zero)
                 return exceptionData;
 
-            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, 0);
-            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, 8);
-            exceptionData.PC = (ulong)Marshal.ReadInt64(data, 16);
-            exceptionData.SP = (ulong)Marshal.ReadInt64(data, 24);
+            IntPtr cursor = data;
+            uint remaining = available;
+            ulong threadId;
+            uint hwThreadNumber;
+            ulong pc;
+            ulong sp;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out threadId))
+                return exceptionData;
+            exceptionData.ThreadID = threadId;
+
+            if (!ReadUInt32AndAdvance(ref cursor, ref remaining, out hwThreadNumber))
+                return exceptionData;
+            exceptionData.HWThreadNumber = hwThreadNumber;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out pc))
+                return exceptionData;
+            exceptionData.PC = pc;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out sp))
+                return exceptionData;
+            exceptionData.SP = sp;
             return exceptionData;
         }
 
         private static PPUAlignmentExceptionData ReadPPUAlignmentExceptionData(IntPtr data, uint available)
         {
             PPUAlignmentExceptionData exceptionData = new PPUAlignmentExceptionData();
-            if (available < 48)
+            if (data == IntPtr.Zero)
                 return exceptionData;
 
-            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, 0);
-            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, 8);
-            exceptionData.DSISR = (ulong)Marshal.ReadInt64(data, 16);
-            exceptionData.DAR = (ulong)Marshal.ReadInt64(data, 24);
-            exceptionData.PC = (ulong)Marshal.ReadInt64(data, 32);
-            exceptionData.SP = (ulong)Marshal.ReadInt64(data, 40);
+            IntPtr cursor = data;
+            uint remaining = available;
+            ulong value64;
+            uint value32;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.ThreadID = value64;
+
+            if (!ReadUInt32AndAdvance(ref cursor, ref remaining, out value32))
+                return exceptionData;
+            exceptionData.HWThreadNumber = value32;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.DSISR = value64;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.DAR = value64;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.PC = value64;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.SP = value64;
             return exceptionData;
         }
 
         private static PPUDataMatExceptionData ReadPPUDataMatExceptionData(IntPtr data, uint available)
         {
             PPUDataMatExceptionData exceptionData = new PPUDataMatExceptionData();
-            if (available < 48)
+            if (data == IntPtr.Zero)
                 return exceptionData;
 
-            exceptionData.ThreadID = (ulong)Marshal.ReadInt64(data, 0);
-            exceptionData.HWThreadNumber = (uint)Marshal.ReadInt32(data, 8);
-            exceptionData.DSISR = (ulong)Marshal.ReadInt64(data, 16);
-            exceptionData.DAR = (ulong)Marshal.ReadInt64(data, 24);
-            exceptionData.PC = (ulong)Marshal.ReadInt64(data, 32);
-            exceptionData.SP = (ulong)Marshal.ReadInt64(data, 40);
+            IntPtr cursor = data;
+            uint remaining = available;
+            ulong value64;
+            uint value32;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.ThreadID = value64;
+
+            if (!ReadUInt32AndAdvance(ref cursor, ref remaining, out value32))
+                return exceptionData;
+            exceptionData.HWThreadNumber = value32;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.DSISR = value64;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.DAR = value64;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.PC = value64;
+
+            if (!ReadUInt64AndAdvance(ref cursor, ref remaining, out value64))
+                return exceptionData;
+            exceptionData.SP = value64;
             return exceptionData;
+        }
+
+        private static bool ReadUInt32AndAdvance(ref IntPtr cursor, ref uint remaining, out uint value)
+        {
+            value = 0;
+            if (cursor == IntPtr.Zero || remaining < 4)
+                return false;
+
+            value = (uint)Marshal.ReadInt32(cursor);
+            cursor = new IntPtr(cursor.ToInt64() + 4);
+            remaining -= 4;
+            return true;
+        }
+
+        private static bool ReadUInt64AndAdvance(ref IntPtr cursor, ref uint remaining, out ulong value)
+        {
+            value = 0;
+            if (cursor == IntPtr.Zero || remaining < 8)
+                return false;
+
+            value = (ulong)Marshal.ReadInt64(cursor);
+            cursor = new IntPtr(cursor.ToInt64() + 8);
+            remaining -= 8;
+            return true;
         }
 
     }
