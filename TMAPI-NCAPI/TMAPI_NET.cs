@@ -562,12 +562,24 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT GetProcessTreeX86(int target, ref uint numProcesses, IntPtr buffer);
 
         private static readonly HandleEventCallbackPriv ms_eventHandlerWrapper = EventHandlerWrapper;
-        private static readonly Dictionary<int, TargetCallbackAndUserData> ms_userTargetCallbacks = new Dictionary<int, TargetCallbackAndUserData>();
+        [ThreadStatic]
+        private static Dictionary<int, TargetCallbackAndUserData> ms_userTargetCallbacks;
 
         private class TargetCallbackAndUserData
         {
             public TargetEventCallback m_callback;
             public object m_userData;
+        }
+
+        private static Dictionary<int, TargetCallbackAndUserData> UserTargetCallbacks
+        {
+            get
+            {
+                if (ms_userTargetCallbacks == null)
+                    ms_userTargetCallbacks = new Dictionary<int, TargetCallbackAndUserData>();
+
+                return ms_userTargetCallbacks;
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -847,9 +859,10 @@ namespace TMAPI_NCAPI
 
             if (SUCCEEDED(result))
             {
-                lock (ms_userTargetCallbacks)
+                Dictionary<int, TargetCallbackAndUserData> callbacks = UserTargetCallbacks;
+                lock (callbacks)
                 {
-                    ms_userTargetCallbacks[target] = new TargetCallbackAndUserData
+                    callbacks[target] = new TargetCallbackAndUserData
                     {
                         m_callback = callback,
                         m_userData = userData
@@ -865,9 +878,10 @@ namespace TMAPI_NCAPI
             SNRESULT result = !Is32Bit() ? CancelTargetEventsX64(target) : CancelTargetEventsX86(target);
             if (SUCCEEDED(result))
             {
-                lock (ms_userTargetCallbacks)
+                Dictionary<int, TargetCallbackAndUserData> callbacks = UserTargetCallbacks;
+                lock (callbacks)
                 {
-                    ms_userTargetCallbacks.Remove(target);
+                    callbacks.Remove(target);
                 }
             }
 
@@ -1057,9 +1071,10 @@ namespace TMAPI_NCAPI
         private static void MarshalTargetEvent(int target, uint param, SNRESULT result, uint length, IntPtr data)
         {
             TargetCallbackAndUserData callbackAndUserData;
-            lock (ms_userTargetCallbacks)
+            Dictionary<int, TargetCallbackAndUserData> callbacks = UserTargetCallbacks;
+            lock (callbacks)
             {
-                if (!ms_userTargetCallbacks.TryGetValue(target, out callbackAndUserData))
+                if (!callbacks.TryGetValue(target, out callbackAndUserData))
                     return;
             }
 

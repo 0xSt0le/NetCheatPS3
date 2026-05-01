@@ -146,11 +146,18 @@ namespace TMAPI_NCAPI
             if (_tmapi == null)
                 _tmapi = new TMAPI();
 
+            AddressAccessLoggerSession previousSession = null;
             lock (addressAccessLoggerLock)
             {
                 if (activeAddressAccessLogger != null && activeAddressAccessLogger.IsRunning)
-                    activeAddressAccessLogger.Stop();
+                    previousSession = activeAddressAccessLogger;
+            }
 
+            if (previousSession != null)
+                previousSession.Stop();
+
+            lock (addressAccessLoggerLock)
+            {
                 activeAddressAccessLogger = new AddressAccessLoggerSession(this, _tmapi, address, mode, hitCallback);
                 return activeAddressAccessLogger;
             }
@@ -180,6 +187,7 @@ namespace TMAPI_NCAPI
             private bool isRunning;
             private bool registeredEvents;
             private bool savedOldDabr;
+            private bool dabrWasArmed;
             private bool savedAutoStatusUpdate;
             private bool previousAutoStatusUpdate;
             private ulong oldDabr;
@@ -200,7 +208,7 @@ namespace TMAPI_NCAPI
                 targetEventCallback = HandleTargetEvents;
                 nativeEventDiagnosticSink = PublishNativeEventDiagnostic;
 
-                Start();
+                StartWorker();
             }
 
             public ulong Address { get; private set; }
@@ -230,40 +238,7 @@ namespace TMAPI_NCAPI
                 if (!shouldStop)
                     return;
 
-                StopEventPump();
-                if (!receivedNativeCallback)
-                    PublishDiagnostic("No TMAPI native callback was received during this logger session.");
-
-                if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
-                    PS3TMAPI.NativeEventDiagnosticSink = null;
-
-                RestoreAutoStatusUpdate();
-
-                try
-                {
-                    if (savedOldDabr)
-                        tmapi.SetDABR(oldDabr);
-                    else
-                        tmapi.SetDABR(0);
-                }
-                catch (Exception ex)
-                {
-                    PublishError("Failed to restore DABR: " + ex.Message);
-                }
-
-                if (registeredEvents)
-                {
-                    try
-                    {
-                        tmapi.CancelTargetEvents();
-                    }
-                    catch (Exception ex)
-                    {
-                        PublishError("Failed to cancel TMAPI target events: " + ex.Message);
-                    }
-                }
-
-                owner.ClearAddressAccessLoggerSession(this);
+                JoinWorker();
             }
 
             public void Dispose()
@@ -271,7 +246,55 @@ namespace TMAPI_NCAPI
                 Stop();
             }
 
-            private void Start()
+            private void StartWorker()
+            {
+                lock (sync)
+                {
+                    isRunning = true;
+                }
+
+                eventPumpWorker = new Thread(RunLoggerWorker);
+                eventPumpWorker.IsBackground = true;
+                eventPumpWorker.Name = "TMAPI DABR callback/event pump";
+                eventPumpWorker.Start();
+            }
+
+            private void JoinWorker()
+            {
+                Thread worker = eventPumpWorker;
+                if (worker == null || worker == Thread.CurrentThread)
+                    return;
+
+                if (!worker.Join(1000))
+                    PublishDiagnostic("TMAPI DABR callback/event pump did not exit before timeout.");
+            }
+
+            private void RunLoggerWorker()
+            {
+                try
+                {
+                    if (!StartOnWorkerThread())
+                        return;
+
+                    PumpTargetEventsOnWorkerThread();
+                }
+                catch (Exception ex)
+                {
+                    PublishError("TMAPI DABR logger worker failed: " + ex.Message);
+                }
+                finally
+                {
+                    CleanupOnWorkerThread();
+                    lock (sync)
+                    {
+                        isRunning = false;
+                    }
+
+                    owner.ClearAddressAccessLoggerSession(this);
+                }
+            }
+
+            private bool StartOnWorkerThread()
             {
                 PS3TMAPI.SNRESULT initResult = tmapi.EnsureTargetCommsInitialized();
                 PublishDiagnostic("InitTargetComms: " + initResult.ToString());
@@ -283,58 +306,95 @@ namespace TMAPI_NCAPI
                 savedAutoStatusUpdate = PS3TMAPI.SUCCEEDED(autoStatusResult);
                 previousAutoStatusUpdate = previousAutoStatus;
 
+                if (!IsRunning)
+                    return false;
+
                 PS3TMAPI.NativeEventDiagnosticSink = nativeEventDiagnosticSink;
                 PublishDiagnostic("No TMAPI native callback has been received yet.");
 
                 PS3TMAPI.SNRESULT result = tmapi.GetDABR(out oldDabr);
                 savedOldDabr = PS3TMAPI.SUCCEEDED(result);
 
+                if (!IsRunning)
+                    return false;
+
                 object userData = null;
                 result = tmapi.RegisterTargetEventHandler(targetEventCallback, ref userData);
                 PublishDiagnostic("RegisterTargetEventHandler: " + result.ToString());
                 if (!PS3TMAPI.SUCCEEDED(result))
                 {
-                    RestoreAutoStatusUpdate();
-                    if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
-                        PS3TMAPI.NativeEventDiagnosticSink = null;
-
-                    throw new InvalidOperationException("TMAPI RegisterTargetEventHandler failed: " + result.ToString());
+                    PublishError("TMAPI RegisterTargetEventHandler failed: " + result.ToString());
+                    return false;
                 }
 
                 registeredEvents = true;
+
+                if (!IsRunning)
+                    return false;
 
                 rawDabr = BuildRawDabr(Address, Mode);
                 result = tmapi.SetDABR(rawDabr);
                 if (!PS3TMAPI.SUCCEEDED(result))
                 {
+                    PublishError("TMAPI SetDABR failed: " + result.ToString());
+                    return false;
+                }
+
+                dabrWasArmed = true;
+                PublishInitialThreadListProbe();
+                PublishDiagnostic("TMAPI DABR logger uses SNPS3Kick on the callback registration thread. Polling auto-resume remains disabled for target safety.");
+                PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
+                return true;
+            }
+
+            private void CleanupOnWorkerThread()
+            {
+                if (!receivedNativeCallback)
+                    PublishDiagnostic("No TMAPI native callback was received during this logger session.");
+
+                if (registeredEvents)
+                {
                     try
                     {
-                        tmapi.CancelTargetEvents();
+                        PS3TMAPI.SNRESULT result = tmapi.CancelTargetEvents();
+                        PublishDiagnostic("CancelTargetEvents: " + result.ToString() + ".");
                     }
                     catch (Exception ex)
                     {
-                        PublishError("Failed to cancel TMAPI target events after SetDABR failure: " + ex.Message);
+                        PublishError("Failed to cancel TMAPI target events: " + ex.Message);
                     }
-
-                    registeredEvents = false;
-                    RestoreAutoStatusUpdate();
-                    if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
-                        PS3TMAPI.NativeEventDiagnosticSink = null;
-
-                    throw new InvalidOperationException("TMAPI SetDABR failed: " + result.ToString());
+                    finally
+                    {
+                        registeredEvents = false;
+                    }
                 }
 
-                lock (sync)
+                if (dabrWasArmed)
                 {
-                    isRunning = true;
+                    try
+                    {
+                        PS3TMAPI.SNRESULT result = savedOldDabr
+                            ? tmapi.SetDABR(oldDabr)
+                            : tmapi.SetDABR(0);
+                        PublishDiagnostic("Restore DABR: " + result.ToString() + ".");
+                    }
+                    catch (Exception ex)
+                    {
+                        PublishError("Failed to restore DABR: " + ex.Message);
+                    }
+                    finally
+                    {
+                        dabrWasArmed = false;
+                    }
                 }
 
-                StartEventPump();
-                PublishDiagnostic("TMAPI DABR logger uses SNPS3Kick to pump target events. Polling auto-resume remains disabled for target safety.");
-                PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
+                RestoreAutoStatusUpdateOnWorkerThread();
+
+                if (Object.ReferenceEquals(PS3TMAPI.NativeEventDiagnosticSink, nativeEventDiagnosticSink))
+                    PS3TMAPI.NativeEventDiagnosticSink = null;
             }
 
-            private void RestoreAutoStatusUpdate()
+            private void RestoreAutoStatusUpdateOnWorkerThread()
             {
                 if (!savedAutoStatusUpdate)
                     return;
@@ -446,27 +506,7 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            private void StartEventPump()
-            {
-                eventPumpWorker = new Thread(PumpTargetEvents);
-                eventPumpWorker.IsBackground = true;
-                eventPumpWorker.Name = "TMAPI DABR event pump";
-                eventPumpWorker.Start();
-                PublishInitialThreadListProbe();
-            }
-
-            private void StopEventPump()
-            {
-                Thread worker = eventPumpWorker;
-                eventPumpWorker = null;
-                if (worker == null || worker == Thread.CurrentThread)
-                    return;
-
-                if (!worker.Join(250))
-                    PublishDiagnostic("TMAPI DABR event pump did not exit before timeout.");
-            }
-
-            private void PumpTargetEvents()
+            private void PumpTargetEventsOnWorkerThread()
             {
                 while (IsRunning)
                 {
@@ -492,7 +532,7 @@ namespace TMAPI_NCAPI
                     if (!reportedKickSuccess)
                     {
                         reportedKickSuccess = true;
-                        PublishDiagnostic("SNPS3Kick event pump active.");
+                        PublishDiagnostic("SNPS3Kick event pump active on callback registration thread.");
                     }
 
                     hasLastKickFailure = false;
