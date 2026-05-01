@@ -174,6 +174,8 @@ namespace TMAPI_NCAPI
 
         private sealed class AddressAccessLoggerSession : IAddressAccessLoggerSession
         {
+            private static readonly bool VerboseDabrDiagnostics = false;
+
             private readonly API owner;
             private readonly TMAPI tmapi;
             private readonly Action<AddressAccessHit> hitCallback;
@@ -304,11 +306,11 @@ namespace TMAPI_NCAPI
             private bool StartOnWorkerThread()
             {
                 PS3TMAPI.SNRESULT initResult = tmapi.EnsureTargetCommsInitialized();
-                PublishDiagnostic("InitTargetComms: " + initResult.ToString());
+                PublishVerboseDiagnostic("InitTargetComms: " + initResult.ToString());
 
                 bool previousAutoStatus;
                 PS3TMAPI.SNRESULT autoStatusResult = tmapi.EnableAutoStatusUpdate(true, out previousAutoStatus);
-                PublishDiagnostic("EnableAutoStatusUpdate: " + autoStatusResult.ToString() +
+                PublishVerboseDiagnostic("EnableAutoStatusUpdate: " + autoStatusResult.ToString() +
                     ", previous=" + previousAutoStatus.ToString() + ".");
                 savedAutoStatusUpdate = PS3TMAPI.SUCCEEDED(autoStatusResult);
                 previousAutoStatusUpdate = previousAutoStatus;
@@ -317,7 +319,7 @@ namespace TMAPI_NCAPI
                     return false;
 
                 PS3TMAPI.NativeEventDiagnosticSink = nativeEventDiagnosticSink;
-                PublishDiagnostic("No TMAPI native callback has been received yet.");
+                PublishVerboseDiagnostic("No TMAPI native callback has been received yet.");
 
                 PS3TMAPI.SNRESULT result = tmapi.GetDABR(out oldDabr);
                 savedOldDabr = PS3TMAPI.SUCCEEDED(result);
@@ -327,7 +329,7 @@ namespace TMAPI_NCAPI
 
                 object userData = null;
                 result = tmapi.RegisterTargetEventHandler(targetEventCallback, ref userData);
-                PublishDiagnostic("RegisterTargetEventHandler: " + result.ToString());
+                PublishVerboseDiagnostic("RegisterTargetEventHandler: " + result.ToString());
                 if (!PS3TMAPI.SUCCEEDED(result))
                 {
                     PublishError("TMAPI RegisterTargetEventHandler failed: " + result.ToString());
@@ -348,8 +350,10 @@ namespace TMAPI_NCAPI
                 }
 
                 dabrWasArmed = true;
-                PublishInitialThreadListProbe();
-                PublishDiagnostic("TMAPI DABR logger uses SNPS3Kick on the callback registration thread. Polling auto-resume remains disabled for target safety.");
+                if (VerboseDabrDiagnostics)
+                    PublishInitialThreadListProbe();
+
+                PublishVerboseDiagnostic("TMAPI DABR logger uses SNPS3Kick on the callback registration thread. Polling auto-resume remains disabled for target safety.");
                 PublishDiagnostic("DABR set to 0x" + rawDabr.ToString("X16") + ". Waiting for " + Mode.ToString().ToLowerInvariant() + " hit.");
                 return true;
             }
@@ -440,6 +444,9 @@ namespace TMAPI_NCAPI
                 return aligned | 0x4UL | 0x1UL;
             }
 
+            // SNPS3Kick invokes this callback on the logger worker thread. Keep it
+            // parser-only: no SetDABR, ProcessContinue, ThreadContinue, sleeps, or
+            // other target-control calls are safe while the callback stack is active.
             private void HandleTargetEvents(
                 int target,
                 PS3TMAPI.SNRESULT result,
@@ -450,7 +457,7 @@ namespace TMAPI_NCAPI
                     return;
 
                 int eventCount = targetEventList == null ? 0 : targetEventList.Length;
-                PublishDiagnostic("Target event received: target=" + target.ToString() +
+                PublishVerboseDiagnostic("Target event received: target=" + target.ToString() +
                     " result=" + result.ToString() +
                     " events=" + eventCount.ToString("N0") + ".");
 
@@ -512,11 +519,11 @@ namespace TMAPI_NCAPI
                 if (!QueuePendingDabrHit(hit))
                     return;
 
-                PublishDiagnostic("DABR payload parsed: thread=0x" + hit.ThreadId.ToString("X16") +
+                PublishVerboseDiagnostic("DABR payload parsed: thread=0x" + hit.ThreadId.ToString("X16") +
                     " pc=0x" + hit.ProgramCounter.ToString("X16") +
                     " sp=0x" + hit.StackPointer.ToString("X16") +
                     " hwThread=" + exceptionData.HWThreadNumber.ToString() + ".");
-                PublishDiagnostic("DABR callback queued hit; returning from callback.");
+                PublishVerboseDiagnostic("DABR callback queued hit; returning from callback.");
             }
 
             private static bool IsSaneDabrHit(AddressAccessHit hit)
@@ -578,7 +585,7 @@ namespace TMAPI_NCAPI
                     if (hit == null)
                         return;
 
-                    PublishDiagnostic("Processing DABR hit outside SNPS3Kick callback.");
+                    PublishVerboseDiagnostic("Processing DABR hit outside SNPS3Kick callback.");
                     hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
                     PublishHit(hit);
                     PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
@@ -595,6 +602,15 @@ namespace TMAPI_NCAPI
                 }
             }
 
+            // Working v1 auto-resume sequence:
+            //   1. Queue the callback data and return from SNPS3Kick's callback.
+            //   2. Outside the callback, clear DABR with SetDABR(0).
+            //   3. Request process-level resume with ProcessContinue.
+            //   4. Re-arm the original DABR after a short delay.
+            //
+            // Do not call ThreadExceptionClean here. TMAPI documentation says it
+            // clears the exception state and causes the thread to exit, which
+            // killed the DABR-hit thread during runtime testing.
             private void HandleValidDabrHitAutoResume()
             {
                 if (!dabrWasArmed || dabrClearedAfterHit || dabrTemporarilyClearedForResume)
@@ -631,7 +647,7 @@ namespace TMAPI_NCAPI
 
                 pendingRearmAfterResume = true;
                 dabrRearmDueUtc = DateTime.UtcNow.AddMilliseconds(250);
-                PublishDiagnostic("Hit logged. Process resume requested. DABR re-arm pending.");
+                PublishVerboseDiagnostic("Hit logged. Process resume requested. DABR re-arm pending.");
             }
 
             private PS3TMAPI.SNRESULT TryProcessContinueAfterDabrClear()
@@ -664,7 +680,7 @@ namespace TMAPI_NCAPI
                     lastNativeEventDiagnosticTime = now;
                 }
 
-                PublishDiagnostic("Ignored non-DABR target event.");
+                PublishVerboseDiagnostic("Ignored non-DABR target event.");
             }
 
             private void PublishInvalidDabrParse(PS3TMAPI.TargetSpecificEvent specific)
@@ -716,7 +732,8 @@ namespace TMAPI_NCAPI
                         PumpOneTargetEventSlice();
                         ProcessPendingDabrHitOutsideCallback();
                         TryRearmDabrAfterResume();
-                        PublishDebugThreadControlInfoOnce();
+                        if (VerboseDabrDiagnostics)
+                            PublishDebugThreadControlInfoOnce();
                     }
                     catch (Exception ex)
                     {
@@ -735,7 +752,7 @@ namespace TMAPI_NCAPI
                     if (!reportedKickSuccess)
                     {
                         reportedKickSuccess = true;
-                        PublishDiagnostic("SNPS3Kick event pump active on callback registration thread.");
+                        PublishVerboseDiagnostic("SNPS3Kick event pump active on callback registration thread.");
                     }
 
                     hasLastKickFailure = false;
@@ -837,7 +854,7 @@ namespace TMAPI_NCAPI
                     receivedNativeCallback = true;
                 }
 
-                PublishDiagnostic(diagnostic);
+                PublishVerboseDiagnostic(diagnostic);
             }
 
             private byte[] ReadInstructionBytes(ulong programCounter)
@@ -882,6 +899,12 @@ namespace TMAPI_NCAPI
                 hit.Timestamp = DateTime.Now;
                 hit.Diagnostic = diagnostic;
                 PublishHit(hit);
+            }
+
+            private void PublishVerboseDiagnostic(string diagnostic)
+            {
+                if (VerboseDabrDiagnostics)
+                    PublishDiagnostic(diagnostic);
             }
 
             private void PublishHit(AddressAccessHit hit)
