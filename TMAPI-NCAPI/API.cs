@@ -177,7 +177,6 @@ namespace TMAPI_NCAPI
             private static readonly bool VerboseDabrDiagnostics = false;
             private const int MaxPendingDabrHits = 128;
             private const int ProcessingPcCoalesceWindowMilliseconds = 35;
-            private const int MaxResumeDiagnosticLogs = 8;
 
             private readonly API owner;
             private readonly TMAPI tmapi;
@@ -213,7 +212,6 @@ namespace TMAPI_NCAPI
             private bool hasLastKickFailure;
             private PS3TMAPI.SNRESULT lastKickFailure;
             private bool reportedInvalidDabrParse;
-            private int resumeDiagnosticLogCount;
 
             public AddressAccessLoggerSession(API owner, TMAPI tmapi, ulong address, AddressAccessMode mode, Action<AddressAccessHit> hitCallback)
             {
@@ -726,7 +724,7 @@ namespace TMAPI_NCAPI
                     if (hit == null)
                         return;
 
-                    DabrHitResumeResult resumeResult = ContinueAfterValidDabrHit(hit);
+                    PS3TMAPI.SNRESULT resumeResult = ContinueAfterValidDabrHit();
                     int coalescedCount;
                     lock (sync)
                     {
@@ -752,14 +750,10 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            // Experimental DABR hit handling:
+            // Working DABR hit handling:
             //   1. Queue the callback data and return from SNPS3Kick's callback.
-            //   2. Outside the callback, try resuming the exact DABR-hit PPU
-            //      thread first. ProDG manual continue advances the stopped hit
-            //      thread and can expose the next writer PC, while process-level
-            //      continue has only delivered the same hot PC in runtime tests.
-            //   3. Fall back to ProcessContinue once if ThreadContinue fails.
-            //      DABR stays armed across hits.
+            //   2. Outside the callback, request process-level resume with
+            //      ProcessContinue. DABR stays armed across hits.
             //
             // SNPS3SetDABR requires all PPU threads stopped, so this logger arms
             // DABR once at startup and restores/clears it once at stop. Re-arming
@@ -768,80 +762,35 @@ namespace TMAPI_NCAPI
             // Do not call ThreadExceptionClean here. TMAPI documentation says it
             // clears the exception state and causes the thread to exit, which
             // killed the DABR-hit thread during runtime testing.
-            private DabrHitResumeResult ContinueAfterValidDabrHit(AddressAccessHit hit)
+            private PS3TMAPI.SNRESULT ContinueAfterValidDabrHit()
             {
                 if (!dabrWasArmed)
-                    return new DabrHitResumeResult(PS3TMAPI.SNRESULT.SN_E_ERROR, false, false);
+                    return PS3TMAPI.SNRESULT.SN_E_ERROR;
 
-                if (hit == null || hit.ThreadId == 0)
-                    return TryProcessContinueAfterDabrHit(hit, PS3TMAPI.SNRESULT.SN_E_ERROR);
-
-                try
-                {
-                    PS3TMAPI.SNRESULT threadResult = tmapi.ThreadContinue(hit.ThreadId);
-                    PublishVerboseDiagnostic("ThreadContinue after DABR hit: " + threadResult.ToString() + ".");
-
-                    if (PS3TMAPI.SUCCEEDED(threadResult))
-                    {
-                        LogDabrResumeDiagnostic(hit, threadResult, false, PS3TMAPI.SNRESULT.SN_E_ERROR);
-                        return new DabrHitResumeResult(threadResult, true, false);
-                    }
-
-                    PublishVerboseDiagnostic("ThreadContinue after DABR hit failed: " +
-                        threadResult.ToString() + "; falling back to ProcessContinue.");
-                    return TryProcessContinueAfterDabrHit(hit, threadResult);
-                }
-                catch (Exception ex)
-                {
-                    PublishError("ThreadContinue after DABR hit threw: " + ex.Message +
-                        "; falling back to ProcessContinue.");
-                    return TryProcessContinueAfterDabrHit(hit, PS3TMAPI.SNRESULT.SN_E_COMMS_ERR);
-                }
+                return TryProcessContinueAfterDabrHit();
             }
 
-            private DabrHitResumeResult TryProcessContinueAfterDabrHit(AddressAccessHit hit, PS3TMAPI.SNRESULT threadContinueResult)
+            private PS3TMAPI.SNRESULT TryProcessContinueAfterDabrHit()
             {
                 try
                 {
                     PS3TMAPI.SNRESULT result = tmapi.ProcessContinue();
-                    PublishVerboseDiagnostic("ProcessContinue fallback after DABR hit: " + result.ToString() + ".");
-                    LogDabrResumeDiagnostic(hit, threadContinueResult, true, result);
-                    return new DabrHitResumeResult(result, false, true);
+                    PublishVerboseDiagnostic("ProcessContinue after DABR hit: " + result.ToString() + ".");
+                    return result;
                 }
                 catch (Exception ex)
                 {
-                    PublishError("ProcessContinue fallback after DABR hit threw: " + ex.Message);
-                    return new DabrHitResumeResult(PS3TMAPI.SNRESULT.SN_E_COMMS_ERR, false, true);
+                    PublishError("ProcessContinue after DABR hit threw: " + ex.Message);
+                    return PS3TMAPI.SNRESULT.SN_E_COMMS_ERR;
                 }
             }
 
-            private void LogDabrResumeDiagnostic(AddressAccessHit hit, PS3TMAPI.SNRESULT threadContinueResult, bool usedProcessFallback, PS3TMAPI.SNRESULT processContinueResult)
+            private void PublishHitResumeStatus(PS3TMAPI.SNRESULT resumeResult)
             {
-                lock (sync)
+                if (!PS3TMAPI.SUCCEEDED(resumeResult))
                 {
-                    if (resumeDiagnosticLogCount >= MaxResumeDiagnosticLogs)
-                        return;
-
-                    resumeDiagnosticLogCount++;
-                }
-
-                string threadId = hit == null ? "0x0000000000000000" : "0x" + hit.ThreadId.ToString("X16");
-                string pc = hit == null ? "0x00000000" : "0x" + hit.ProgramCounter.ToString("X8");
-                LogDabrDiagnostic(
-                    "DABR resume attempt " + resumeDiagnosticLogCount.ToString() +
-                    ": thread=" + threadId +
-                    " pc=" + pc +
-                    " ThreadContinue=" + threadContinueResult.ToString() +
-                    " usedProcessFallback=" + usedProcessFallback.ToString() +
-                    " ProcessContinue=" + processContinueResult.ToString() + ".");
-            }
-
-            private void PublishHitResumeStatus(DabrHitResumeResult resumeResult)
-            {
-                if (!PS3TMAPI.SUCCEEDED(resumeResult.FinalResult))
-                {
-                    PublishError("Hit logged, but resume failed: " +
-                        resumeResult.FinalResult.ToString() + ". Use ProDG/NetCheat Continue.");
+                    PublishError("Hit logged, but ProcessContinue failed: " +
+                        resumeResult.ToString() + ". Use ProDG/NetCheat Continue.");
                     return;
                 }
 
@@ -850,33 +799,7 @@ namespace TMAPI_NCAPI
                     return;
 
                 lastHitStatusUtc = now;
-                if (resumeResult.ThreadContinueSucceeded)
-                {
-                    PublishDiagnostic("Hit logged. Thread resumed; DABR remains armed.");
-                    return;
-                }
-
-                if (resumeResult.ProcessFallbackUsed)
-                {
-                    PublishDiagnostic("Hit logged. Process resume fallback used; DABR remains armed.");
-                    return;
-                }
-
-                PublishDiagnostic("Hit logged. Resume requested; DABR remains armed.");
-            }
-
-            private struct DabrHitResumeResult
-            {
-                public DabrHitResumeResult(PS3TMAPI.SNRESULT finalResult, bool threadContinueSucceeded, bool processFallbackUsed)
-                {
-                    FinalResult = finalResult;
-                    ThreadContinueSucceeded = threadContinueSucceeded;
-                    ProcessFallbackUsed = processFallbackUsed;
-                }
-
-                public readonly PS3TMAPI.SNRESULT FinalResult;
-                public readonly bool ThreadContinueSucceeded;
-                public readonly bool ProcessFallbackUsed;
+                PublishDiagnostic("Hit logged. Process resumed; DABR remains armed.");
             }
 
             private void PublishIgnoredNonDabrEvent()
