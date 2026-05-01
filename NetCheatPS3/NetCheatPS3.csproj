@@ -141,9 +141,6 @@
     <Compile Include="Form1.Layout.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Form1.ManualAddress.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Form1.ModernRangeUi.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -257,6 +254,9 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="SearchControl.Layout.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchControl.ManualAddress.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="SearchControl.SearchComparisons.cs">

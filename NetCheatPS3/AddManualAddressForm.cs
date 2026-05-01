@@ -15,7 +15,7 @@ namespace NetCheatPS3
 
         public AddManualAddressForm()
         {
-            Text = "Add address";
+            Text = "Add Address";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterParent;
             MaximizeBox = false;
@@ -86,7 +86,7 @@ namespace NetCheatPS3
                 MessageBox.Show(
                     this,
                     "Enter a valid 32-bit hexadecimal address.",
-                    "Add address",
+                    "Add Address",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
                 addressTextBox.Focus();

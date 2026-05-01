@@ -623,6 +623,29 @@ namespace NetCheatPS3
             printBox.Refresh();
         }
 
+        public void AddVisibleItem(SearchListViewItem item)
+        {
+            a.Add(item);
+            CalculateSBarMax();
+            SelectAndShowIndex(a.Count - 1);
+            printBox.Refresh();
+        }
+
+        public void SelectAndShowIndex(int index)
+        {
+            if (index < 0 || index >= TotalCount)
+                return;
+
+            SetSelectedIndex(index);
+
+            int max = MaxItemsPerPage;
+            if (max <= 0)
+                max = 1;
+
+            if (vertSBar.Visible && (index < vertSBar.Value || index >= vertSBar.Value + max))
+                SetVertSBarValueSafe(Math.Max(0, index - max + 1));
+        }
+
         public void SetItemAtIndex(SearchListViewItem item, int ind)
         {
             if (ind < 0 || ind >= (a.Count + b.Count))

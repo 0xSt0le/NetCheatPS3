@@ -112,8 +112,7 @@ namespace NetCheatPS3
             addAddressButton.UseVisualStyleBackColor = true;
             addAddressButton.Click += delegate
             {
-                if (Form1.Instance != null)
-                    Form1.Instance.ShowAddManualAddressDialog();
+                ShowAddManualAddressDialog();
             };
 
             Controls.Add(addAddressButton);
