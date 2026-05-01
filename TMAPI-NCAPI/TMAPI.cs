@@ -298,6 +298,12 @@ namespace TMAPI_NCAPI
             return PS3TMAPI.ProcessContinue(Target, Parameters.ProcessID);
         }
 
+        public PS3TMAPI.SNRESULT ProcessStop()
+        {
+            EnsureTargetCommsInitialized();
+            return PS3TMAPI.ProcessStop(Target, Parameters.ProcessID);
+        }
+
         public PS3TMAPI.SNRESULT Kick()
         {
             return PS3TMAPI.Kick();

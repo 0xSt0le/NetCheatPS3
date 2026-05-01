@@ -11,6 +11,7 @@ Runtime evidence:
 - Repeated hits at the same PC increment the existing row's `Count`.
 - The target resumes immediately and remains usable.
 - DABR is re-armed after resume and continues logging later writes.
+- Re-arming must stop the process first because TMAPI documentation says `SNPS3SetDABR` requires all PPU threads stopped.
 
 The proven working sequence is:
 
@@ -19,7 +20,9 @@ The proven working sequence is:
 3. The logger worker returns from the callback.
 4. Outside the callback, the worker clears DABR with `SetDABR(0)`.
 5. The worker calls `ProcessContinue`.
-6. After a 250 ms delay, the worker re-arms the original raw DABR value.
+6. After a 250 ms delay, the worker calls `ProcessStop`.
+7. While stopped, the worker re-arms the original raw DABR value.
+8. The worker calls `ProcessContinue` again.
 
 Forbidden approaches:
 
@@ -44,7 +47,9 @@ Runtime testing later proved that `PPUExcDabrMatch` events can be delivered and 
 1. Log the hit.
 2. Clear DABR with `SetDABR(0)`.
 3. Request process-level resume with `ProcessContinue`.
-4. Re-arm the original DABR after a 250 ms delay if the session is still running.
+4. After a 250 ms delay, call `ProcessStop`.
+5. Re-arm the original DABR while the process is stopped.
+6. Request process-level resume with `ProcessContinue`.
 
 The logger must not call `ThreadExceptionClean` or `ThreadContinue` for CE-style address-access logging unless a separate, explicitly guarded experiment proves a safe use.
 

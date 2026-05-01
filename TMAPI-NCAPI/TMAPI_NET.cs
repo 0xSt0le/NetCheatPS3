@@ -492,6 +492,10 @@ namespace TMAPI_NCAPI
         private static extern SNRESULT ProcessContinueX64(int target, uint processId);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ProcessContinue", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT ProcessContinueX86(int target, uint processId);
+        [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ProcessStop", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ProcessStopX64(int target, uint processId);
+        [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ProcessStop", CallingConvention = CallingConvention.Cdecl)]
+        private static extern SNRESULT ProcessStopX86(int target, uint processId);
         [DllImport("PS3TMAPIX64.dll", EntryPoint = "SNPS3ProcessAttach", CallingConvention = CallingConvention.Cdecl)]
         private static extern SNRESULT ProcessAttachX64(int target, uint unitId, uint processId);
         [DllImport("PS3TMAPI.dll", EntryPoint = "SNPS3ProcessAttach", CallingConvention = CallingConvention.Cdecl)]
@@ -736,6 +740,15 @@ namespace TMAPI_NCAPI
                 return ProcessContinueX64(target, processID);
             }
             return ProcessContinueX86(target, processID);
+        }
+
+        public static SNRESULT ProcessStop(int target, uint processID)
+        {
+            if (!Is32Bit())
+            {
+                return ProcessStopX64(target, processID);
+            }
+            return ProcessStopX86(target, processID);
         }
 
         public static SNRESULT ThreadContinue(int target, UnitType unit, uint processID, ulong threadID)
