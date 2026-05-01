@@ -508,12 +508,14 @@ namespace TMAPI_NCAPI
 
                 PS3TMAPI.PPUExceptionData exceptionData = specific.Data.PPUException;
                 hit.ThreadId = exceptionData.ThreadID;
+                hit.HWThreadNumber = exceptionData.HWThreadNumber;
                 hit.ProgramCounter = exceptionData.PC;
                 hit.StackPointer = exceptionData.SP;
 
                 if ((hit.ProgramCounter == 0 || hit.ThreadId == 0) && specific.Data.PPUDataMatException.ThreadID != 0)
                 {
                     hit.ThreadId = specific.Data.PPUDataMatException.ThreadID;
+                    hit.HWThreadNumber = specific.Data.PPUDataMatException.HWThreadNumber;
                     hit.ProgramCounter = specific.Data.PPUDataMatException.PC;
                     hit.StackPointer = specific.Data.PPUDataMatException.SP;
                 }

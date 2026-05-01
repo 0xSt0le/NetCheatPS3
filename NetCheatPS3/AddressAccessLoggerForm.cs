@@ -24,48 +24,49 @@ namespace NetCheatPS3
                 ? "The following opcodes write to "
                 : "The following opcodes read from ") + address.ToString("X8");
 
-            Width = 620;
-            Height = 360;
+            Width = 640;
+            Height = 330;
             StartPosition = FormStartPosition.CenterParent;
 
             hitList.Dock = DockStyle.Fill;
             hitList.View = View.Details;
             hitList.FullRowSelect = true;
             hitList.MultiSelect = false;
+            hitList.HideSelection = false;
             hitList.Columns.Add("Count", 80);
-            hitList.Columns.Add("Instruction", 480);
+            hitList.Columns.Add("Instruction", 420);
+            hitList.SelectedIndexChanged += hitList_SelectedIndexChanged;
 
             Panel buttonPanel = new Panel();
-            buttonPanel.Dock = DockStyle.Bottom;
-            buttonPanel.Height = 66;
+            buttonPanel.Dock = DockStyle.Right;
+            buttonPanel.Width = 120;
 
-            statusLabel.Left = 8;
-            statusLabel.Top = 6;
-            statusLabel.Width = 580;
-            statusLabel.Height = 18;
-            statusLabel.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
-            statusLabel.Text = "Starting logger...";
+            statusLabel.Dock = DockStyle.Bottom;
+            statusLabel.Height = 24;
+            statusLabel.Padding = new Padding(6, 4, 6, 0);
+            statusLabel.Text = mode == AddressAccessMode.Write
+                ? "Waiting for write hit."
+                : "Waiting for read hit.";
 
             extraInfoButton.Text = "Extra Info";
             extraInfoButton.Width = 100;
-            extraInfoButton.Left = 8;
-            extraInfoButton.Top = 32;
-            extraInfoButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+            extraInfoButton.Left = 10;
+            extraInfoButton.Top = 12;
+            extraInfoButton.Enabled = false;
             extraInfoButton.Click += extraInfoButton_Click;
 
             stopButton.Text = "Stop";
             stopButton.Width = 100;
-            stopButton.Left = 116;
-            stopButton.Top = 32;
-            stopButton.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+            stopButton.Left = 10;
+            stopButton.Top = extraInfoButton.Bottom + 8;
             stopButton.Click += stopButton_Click;
 
-            buttonPanel.Controls.Add(statusLabel);
             buttonPanel.Controls.Add(extraInfoButton);
             buttonPanel.Controls.Add(stopButton);
 
             Controls.Add(hitList);
             Controls.Add(buttonPanel);
+            Controls.Add(statusLabel);
 
             session = loggerApi.StartAddressAccessLogger(address, mode, OnAddressAccessHit);
         }
@@ -94,13 +95,13 @@ namespace NetCheatPS3
 
             if (!String.IsNullOrEmpty(hit.Diagnostic))
             {
-                AddDiagnosticHit(hit.Diagnostic);
+                SetStatus(hit.Diagnostic);
                 return;
             }
 
             if (!String.IsNullOrEmpty(hit.Error))
             {
-                AddErrorHit(hit);
+                SetStatus(hit.Error);
                 return;
             }
 
@@ -123,27 +124,20 @@ namespace NetCheatPS3
 
             entry.Count++;
             entry.Hit = hit;
+            entry.LastHit = hit.Timestamp;
             entry.Item.Text = entry.Count.ToString("N0");
             entry.Item.SubItems[1].Text = instruction;
         }
 
-        private void AddErrorHit(AddressAccessHit hit)
+        private void SetStatus(string text)
         {
-            statusLabel.Text = hit.Error;
-            ListViewItem item = new ListViewItem("");
-            item.SubItems.Add("Error - " + hit.Error);
-            item.ForeColor = Color.DarkRed;
-            hitList.Items.Add(item);
+            statusLabel.Text = String.IsNullOrEmpty(text) ? "" : text;
         }
 
-        private void AddDiagnosticHit(string diagnostic)
+        private void hitList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            statusLabel.Text = diagnostic;
-
-            ListViewItem item = new ListViewItem("");
-            item.SubItems.Add("Status - " + diagnostic);
-            item.ForeColor = Color.DimGray;
-            hitList.Items.Add(item);
+            extraInfoButton.Enabled = hitList.SelectedItems.Count > 0 &&
+                hitList.SelectedItems[0].Tag is HitEntry;
         }
 
         private void extraInfoButton_Click(object sender, EventArgs e)
@@ -155,7 +149,7 @@ namespace NetCheatPS3
             if (entry == null || entry.Hit == null)
                 return;
 
-            using (AddressAccessLoggerExtraInfoForm form = new AddressAccessLoggerExtraInfoForm(entry.Hit))
+            using (AddressAccessLoggerExtraInfoForm form = new AddressAccessLoggerExtraInfoForm(entry))
             {
                 form.ShowDialog(this);
             }
@@ -167,6 +161,7 @@ namespace NetCheatPS3
                 session.Stop();
 
             stopButton.Enabled = false;
+            SetStatus("Stopped.");
         }
 
         private static string FormatInstruction(AddressAccessHit hit)
@@ -190,26 +185,27 @@ namespace NetCheatPS3
             return new string(chars);
         }
 
-        private sealed class HitEntry
+        internal sealed class HitEntry
         {
             public int Count;
             public AddressAccessHit Hit;
             public ListViewItem Item;
+            public DateTime LastHit;
         }
     }
 
-    public class AddressAccessLoggerExtraInfoForm : Form
+    internal class AddressAccessLoggerExtraInfoForm : Form
     {
-        private readonly AddressAccessHit hit;
+        private readonly AddressAccessLoggerForm.HitEntry entry;
         private readonly TextBox textBox = new TextBox();
 
-        public AddressAccessLoggerExtraInfoForm(AddressAccessHit hit)
+        public AddressAccessLoggerExtraInfoForm(AddressAccessLoggerForm.HitEntry entry)
         {
-            this.hit = hit;
+            this.entry = entry;
 
             Text = "Extra Info";
-            Width = 620;
-            Height = 480;
+            Width = 460;
+            Height = 300;
             StartPosition = FormStartPosition.CenterParent;
 
             textBox.Dock = DockStyle.Fill;
@@ -224,60 +220,22 @@ namespace NetCheatPS3
 
         private string BuildText()
         {
+            AddressAccessHit hit = entry.Hit;
             List<string> lines = new List<string>();
             lines.Add("Watched address: " + hit.WatchedAddress.ToString("X8"));
             lines.Add("Mode: " + hit.Mode.ToString());
-            lines.Add("Thread ID: " + hit.ThreadId.ToString("X16"));
+            lines.Add("Count: " + entry.Count.ToString("N0"));
             lines.Add("PC: " + hit.ProgramCounter.ToString("X16"));
+            lines.Add("Bytes: " + BytesToHex(hit.InstructionBytes, 0, hit.InstructionBytes == null ? 0 : hit.InstructionBytes.Length));
+            lines.Add("Thread ID: " + hit.ThreadId.ToString("X16"));
+            lines.Add("HW Thread: " + hit.HWThreadNumber.ToString());
             lines.Add("SP: " + hit.StackPointer.ToString("X16"));
             lines.Add("Raw DABR: " + hit.RawDabr.ToString("X16"));
-            lines.Add("");
-            lines.Add("Nearby instruction bytes:");
-            lines.AddRange(ReadNearbyInstructionLines());
+            lines.Add("Last hit: " + entry.LastHit.ToString("yyyy-MM-dd HH:mm:ss.fff"));
             lines.Add("");
             lines.Add("Full register capture not implemented yet.");
 
             return String.Join(Environment.NewLine, lines.ToArray());
-        }
-
-        private IEnumerable<string> ReadNearbyInstructionLines()
-        {
-            List<string> lines = new List<string>();
-            if (hit.ProgramCounter == 0)
-            {
-                lines.Add("PC was not captured.");
-                return lines;
-            }
-
-            ulong start = hit.ProgramCounter >= 16 ? hit.ProgramCounter - 16 : hit.ProgramCounter;
-            start &= ~0x3UL;
-
-            byte[] bytes = new byte[36];
-            bool readOk = false;
-            try
-            {
-                if (Form1.curAPI != null && Form1.curAPI.Instance != null)
-                    readOk = Form1.curAPI.Instance.GetBytes(start, ref bytes);
-            }
-            catch
-            {
-                readOk = false;
-            }
-
-            if (!readOk)
-            {
-                lines.Add("Could not read nearby instruction bytes.");
-                return lines;
-            }
-
-            for (int offset = 0; offset + 4 <= bytes.Length; offset += 4)
-            {
-                ulong address = start + (ulong)offset;
-                string prefix = address == hit.ProgramCounter ? ">> " : "   ";
-                lines.Add(prefix + address.ToString("X8") + " - " + BytesToHex(bytes, offset, 4));
-            }
-
-            return lines;
         }
 
         private static string BytesToHex(byte[] bytes, int offset, int count)

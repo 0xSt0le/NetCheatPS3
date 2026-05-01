@@ -17,6 +17,7 @@ namespace NCAppInterface
         public ulong ProgramCounter { get; set; }
         public ulong StackPointer { get; set; }
         public ulong ThreadId { get; set; }
+        public uint HWThreadNumber { get; set; }
         public ulong RawDabr { get; set; }
         public AddressAccessMode Mode { get; set; }
         public byte[] InstructionBytes { get; set; }
