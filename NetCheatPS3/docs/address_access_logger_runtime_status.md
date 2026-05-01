@@ -43,7 +43,10 @@ Hot writer handling:
 - The TMAPI callback only parses/copies the event and appends it to a small pending-hit queue.
 - The worker requests `ProcessContinue` before reading opcode bytes or publishing the UI row, keeping the target stopped for the shortest practical time.
 - Instruction bytes are cached by PC so repeated hits at the same writer instruction do not reread code memory.
-- A bounded pending-hit queue reduces missed different writer PCs while the worker is busy. Exact duplicate newest queued hits may be coalesced, and a full queue drops the oldest pending hit.
+- Pending hits are aggregated by unique PC so one hot writer cannot fill the queue with duplicates and starve a different writer PC.
+- Repeated same-PC callbacks are coalesced, and the UI count may be batched with `CountDelta` under heavy load.
+- A bounded pending-PC queue reduces missed different writer PCs while the worker is busy. If full, the oldest pending PC aggregate is dropped.
+- A verbose callback PC histogram logs the first time each new PC is observed. If a PC never appears there, TMAPI/DABR did not deliver it to NetCheatPS3 during that session.
 - Ultra-hot addresses can still stutter because every access triggers a debug exception. The logger is intended to identify writers, not to run indefinitely on a very hot address; stop it once the relevant writer PCs are captured.
 
 Forbidden approaches:

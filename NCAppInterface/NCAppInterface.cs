@@ -21,6 +21,7 @@ namespace NCAppInterface
         public ulong RawDabr { get; set; }
         public AddressAccessMode Mode { get; set; }
         public byte[] InstructionBytes { get; set; }
+        public int CountDelta { get; set; }
         public DateTime Timestamp { get; set; }
         public string Error { get; set; }
         public string Diagnostic { get; set; }

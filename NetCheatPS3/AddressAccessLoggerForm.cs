@@ -122,7 +122,8 @@ namespace NetCheatPS3
                 hitList.Items.Add(entry.Item);
             }
 
-            entry.Count++;
+            int countDelta = hit.CountDelta <= 0 ? 1 : hit.CountDelta;
+            entry.Count += countDelta;
             entry.Hit = hit;
             entry.LastHit = hit.Timestamp;
             entry.Item.Text = entry.Count.ToString("N0");

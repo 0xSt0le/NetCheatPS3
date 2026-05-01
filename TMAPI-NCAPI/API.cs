@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
@@ -177,6 +176,7 @@ namespace TMAPI_NCAPI
         {
             private static readonly bool VerboseDabrDiagnostics = false;
             private const int MaxPendingDabrHits = 128;
+            private const int ProcessingPcCoalesceWindowMilliseconds = 35;
 
             private readonly API owner;
             private readonly TMAPI tmapi;
@@ -184,8 +184,10 @@ namespace TMAPI_NCAPI
             private readonly object sync = new object();
             private readonly PS3TMAPI.TargetEventCallback targetEventCallback;
             private readonly Action<string> nativeEventDiagnosticSink;
-            private readonly Queue<AddressAccessHit> pendingDabrHits = new Queue<AddressAccessHit>();
+            private readonly Queue<ulong> pendingPcOrder = new Queue<ulong>();
+            private readonly Dictionary<ulong, PendingDabrHitAggregate> pendingHitsByPc = new Dictionary<ulong, PendingDabrHitAggregate>();
             private readonly Dictionary<ulong, byte[]> instructionBytesByPc = new Dictionary<ulong, byte[]>();
+            private readonly Dictionary<ulong, int> callbackPcCounts = new Dictionary<ulong, int>();
             private Thread eventPumpWorker;
             private bool processingPendingDabrHit;
             private bool reportedDebugThreadControlInfo;
@@ -197,6 +199,9 @@ namespace TMAPI_NCAPI
             private bool savedAutoStatusUpdate;
             private bool previousAutoStatusUpdate;
             private bool reportedDroppedDabrHitQueueFull;
+            private ulong currentlyProcessingPc;
+            private int currentlyProcessingCoalescedCount;
+            private DateTime currentlyProcessingPcUntilUtc;
             private ulong oldDabr;
             private ulong rawDabr;
             private string lastNativeEventDiagnostic;
@@ -218,6 +223,13 @@ namespace TMAPI_NCAPI
                 nativeEventDiagnosticSink = PublishNativeEventDiagnostic;
 
                 StartWorker();
+            }
+
+            private sealed class PendingDabrHitAggregate
+            {
+                public AddressAccessHit LastHit;
+                public int PendingCount;
+                public DateTime LastSeen;
             }
 
             public ulong Address { get; private set; }
@@ -419,7 +431,8 @@ namespace TMAPI_NCAPI
                     dabrWasArmed = false;
                 }
 
-                pendingDabrHits.Clear();
+                pendingPcOrder.Clear();
+                pendingHitsByPc.Clear();
                 processingPendingDabrHit = false;
 
                 RestoreAutoStatusUpdateOnWorkerThread();
@@ -609,19 +622,30 @@ namespace TMAPI_NCAPI
                     if (!isRunning)
                         return false;
 
-                    AddressAccessHit newestHit = pendingDabrHits.Count > 0
-                        ? pendingDabrHits.Last()
-                        : null;
-                    if (newestHit != null &&
-                        newestHit.ThreadId == hit.ThreadId &&
-                        newestHit.ProgramCounter == hit.ProgramCounter)
+                    DateTime now = DateTime.UtcNow;
+                    IncrementCallbackPcCount(hit.ProgramCounter);
+
+                    if (processingPendingDabrHit &&
+                        hit.ProgramCounter == currentlyProcessingPc &&
+                        now < currentlyProcessingPcUntilUtc)
                     {
-                        return false;
+                        currentlyProcessingCoalescedCount++;
+                        return true;
                     }
 
-                    if (pendingDabrHits.Count >= MaxPendingDabrHits)
+                    PendingDabrHitAggregate aggregate;
+                    if (pendingHitsByPc.TryGetValue(hit.ProgramCounter, out aggregate))
                     {
-                        pendingDabrHits.Dequeue();
+                        aggregate.LastHit = hit;
+                        aggregate.PendingCount++;
+                        aggregate.LastSeen = now;
+                        return true;
+                    }
+
+                    if (pendingHitsByPc.Count >= MaxPendingDabrHits)
+                    {
+                        ulong droppedPc = pendingPcOrder.Dequeue();
+                        pendingHitsByPc.Remove(droppedPc);
                         if (!reportedDroppedDabrHitQueueFull)
                         {
                             reportedDroppedDabrHitQueueFull = true;
@@ -629,29 +653,63 @@ namespace TMAPI_NCAPI
                         }
                     }
 
-                    pendingDabrHits.Enqueue(hit);
+                    aggregate = new PendingDabrHitAggregate();
+                    aggregate.LastHit = hit;
+                    aggregate.PendingCount = 1;
+                    aggregate.LastSeen = now;
+                    pendingHitsByPc.Add(hit.ProgramCounter, aggregate);
+                    pendingPcOrder.Enqueue(hit.ProgramCounter);
                     return true;
                 }
             }
 
+            private void IncrementCallbackPcCount(ulong programCounter)
+            {
+                int count;
+                if (callbackPcCounts.TryGetValue(programCounter, out count))
+                {
+                    callbackPcCounts[programCounter] = count + 1;
+                    return;
+                }
+
+                callbackPcCounts.Add(programCounter, 1);
+                PublishVerboseDiagnostic("Observed DABR PC 0x" + programCounter.ToString("X8") + " in callback.");
+            }
+
             private void ProcessPendingDabrHitsOutsideCallback()
             {
-                AddressAccessHit hit;
+                PendingDabrHitAggregate aggregate;
                 lock (sync)
                 {
-                    if (!isRunning || pendingDabrHits.Count == 0 || processingPendingDabrHit)
+                    if (!isRunning || pendingPcOrder.Count == 0 || processingPendingDabrHit)
                         return;
 
-                    hit = pendingDabrHits.Dequeue();
+                    ulong programCounter = pendingPcOrder.Dequeue();
+                    if (!pendingHitsByPc.TryGetValue(programCounter, out aggregate))
+                        return;
+
+                    pendingHitsByPc.Remove(programCounter);
                     processingPendingDabrHit = true;
+                    currentlyProcessingPc = programCounter;
+                    currentlyProcessingCoalescedCount = 0;
+                    currentlyProcessingPcUntilUtc = DateTime.UtcNow.AddMilliseconds(ProcessingPcCoalesceWindowMilliseconds);
                 }
 
                 try
                 {
+                    AddressAccessHit hit = aggregate == null ? null : aggregate.LastHit;
                     if (hit == null)
                         return;
 
                     PS3TMAPI.SNRESULT resumeResult = ContinueAfterValidDabrHit();
+                    int coalescedCount;
+                    lock (sync)
+                    {
+                        coalescedCount = currentlyProcessingCoalescedCount;
+                        currentlyProcessingCoalescedCount = 0;
+                    }
+
+                    hit.CountDelta = Math.Max(1, aggregate.PendingCount + coalescedCount);
                     hit.InstructionBytes = GetInstructionBytesForHit(hit.ProgramCounter);
                     PublishHit(hit);
                     PublishVerboseDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
@@ -664,6 +722,7 @@ namespace TMAPI_NCAPI
                     lock (sync)
                     {
                         processingPendingDabrHit = false;
+                        currentlyProcessingCoalescedCount = 0;
                     }
                 }
             }
