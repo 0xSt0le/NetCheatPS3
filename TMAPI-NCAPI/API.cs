@@ -197,6 +197,7 @@ namespace TMAPI_NCAPI
             private bool reportedKickSuccess;
             private bool hasLastKickFailure;
             private PS3TMAPI.SNRESULT lastKickFailure;
+            private bool reportedInvalidDabrParse;
 
             public AddressAccessLoggerSession(API owner, TMAPI tmapi, ulong address, AddressAccessMode mode, Action<AddressAccessHit> hitCallback)
             {
@@ -490,6 +491,13 @@ namespace TMAPI_NCAPI
                         hit.StackPointer = specific.Data.PPUDataMatException.SP;
                     }
 
+                    if (hit.ThreadId == 0 || hit.ProgramCounter == 0)
+                    {
+                        PublishInvalidDabrParse(specific);
+                        PublishError("DABR event parsed with invalid ThreadID/PC; not resuming.");
+                        return;
+                    }
+
                     hit.InstructionBytes = ReadInstructionBytes(hit.ProgramCounter);
                     PublishHit(hit);
                     PublishDiagnostic("DABR hit: thread=0x" + hit.ThreadId.ToString("X16") +
@@ -504,6 +512,25 @@ namespace TMAPI_NCAPI
                         isProcessingStop = false;
                     }
                 }
+            }
+
+            private void PublishInvalidDabrParse(PS3TMAPI.TargetSpecificEvent specific)
+            {
+                if (reportedInvalidDabrParse)
+                    return;
+
+                reportedInvalidDabrParse = true;
+                PublishDiagnostic(
+                    "Invalid DABR parse diagnostic: targetEventSize=" + specific.TargetEventSize.ToString("N0") +
+                    " targetEvent=0x" + specific.TargetEventTypeRaw.ToString("X8") +
+                    " commandID=0x" + specific.CommandID.ToString("X8") +
+                    " requestID=0x" + specific.RequestID.ToString("X8") +
+                    " dataLength=" + specific.DataLength.ToString("N0") +
+                    " processID=0x" + specific.ProcessID.ToString("X8") +
+                    " result=0x" + specific.Result.ToString("X8") +
+                    " eventType=" + specific.Data.Type.ToString() +
+                    " payloadOffset=" + specific.PayloadOffset.ToString("N0") +
+                    " debugData[0..64]=" + (specific.RawDebugDataHex ?? String.Empty) + ".");
             }
 
             private void PumpTargetEventsOnWorkerThread()
@@ -605,11 +632,12 @@ namespace TMAPI_NCAPI
                 if (threadId != 0)
                 {
                     PS3TMAPI.SNRESULT cleanResult = tmapi.ThreadExceptionClean(threadId);
+                    PublishDiagnostic("ThreadExceptionClean: " + cleanResult.ToString() + " for 0x" + threadId.ToString("X16") + ".");
                     if (!PS3TMAPI.SUCCEEDED(cleanResult))
-                        PublishError("ThreadExceptionClean failed for 0x" + threadId.ToString("X16") + ": " + cleanResult.ToString());
+                        return;
 
                     PS3TMAPI.SNRESULT continueResult = tmapi.ThreadContinue(threadId);
-                    PublishDiagnostic("ThreadContinue returned " + continueResult.ToString() + " for 0x" + threadId.ToString("X16") + ".");
+                    PublishDiagnostic("ThreadContinue: " + continueResult.ToString() + " for 0x" + threadId.ToString("X16") + ".");
 
                     if (PS3TMAPI.SUCCEEDED(continueResult))
                         return;
@@ -624,9 +652,9 @@ namespace TMAPI_NCAPI
                 {
                     PS3TMAPI.SNRESULT continueResult = tmapi.ProcessContinue();
                     if (PS3TMAPI.SUCCEEDED(continueResult))
-                        PublishDiagnostic(reason + ": " + continueResult.ToString() + ". Process resumed.");
+                        PublishDiagnostic("ProcessContinue fallback: " + continueResult.ToString() + ". " + reason);
                     else
-                        PublishError(reason + ": " + continueResult.ToString() + ".");
+                        PublishError("ProcessContinue fallback: " + continueResult.ToString() + ". " + reason);
                 }
                 catch (Exception ex)
                 {

@@ -194,6 +194,7 @@ namespace TMAPI_NCAPI
         public struct TargetEvent
         {
             public uint TargetID;
+            public uint Size;
             public TargetEventType Type;
             public TargetEventData EventData;
             public TargetSpecificEvent TargetSpecific;
@@ -203,8 +204,13 @@ namespace TMAPI_NCAPI
         {
             public uint CommandID;
             public uint RequestID;
+            public uint DataLength;
             public uint ProcessID;
             public uint Result;
+            public uint TargetEventSize;
+            public uint TargetEventTypeRaw;
+            public uint PayloadOffset;
+            public string RawDebugDataHex;
             public TargetSpecificData Data;
         }
 
@@ -588,6 +594,16 @@ namespace TMAPI_NCAPI
             public uint Size;
             public uint TargetID;
             public uint EventType;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DebugEventHdrPriv
+        {
+            public uint CommandID;
+            public uint RequestID;
+            public uint DataLength;
+            public uint ProcessID;
+            public uint Result;
         }
 
         private static bool Is32Bit()
@@ -1101,12 +1117,17 @@ namespace TMAPI_NCAPI
 
                 TargetEvent targetEvent = new TargetEvent();
                 targetEvent.TargetID = eventHeader.TargetID;
+                targetEvent.Size = eventHeader.Size;
                 targetEvent.Type = (TargetEventType)eventHeader.EventType;
 
                 IntPtr eventData = new IntPtr(data.ToInt64() + offset + headerSize);
                 uint eventDataSize = eventHeader.Size - (uint)headerSize;
                 if (targetEvent.Type == TargetEventType.TargetSpecific)
+                {
                     targetEvent.TargetSpecific = MarshalTargetSpecificEvent(eventDataSize, eventData);
+                    targetEvent.TargetSpecific.TargetEventSize = eventHeader.Size;
+                    targetEvent.TargetSpecific.TargetEventTypeRaw = eventHeader.EventType;
+                }
                 else if (targetEvent.Type == TargetEventType.UnitStatusChange)
                     targetEvent.EventData.UnitStatusChangeData = MarshalUnitStatusChangeEvent(eventDataSize, eventData);
 
@@ -1131,17 +1152,32 @@ namespace TMAPI_NCAPI
         private static TargetSpecificEvent MarshalTargetSpecificEvent(uint eventSize, IntPtr data)
         {
             TargetSpecificEvent targetSpecific = new TargetSpecificEvent();
-            if (data == IntPtr.Zero || eventSize < 24)
+            int debugHeaderSize = Marshal.SizeOf(typeof(DebugEventHdrPriv));
+            if (data == IntPtr.Zero || eventSize < debugHeaderSize + 4)
                 return targetSpecific;
 
-            targetSpecific.CommandID = (uint)Marshal.ReadInt32(data, 0);
-            targetSpecific.RequestID = (uint)Marshal.ReadInt32(data, 4);
-            targetSpecific.ProcessID = (uint)Marshal.ReadInt32(data, 12);
-            targetSpecific.Result = (uint)Marshal.ReadInt32(data, 16);
-            targetSpecific.Data.Type = (TargetSpecificEventType)(uint)Marshal.ReadInt32(data, 20);
+            DebugEventHdrPriv debugHeader = (DebugEventHdrPriv)Marshal.PtrToStructure(data, typeof(DebugEventHdrPriv));
+            targetSpecific.CommandID = debugHeader.CommandID;
+            targetSpecific.RequestID = debugHeader.RequestID;
+            targetSpecific.DataLength = debugHeader.DataLength;
+            targetSpecific.ProcessID = debugHeader.ProcessID;
+            targetSpecific.Result = debugHeader.Result;
 
-            IntPtr payload = new IntPtr(data.ToInt64() + 24);
-            uint payloadSize = eventSize - 24;
+            uint availableDebugData = eventSize - (uint)debugHeaderSize;
+            uint debugDataLength = debugHeader.DataLength == 0
+                ? availableDebugData
+                : Math.Min(debugHeader.DataLength, availableDebugData);
+
+            if (debugDataLength < 4)
+                return targetSpecific;
+
+            IntPtr debugData = new IntPtr(data.ToInt64() + debugHeaderSize);
+            targetSpecific.RawDebugDataHex = BytesToHex(debugData, Math.Min(debugDataLength, 64));
+            targetSpecific.Data.Type = (TargetSpecificEventType)(uint)Marshal.ReadInt32(debugData, 0);
+
+            IntPtr payload = new IntPtr(debugData.ToInt64() + 4);
+            uint payloadSize = debugDataLength - 4;
+            targetSpecific.PayloadOffset = (uint)debugHeaderSize + 4;
             switch (targetSpecific.Data.Type)
             {
                 case TargetSpecificEventType.PPUExcAlignment:
@@ -1159,6 +1195,22 @@ namespace TMAPI_NCAPI
             }
 
             return targetSpecific;
+        }
+
+        private static string BytesToHex(IntPtr data, uint count)
+        {
+            if (data == IntPtr.Zero || count == 0)
+                return String.Empty;
+
+            int byteCount = count > Int32.MaxValue ? Int32.MaxValue : (int)count;
+            byte[] bytes = new byte[byteCount];
+            Marshal.Copy(data, bytes, 0, byteCount);
+
+            StringBuilder builder = new StringBuilder(byteCount * 2);
+            for (int index = 0; index < bytes.Length; index++)
+                builder.Append(bytes[index].ToString("X2"));
+
+            return builder.ToString();
         }
 
         private static bool IsPPUExceptionEvent(TargetSpecificEventType eventType)
