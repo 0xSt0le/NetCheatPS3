@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
-using NetCheatPS3.Scanner;
 
 namespace NetCheatPS3
 {
@@ -10,7 +8,7 @@ namespace NetCheatPS3
     {
         private bool modernSearchUiInitialized = false;
         private ToolTip modernSearchToolTip;
-        private Button scanDiagnosticsButton;
+        private Button addAddressButton;
         private Label exactBlockSizeLabel;
         private ComboBox exactBlockSizeBox;
         private CheckBox compareFirstScanCB;
@@ -31,7 +29,7 @@ namespace NetCheatPS3
             if (modernSearchToolTip == null)
                 modernSearchToolTip = new ToolTip();
 
-            EnsureScanDiagnosticsButton();
+            EnsureAddAddressButton();
             EnsureExactBlockSizeSelector();            EnsureCompareFirstScanCheckbox();
             EnsureFuzzyValueCheckbox();
             EnsureSnapshotCleanupOnFormClose();
@@ -101,20 +99,24 @@ namespace NetCheatPS3
             UpdateModernSearchLayout();
         }
 
-        private void EnsureScanDiagnosticsButton()
+        private void EnsureAddAddressButton()
         {
-            if (scanDiagnosticsButton != null)
+            if (addAddressButton != null)
                 return;
 
-            scanDiagnosticsButton = new Button();
-            scanDiagnosticsButton.Name = "scanDiagnosticsButton";
-            scanDiagnosticsButton.Text = "Diagnostics";
-            scanDiagnosticsButton.FlatStyle = FlatStyle.Flat;
-            scanDiagnosticsButton.Size = new Size(90, 23);
-            scanDiagnosticsButton.UseVisualStyleBackColor = true;
-            scanDiagnosticsButton.Click += delegate { ShowScanDiagnostics(); };
+            addAddressButton = new Button();
+            addAddressButton.Name = "addAddressButton";
+            addAddressButton.Text = "Add Address";
+            addAddressButton.FlatStyle = FlatStyle.Flat;
+            addAddressButton.Size = new Size(90, 23);
+            addAddressButton.UseVisualStyleBackColor = true;
+            addAddressButton.Click += delegate
+            {
+                if (Form1.Instance != null)
+                    Form1.Instance.ShowAddManualAddressDialog();
+            };
 
-            Controls.Add(scanDiagnosticsButton);
+            Controls.Add(addAddressButton);
         }
 
         private void EnsureExactBlockSizeSelector()
@@ -349,7 +351,7 @@ namespace NetCheatPS3
             if (!modernSearchUiInitialized)
                 return;
 
-            EnsureScanDiagnosticsButton();
+            EnsureAddAddressButton();
             EnsureExactBlockSizeSelector();
             EnsureCompareFirstScanCheckbox();
             EnsureFuzzyValueCheckbox();
@@ -438,12 +440,12 @@ namespace NetCheatPS3
             searchMemory.Location = new Point(5, buttonY);
             nextSearchMem.Location = new Point(Width - nextSearchMem.Width - 5, buttonY);
 
-            scanDiagnosticsButton.BackColor = BackColor;
-            scanDiagnosticsButton.ForeColor = ForeColor;
-            scanDiagnosticsButton.Location = new Point(nextSearchMem.Left - scanDiagnosticsButton.Width - 6, buttonY);
+            addAddressButton.BackColor = BackColor;
+            addAddressButton.ForeColor = ForeColor;
+            addAddressButton.Location = new Point(nextSearchMem.Left - addAddressButton.Width - 6, buttonY);
 
             refreshFromMem.Location = new Point(searchMemory.Right + 6, buttonY);
-            refreshFromMem.Width = Math.Max(80, scanDiagnosticsButton.Left - refreshFromMem.Left - 6);
+            refreshFromMem.Width = Math.Max(80, addAddressButton.Left - refreshFromMem.Left - 6);
 
             progBar.Location = new Point(5, buttonY + searchMemory.Height + 8);
             progBar.Width = Math.Max(50, Width - 10);
@@ -452,74 +454,5 @@ namespace NetCheatPS3
             searchListView1.Size = new Size(Math.Max(50, Width - 6), Math.Max(50, Height - searchListView1.Top - 3));
         }
 
-        private void ShowScanDiagnostics()
-        {
-            MemoryReadStats readStats = MemoryReader.LastCompletedStats;
-
-            StringBuilder sb = new StringBuilder();
-
-            sb.AppendLine("Scan Diagnostics");
-            sb.AppendLine();
-            sb.AppendLine("API: " + Form1.apiName);
-            sb.AppendLine("Connected: " + Form1.connected);
-            sb.AppendLine("Attached: " + Form1.attached);
-            sb.AppendLine();
-            sb.AppendLine("Search mode: " + (searchNameBox.SelectedItem == null ? "" : searchNameBox.SelectedItem.ToString()));
-            sb.AppendLine("Type: " + (searchTypeBox.SelectedItem == null ? "" : searchTypeBox.SelectedItem.ToString()));
-            sb.AppendLine("Initial scan state: " + isInitialScan);
-            sb.AppendLine("Pause When Scanning: " + (searchPWS.Visible && searchPWS.Checked));
-            sb.AppendLine("Little Endian selected: " + (littleEndianCB != null && littleEndianCB.Checked));
-            sb.AppendLine("Little Endian locked: " + (littleEndianCB != null && !littleEndianCB.Enabled));
-            sb.AppendLine("Block size locked: " + (exactBlockSizeBox != null && !exactBlockSizeBox.Enabled));
-            sb.AppendLine("No Negative locked: " + (noNegativeCB != null && !noNegativeCB.Enabled));
-            sb.AppendLine("No Zero locked: " + (noZeroCB != null && !noZeroCB.Enabled));
-            sb.AppendLine("Simple Values Only locked: " + (cleanFloatCB != null && !cleanFloatCB.Enabled));
-            sb.AppendLine();
-            sb.AppendLine("Start: 0x" + startAddrTB.Text);
-            sb.AppendLine("Stop:  0x" + stopAddrTB.Text);
-            sb.AppendLine();
-            sb.AppendLine("Visible/list results: " + searchListView1.TotalCount.ToString("N0"));
-            sb.AppendLine("Uses new scanner: " + activeScanUsesNewEngine);
-            sb.AppendLine("Active scan little-endian: " + activeScanLittleEndian);
-            sb.AppendLine("Exact scanner block size: " + GetSelectedExactScanBlockSizeText());
-            sb.AppendLine("Compare to first scan: " + IsCompareToFirstScanChecked());
-            sb.AppendLine("First snapshot active: " + HasFirstSnapshot());
-            sb.AppendLine();
-            sb.AppendLine("Last scan speed:");
-            AppendLastScanSpeedDiagnostics(sb);
-            sb.AppendLine();
-            sb.AppendLine("Memory reads:");
-            sb.AppendLine("Last activity: " + MemoryReader.LastActivity);
-            sb.AppendLine("Read attempts: " + readStats.ReadAttempts.ToString("N0"));
-            sb.AppendLine("Read OK: " + readStats.ReadSuccesses.ToString("N0"));
-            sb.AppendLine("Read failed: " + readStats.ReadFailures.ToString("N0"));
-            sb.AppendLine("Bytes requested: " + readStats.BytesRequested.ToString("N0"));
-            sb.AppendLine("Bytes read OK: " + readStats.BytesRead.ToString("N0"));
-            sb.AppendLine("Full block OK: " + readStats.FullBlockSuccesses.ToString("N0"));
-            sb.AppendLine("Full block failed: " + readStats.FullBlockFailures.ToString("N0"));
-            sb.AppendLine("Fallback splits: " + readStats.FallbackSplits.ToString("N0"));
-            sb.AppendLine("Fallback segment OK: " + readStats.FallbackSegmentSuccesses.ToString("N0"));
-            sb.AppendLine("Fallback segment failed: " + readStats.FallbackSegmentFailures.ToString("N0"));
-            sb.AppendLine("Partial blocks recovered: " + readStats.PartialBlocksRecovered.ToString("N0"));
-            sb.AppendLine("Candidate blocks attempted: " + readStats.CandidateBlocksAttempted.ToString("N0"));
-            sb.AppendLine("Candidate block cache hits: " + readStats.CandidateBlockCacheHits.ToString("N0"));
-            sb.AppendLine("Candidate blocks readable: " + readStats.CandidateBlocksWithReadableSegments.ToString("N0"));
-            sb.AppendLine("Candidate blocks unreadable: " + readStats.CandidateBlocksWithoutReadableSegments.ToString("N0"));
-            sb.AppendLine("Candidates skipped unreadable: " + readStats.CandidatesSkippedUnreadable.ToString("N0"));
-            sb.AppendLine();
-            sb.AppendLine("Snapshot active: " + HasActiveSnapshot());
-            sb.AppendLine("Snapshot count: " + activeSnapshotResultCount.ToString("N0"));
-            sb.AppendLine("Snapshot type index: " + activeSnapshotTypeIndex);
-            sb.AppendLine("Snapshot byte size: " + activeSnapshotByteSize);
-            sb.AppendLine("Snapshot path: " + (String.IsNullOrEmpty(activeSnapshotPath) ? "" : activeSnapshotPath));
-            sb.AppendLine();
-            sb.AppendLine("Filters:");
-            sb.AppendLine("No Negative: " + (noNegativeCB != null && noNegativeCB.Checked));
-            sb.AppendLine("No Zero: " + (noZeroCB != null && noZeroCB.Checked));
-            sb.AppendLine("Simple Values Only: " + (cleanFloatCB != null && cleanFloatCB.Checked));
-            sb.AppendLine("Fuzzy Value: " + (fuzzyValueCB != null && fuzzyValueCB.Visible && fuzzyValueCB.Checked));
-
-            MessageBox.Show(sb.ToString(), "NetCheatPS3 Scan Diagnostics", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
     }
 }

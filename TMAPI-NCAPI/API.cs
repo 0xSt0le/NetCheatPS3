@@ -188,6 +188,7 @@ namespace TMAPI_NCAPI
             private readonly Dictionary<ulong, PendingDabrHitAggregate> pendingHitsByPc = new Dictionary<ulong, PendingDabrHitAggregate>();
             private readonly Dictionary<ulong, byte[]> instructionBytesByPc = new Dictionary<ulong, byte[]>();
             private readonly Dictionary<ulong, int> callbackPcCounts = new Dictionary<ulong, int>();
+            private readonly Queue<AddressAccessHit> pendingObservedPcDiagnostics = new Queue<AddressAccessHit>();
             private Thread eventPumpWorker;
             private bool processingPendingDabrHit;
             private bool reportedDebugThreadControlInfo;
@@ -431,8 +432,12 @@ namespace TMAPI_NCAPI
                     dabrWasArmed = false;
                 }
 
+                PublishObservedPcDiagnosticsOutsideCallback();
+                LogCallbackPcHistogram();
+
                 pendingPcOrder.Clear();
                 pendingHitsByPc.Clear();
+                pendingObservedPcDiagnostics.Clear();
                 processingPendingDabrHit = false;
 
                 RestoreAutoStatusUpdateOnWorkerThread();
@@ -623,7 +628,7 @@ namespace TMAPI_NCAPI
                         return false;
 
                     DateTime now = DateTime.UtcNow;
-                    IncrementCallbackPcCount(hit.ProgramCounter);
+                    IncrementCallbackPcCount(hit);
 
                     if (processingPendingDabrHit &&
                         hit.ProgramCounter == currentlyProcessingPc &&
@@ -663,8 +668,9 @@ namespace TMAPI_NCAPI
                 }
             }
 
-            private void IncrementCallbackPcCount(ulong programCounter)
+            private void IncrementCallbackPcCount(AddressAccessHit hit)
             {
+                ulong programCounter = hit.ProgramCounter;
                 int count;
                 if (callbackPcCounts.TryGetValue(programCounter, out count))
                 {
@@ -673,7 +679,24 @@ namespace TMAPI_NCAPI
                 }
 
                 callbackPcCounts.Add(programCounter, 1);
-                PublishVerboseDiagnostic("Observed DABR PC 0x" + programCounter.ToString("X8") + " in callback.");
+                pendingObservedPcDiagnostics.Enqueue(CloneHit(hit));
+            }
+
+            private static AddressAccessHit CloneHit(AddressAccessHit hit)
+            {
+                if (hit == null)
+                    return null;
+
+                AddressAccessHit clone = new AddressAccessHit();
+                clone.WatchedAddress = hit.WatchedAddress;
+                clone.ProgramCounter = hit.ProgramCounter;
+                clone.StackPointer = hit.StackPointer;
+                clone.ThreadId = hit.ThreadId;
+                clone.HWThreadNumber = hit.HWThreadNumber;
+                clone.RawDabr = hit.RawDabr;
+                clone.Mode = hit.Mode;
+                clone.Timestamp = hit.Timestamp;
+                return clone;
             }
 
             private void ProcessPendingDabrHitsOutsideCallback()
@@ -844,6 +867,7 @@ namespace TMAPI_NCAPI
                     try
                     {
                         PumpOneTargetEventSlice();
+                        PublishObservedPcDiagnosticsOutsideCallback();
                         ProcessPendingDabrHitsOutsideCallback();
                         if (VerboseDabrDiagnostics)
                             PublishDebugThreadControlInfoOnce();
@@ -855,6 +879,65 @@ namespace TMAPI_NCAPI
 
                     Thread.Sleep(15);
                 }
+            }
+
+            private void PublishObservedPcDiagnosticsOutsideCallback()
+            {
+                while (true)
+                {
+                    AddressAccessHit hit;
+                    lock (sync)
+                    {
+                        if (pendingObservedPcDiagnostics.Count == 0)
+                            return;
+
+                        hit = pendingObservedPcDiagnostics.Dequeue();
+                    }
+
+                    if (hit == null)
+                        continue;
+
+                    string message = "Observed DABR callback PC 0x" + hit.ProgramCounter.ToString("X8");
+                    PublishDiagnostic(message);
+                    LogDabrDiagnostic(
+                        message +
+                        " watched=0x" + hit.WatchedAddress.ToString("X8") +
+                        " mode=" + hit.Mode.ToString() +
+                        " thread=0x" + hit.ThreadId.ToString("X16") +
+                        " hwThread=" + hit.HWThreadNumber.ToString() +
+                        " sp=0x" + hit.StackPointer.ToString("X16") +
+                        " timestamp=" + hit.Timestamp.ToString("O") + ".");
+                }
+            }
+
+            private void LogCallbackPcHistogram()
+            {
+                KeyValuePair<ulong, int>[] snapshot;
+                lock (sync)
+                {
+                    if (callbackPcCounts.Count == 0)
+                        return;
+
+                    snapshot = new KeyValuePair<ulong, int>[callbackPcCounts.Count];
+                    int index = 0;
+                    foreach (KeyValuePair<ulong, int> entry in callbackPcCounts)
+                    {
+                        snapshot[index] = entry;
+                        index++;
+                    }
+                }
+
+                Array.Sort(snapshot, delegate(KeyValuePair<ulong, int> left, KeyValuePair<ulong, int> right)
+                {
+                    return left.Key.CompareTo(right.Key);
+                });
+
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("DABR callback PC histogram for 0x" + Address.ToString("X8") + ":");
+                foreach (KeyValuePair<ulong, int> entry in snapshot)
+                    sb.AppendLine("0x" + entry.Key.ToString("X8") + " = " + entry.Value.ToString("N0"));
+
+                LogDabrDiagnostic(sb.ToString().TrimEnd());
             }
 
             private void PumpOneTargetEventSlice()

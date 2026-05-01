@@ -47,6 +47,8 @@ Hot writer handling:
 - Repeated same-PC callbacks are coalesced, and the UI count may be batched with `CountDelta` under heavy load.
 - A bounded pending-PC queue reduces missed different writer PCs while the worker is busy. If full, the oldest pending PC aggregate is dropped.
 - A verbose callback PC histogram logs the first time each new PC is observed. If a PC never appears there, TMAPI/DABR did not deliver it to NetCheatPS3 during that session.
+- New callback PCs are now also surfaced as normal logger status text and written to `NetCheatPS3_dabr_logger.log` with watched address, mode, PC, thread, hardware thread, SP, and timestamp.
+- On logger stop, `NetCheatPS3_dabr_logger.log` receives a callback PC histogram summary for the watched address.
 - Ultra-hot addresses can still stutter because every access triggers a debug exception. The logger is intended to identify writers, not to run indefinitely on a very hot address; stop it once the relevant writer PCs are captured.
 
 Forbidden approaches:
